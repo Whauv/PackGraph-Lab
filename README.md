@@ -133,6 +133,26 @@ Scenario endpoints simulate:
 - `GET /compliance/dashboard`
 - `GET /graph/relationships`
 
+## Workflow chart
+
+```mermaid
+flowchart LR
+    A["Synthetic data generator"] --> B["JSON datasets"]
+    B --> C["FastAPI local graph repository"]
+    B --> D["Neo4j ingestion script"]
+    D --> E["Neo4j graph database"]
+    C --> F["Reviewed query planner"]
+    C --> G["Scenario engine"]
+    C --> H["Investigation workspace"]
+    F --> I["Recommendations and evidence queries"]
+    G --> J["Cost, risk, and compliance simulations"]
+    H --> K["Saved notes, shortlists, and rationale"]
+    I --> L["Frontend dashboard"]
+    J --> L
+    K --> L
+    E --> M["Benchmark and Cypher analysis"]
+```
+
 ## Example Cypher queries
 
 See:
