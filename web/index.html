@@ -10,51 +10,118 @@
   <body>
     <div class="shell">
       <aside class="sidebar">
-        <div>
-          <p class="eyebrow">Synthetic Packaging Intelligence</p>
+        <div class="brand-block">
+          <div class="brand-topbar">
+            <p class="eyebrow">Synthetic Packaging Intelligence</p>
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme">Dark mode</button>
+          </div>
           <h1>PackGraph Lab</h1>
-          <p class="lede">A local-first graph product demo for material selection, provenance, compliance, and scenario analysis.</p>
+          <p class="lede">
+            A graph-native workspace for packaging material decisions, supplier
+            monitoring, provenance review, and scenario planning.
+          </p>
         </div>
-        <div class="stack">
-          <div class="status-card">
-            <span>Active backend</span>
-            <strong id="active-backend">Loading</strong>
+
+        <section class="sidebar-section">
+          <div class="section-label">Runtime</div>
+          <div class="status-stack">
+            <div class="status-card">
+              <span>Active backend</span>
+              <strong id="active-backend">Loading</strong>
+            </div>
+            <div class="status-card">
+              <span>Dataset scale</span>
+              <strong id="dataset-scale">Loading</strong>
+            </div>
+            <div class="status-card">
+              <span>Open investigations</span>
+              <strong id="investigation-count">Loading</strong>
+            </div>
           </div>
-          <div class="status-card">
-            <span>Dataset scale</span>
-            <strong id="dataset-scale">Loading</strong>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">Focus areas</div>
+          <div class="tag-group">
+            <span class="tag neutral">Films</span>
+            <span class="tag neutral">Bioplastics</span>
+            <span class="tag neutral">Barrier Layers</span>
+            <span class="tag neutral">Recyclability</span>
+            <span class="tag neutral">Food Contact</span>
+            <span class="tag neutral">Provenance</span>
           </div>
-          <div class="status-card">
-            <span>Open investigations</span>
-            <strong id="investigation-count">Loading</strong>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">Operating cues</div>
+          <div class="sidebar-note-list">
+            <div class="sidebar-note">
+              <strong>Recommendation flow</strong>
+              <p>Start with food-safe candidates, then weigh evidence, supplier resilience, and recovery fit.</p>
+            </div>
+            <div class="sidebar-note">
+              <strong>Scenario mode</strong>
+              <p>Use simulations to preview supplier outages, cost movement, and regulation timing before shortlisting.</p>
+            </div>
           </div>
-        </div>
+        </section>
       </aside>
 
       <main class="main">
         <section class="hero">
-          <div>
+          <div class="hero-copy">
             <p class="eyebrow">Decision cockpit</p>
-            <h2>Graph-native materials intelligence for sustainable packaging</h2>
+            <h2>Calm, evidence-led workflows for sustainable packaging decisions</h2>
+            <p class="hero-text">
+              Review material fit, compliance pressure, supplier exposure, and
+              provenance without leaving a single workspace.
+            </p>
           </div>
-          <div class="hero-actions">
-            <button data-tab-target="chat">Ask the graph</button>
-            <button data-tab-target="workspace" class="ghost">Open investigations</button>
+
+          <div class="hero-rail">
+            <div class="hero-actions">
+              <button type="button" id="jump-chat">Ask the graph</button>
+              <button type="button" id="jump-workspace" class="secondary">Open investigations</button>
+            </div>
+            <div class="hero-summary" id="hero-summary">
+              <div class="summary-card">
+                <span>Food-safe recommendations</span>
+                <strong id="hero-recommendations">Loading</strong>
+              </div>
+              <div class="summary-card">
+                <span>At-risk materials</span>
+                <strong id="hero-risk-count">Loading</strong>
+              </div>
+              <div class="summary-card">
+                <span>Upcoming regulations</span>
+                <strong id="hero-regulations">Loading</strong>
+              </div>
+            </div>
           </div>
         </section>
 
         <section class="panel-grid top-grid">
-          <article class="panel accent">
+          <article class="panel" id="chat-panel">
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Chat interface</p>
-                <h3>LLM-guided query routing</h3>
+                <h3>Reviewed query routing</h3>
               </div>
+              <div class="panel-kicker">Safe templates and audit details</div>
+            </div>
+            <div class="prompt-row">
+              <button class="mini-action" data-prompt="Recommend food-safe materials for snack packaging.">Food-safe recommendations</button>
+              <button class="mini-action" data-prompt="Show recyclable substitutes for the selected material.">Substitute screening</button>
+              <button class="mini-action" data-prompt="Trace the evidence for this material.">Evidence trace</button>
             </div>
             <div class="chat-box" id="chat-log"></div>
             <form id="ask-form" class="inline-form">
-              <input id="question-input" type="text" placeholder="Ask about substitutes, provenance, supplier risk, or food-safe recommendations" />
-              <button type="submit">Run</button>
+              <input
+                id="question-input"
+                type="text"
+                placeholder="Ask about substitutes, supplier risk, provenance, or compliance"
+              />
+              <button type="submit">Run query</button>
             </form>
           </article>
 
@@ -62,11 +129,18 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Compliance dashboard</p>
-                <h3>Portfolio exposure</h3>
+                <h3>Portfolio pressure and timing</h3>
               </div>
             </div>
             <div id="compliance-summary" class="metric-grid"></div>
-            <div id="regulation-list" class="pill-list"></div>
+            <div class="subsection">
+              <div class="subsection-heading">Upcoming regulation focus</div>
+              <div id="regulation-list" class="pill-list"></div>
+            </div>
+            <div class="subsection">
+              <div class="subsection-heading">Highest supplier exposure</div>
+              <div id="compliance-risk-list" class="card-list compact-list"></div>
+            </div>
           </article>
         </section>
 
@@ -88,7 +162,7 @@
               </div>
               <select id="material-select"></select>
             </div>
-            <div id="material-detail" class="detail-grid"></div>
+            <div id="material-detail" class="detail-layout"></div>
           </article>
 
           <article class="panel tab-panel" data-panel="suppliers">
@@ -115,22 +189,30 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Investigation workspace</p>
-                <h3>Saved investigations and rationale</h3>
+                <h3>Shortlists, notes, and decision rationale</h3>
               </div>
             </div>
-            <form id="investigation-form" class="stack-form">
-              <input id="investigation-title" type="text" placeholder="New investigation title" />
-              <textarea id="investigation-notes" placeholder="Notes, shortlist rationale, comparison goals"></textarea>
-              <button type="submit">Save investigation</button>
-            </form>
-            <div id="investigation-list" class="card-list"></div>
+            <div class="workspace-grid">
+              <form id="investigation-form" class="stack-form workspace-form">
+                <label>
+                  <span class="field-label">Investigation title</span>
+                  <input id="investigation-title" type="text" placeholder="Packaging redesign Q4" />
+                </label>
+                <label>
+                  <span class="field-label">Notes</span>
+                  <textarea id="investigation-notes" placeholder="Capture comparison goals, supply concerns, and recommendation logic"></textarea>
+                </label>
+                <button type="submit">Save investigation</button>
+              </form>
+              <div id="investigation-list" class="card-list"></div>
+            </div>
           </article>
 
           <article class="panel tab-panel" data-panel="graph">
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Relationship explorer</p>
-                <h3>Material to application to recycling path preview</h3>
+                <h3>Material, application, supplier, and recycling paths</h3>
               </div>
             </div>
             <div id="relationship-list" class="card-list compact"></div>
@@ -140,15 +222,15 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Timeline and history panel</p>
-                <h3>Quarterly changes for the selected material</h3>
+                <h3>Quarterly operating changes for the selected material</h3>
               </div>
-              <button id="scenario-button" class="ghost">Run compostability-priority scenario</button>
+              <button id="scenario-button" type="button" class="secondary">Run compostability priority</button>
             </div>
-            <div id="timeline-list" class="card-list"></div>
+            <div id="timeline-list" class="card-list timeline-list"></div>
           </article>
         </section>
       </main>
     </div>
     <script src="/assets/app.js"></script>
   </body>
-  </html>
+</html>
