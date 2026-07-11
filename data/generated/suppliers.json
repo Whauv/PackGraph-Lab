@@ -1,0 +1,695 @@
+[
+  {
+    "supplier_id": "SUP-001",
+    "name": "VelaPack Materials",
+    "country": "Mexico",
+    "regions_served": [
+      "North America",
+      "North America"
+    ],
+    "lead_time_days": 57,
+    "disruption_risk_score": 73,
+    "esg_score": 53,
+    "certifications": [
+      "CompostMark EN13432",
+      "LowVOC Seal"
+    ],
+    "supplied_material_ids": [
+      "MAT-006",
+      "MAT-014",
+      "MAT-015",
+      "MAT-031",
+      "MAT-033",
+      "MAT-042",
+      "MAT-051",
+      "MAT-062",
+      "MAT-065"
+    ]
+  },
+  {
+    "supplier_id": "SUP-002",
+    "name": "HarborFlex Systems",
+    "country": "Spain",
+    "regions_served": [
+      "Europe",
+      "Europe"
+    ],
+    "lead_time_days": 46,
+    "disruption_risk_score": 65,
+    "esg_score": 54,
+    "certifications": [
+      "FoodSafe EU 41",
+      "CompostMark EN13432"
+    ],
+    "supplied_material_ids": [
+      "MAT-020",
+      "MAT-022",
+      "MAT-025",
+      "MAT-034",
+      "MAT-039",
+      "MAT-042",
+      "MAT-046",
+      "MAT-053",
+      "MAT-055",
+      "MAT-060",
+      "MAT-066"
+    ]
+  },
+  {
+    "supplier_id": "SUP-003",
+    "name": "Blue Loop Converting",
+    "country": "Australia",
+    "regions_served": [
+      "Asia Pacific",
+      "Latin America"
+    ],
+    "lead_time_days": 51,
+    "disruption_risk_score": 58,
+    "esg_score": 55,
+    "certifications": [
+      "LowVOC Seal",
+      "BarrierLab Verified",
+      "ForestFiber Plus",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-003",
+      "MAT-004",
+      "MAT-006",
+      "MAT-008",
+      "MAT-021",
+      "MAT-029",
+      "MAT-032",
+      "MAT-033",
+      "MAT-045",
+      "MAT-047",
+      "MAT-051",
+      "MAT-058",
+      "MAT-060",
+      "MAT-074"
+    ]
+  },
+  {
+    "supplier_id": "SUP-004",
+    "name": "Northframe Barrier",
+    "country": "Chile",
+    "regions_served": [
+      "Latin America",
+      "Asia Pacific"
+    ],
+    "lead_time_days": 31,
+    "disruption_risk_score": 53,
+    "esg_score": 69,
+    "certifications": [
+      "LowVOC Seal",
+      "ForestFiber Plus"
+    ],
+    "supplied_material_ids": [
+      "MAT-006",
+      "MAT-016",
+      "MAT-017",
+      "MAT-021",
+      "MAT-028",
+      "MAT-035",
+      "MAT-037",
+      "MAT-054",
+      "MAT-068",
+      "MAT-075"
+    ]
+  },
+  {
+    "supplier_id": "SUP-005",
+    "name": "GreenSpindle Labs",
+    "country": "UAE",
+    "regions_served": [
+      "Middle East",
+      "North America"
+    ],
+    "lead_time_days": 36,
+    "disruption_risk_score": 70,
+    "esg_score": 60,
+    "certifications": [
+      "FoodSafe EU 41",
+      "ForestFiber Plus"
+    ],
+    "supplied_material_ids": [
+      "MAT-032",
+      "MAT-036",
+      "MAT-039",
+      "MAT-046",
+      "MAT-047",
+      "MAT-053",
+      "MAT-061",
+      "MAT-064",
+      "MAT-066",
+      "MAT-075"
+    ]
+  },
+  {
+    "supplier_id": "SUP-006",
+    "name": "OrcaBond Films",
+    "country": "Canada",
+    "regions_served": [
+      "North America",
+      "North America"
+    ],
+    "lead_time_days": 49,
+    "disruption_risk_score": 71,
+    "esg_score": 68,
+    "certifications": [
+      "ForestFiber Plus",
+      "BarrierLab Verified",
+      "FoodSafe EU 41",
+      "CompostMark EN13432"
+    ],
+    "supplied_material_ids": [
+      "MAT-002",
+      "MAT-007",
+      "MAT-018",
+      "MAT-024",
+      "MAT-057",
+      "MAT-059"
+    ]
+  },
+  {
+    "supplier_id": "SUP-007",
+    "name": "FiberMint Industrial",
+    "country": "Italy",
+    "regions_served": [
+      "Europe",
+      "North America"
+    ],
+    "lead_time_days": 56,
+    "disruption_risk_score": 65,
+    "esg_score": 73,
+    "certifications": [
+      "BarrierLab Verified",
+      "CompostMark EN13432",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-001",
+      "MAT-009",
+      "MAT-018",
+      "MAT-025",
+      "MAT-044",
+      "MAT-067",
+      "MAT-073"
+    ]
+  },
+  {
+    "supplier_id": "SUP-008",
+    "name": "Sable Circuit Packaging",
+    "country": "South Korea",
+    "regions_served": [
+      "Asia Pacific",
+      "Asia Pacific"
+    ],
+    "lead_time_days": 43,
+    "disruption_risk_score": 73,
+    "esg_score": 74,
+    "certifications": [
+      "FoodSafe EU 41",
+      "ForestFiber Plus"
+    ],
+    "supplied_material_ids": [
+      "MAT-001",
+      "MAT-021",
+      "MAT-029",
+      "MAT-030",
+      "MAT-037",
+      "MAT-050",
+      "MAT-052",
+      "MAT-072"
+    ]
+  },
+  {
+    "supplier_id": "SUP-009",
+    "name": "Mosaic Seal Works",
+    "country": "Colombia",
+    "regions_served": [
+      "Latin America",
+      "Middle East"
+    ],
+    "lead_time_days": 54,
+    "disruption_risk_score": 53,
+    "esg_score": 76,
+    "certifications": [
+      "CompostMark EN13432",
+      "ClosedLoop Ready",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-008",
+      "MAT-020",
+      "MAT-023",
+      "MAT-054",
+      "MAT-065"
+    ]
+  },
+  {
+    "supplier_id": "SUP-010",
+    "name": "AtlasFresh Layers",
+    "country": "UAE",
+    "regions_served": [
+      "Middle East",
+      "Asia Pacific"
+    ],
+    "lead_time_days": 17,
+    "disruption_risk_score": 54,
+    "esg_score": 73,
+    "certifications": [
+      "ForestFiber Plus",
+      "ClosedLoop Ready",
+      "CompostMark EN13432"
+    ],
+    "supplied_material_ids": [
+      "MAT-016",
+      "MAT-021",
+      "MAT-022",
+      "MAT-023",
+      "MAT-026",
+      "MAT-031",
+      "MAT-034",
+      "MAT-058",
+      "MAT-062"
+    ]
+  },
+  {
+    "supplier_id": "SUP-011",
+    "name": "CinderBridge Packaging",
+    "country": "United States",
+    "regions_served": [
+      "North America",
+      "Middle East"
+    ],
+    "lead_time_days": 59,
+    "disruption_risk_score": 67,
+    "esg_score": 79,
+    "certifications": [
+      "ClosedLoop Ready",
+      "FoodSafe EU 41",
+      "CompostMark EN13432"
+    ],
+    "supplied_material_ids": [
+      "MAT-013",
+      "MAT-014",
+      "MAT-027",
+      "MAT-041",
+      "MAT-047",
+      "MAT-054",
+      "MAT-059",
+      "MAT-067",
+      "MAT-071"
+    ]
+  },
+  {
+    "supplier_id": "SUP-012",
+    "name": "TernEco Components",
+    "country": "Italy",
+    "regions_served": [
+      "Europe",
+      "Europe"
+    ],
+    "lead_time_days": 49,
+    "disruption_risk_score": 58,
+    "esg_score": 70,
+    "certifications": [
+      "ForestFiber Plus",
+      "CompostMark EN13432",
+      "ClosedLoop Ready",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-009",
+      "MAT-019",
+      "MAT-027",
+      "MAT-033",
+      "MAT-035",
+      "MAT-044",
+      "MAT-049",
+      "MAT-053",
+      "MAT-054",
+      "MAT-055",
+      "MAT-056",
+      "MAT-072",
+      "MAT-075"
+    ]
+  },
+  {
+    "supplier_id": "SUP-013",
+    "name": "Fieldtrace Polymers",
+    "country": "Australia",
+    "regions_served": [
+      "Asia Pacific",
+      "Middle East"
+    ],
+    "lead_time_days": 45,
+    "disruption_risk_score": 60,
+    "esg_score": 72,
+    "certifications": [
+      "ForestFiber Plus",
+      "ClosedLoop Ready",
+      "CompostMark EN13432",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-002",
+      "MAT-014",
+      "MAT-023",
+      "MAT-033",
+      "MAT-043",
+      "MAT-061"
+    ]
+  },
+  {
+    "supplier_id": "SUP-014",
+    "name": "NovaWrap Source",
+    "country": "Brazil",
+    "regions_served": [
+      "Latin America",
+      "Latin America"
+    ],
+    "lead_time_days": 52,
+    "disruption_risk_score": 65,
+    "esg_score": 82,
+    "certifications": [
+      "LowVOC Seal",
+      "CompostMark EN13432"
+    ],
+    "supplied_material_ids": [
+      "MAT-007",
+      "MAT-011",
+      "MAT-017",
+      "MAT-019",
+      "MAT-024",
+      "MAT-025",
+      "MAT-038",
+      "MAT-043",
+      "MAT-052"
+    ]
+  },
+  {
+    "supplier_id": "SUP-015",
+    "name": "BrightShelf Barrier",
+    "country": "UAE",
+    "regions_served": [
+      "Middle East",
+      "North America"
+    ],
+    "lead_time_days": 57,
+    "disruption_risk_score": 58,
+    "esg_score": 77,
+    "certifications": [
+      "BarrierLab Verified",
+      "ClosedLoop Ready",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-011",
+      "MAT-013",
+      "MAT-025",
+      "MAT-028",
+      "MAT-030",
+      "MAT-037",
+      "MAT-045",
+      "MAT-050",
+      "MAT-055",
+      "MAT-056",
+      "MAT-057",
+      "MAT-062",
+      "MAT-064",
+      "MAT-070"
+    ]
+  },
+  {
+    "supplier_id": "SUP-016",
+    "name": "HelioPulp Solutions",
+    "country": "Mexico",
+    "regions_served": [
+      "North America",
+      "Europe"
+    ],
+    "lead_time_days": 43,
+    "disruption_risk_score": 62,
+    "esg_score": 84,
+    "certifications": [
+      "FoodSafe EU 41",
+      "ClosedLoop Ready",
+      "ForestFiber Plus"
+    ],
+    "supplied_material_ids": [
+      "MAT-015",
+      "MAT-017",
+      "MAT-018",
+      "MAT-022",
+      "MAT-045",
+      "MAT-046",
+      "MAT-062",
+      "MAT-065",
+      "MAT-067",
+      "MAT-071"
+    ]
+  },
+  {
+    "supplier_id": "SUP-017",
+    "name": "Cascadia FlexTech",
+    "country": "Germany",
+    "regions_served": [
+      "Europe",
+      "Asia Pacific"
+    ],
+    "lead_time_days": 54,
+    "disruption_risk_score": 63,
+    "esg_score": 89,
+    "certifications": [
+      "BarrierLab Verified",
+      "CompostMark EN13432",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-012",
+      "MAT-026",
+      "MAT-028",
+      "MAT-037",
+      "MAT-038",
+      "MAT-046",
+      "MAT-048",
+      "MAT-064",
+      "MAT-070",
+      "MAT-073"
+    ]
+  },
+  {
+    "supplier_id": "SUP-018",
+    "name": "SoraBond Manufacturing",
+    "country": "Australia",
+    "regions_served": [
+      "Asia Pacific",
+      "North America"
+    ],
+    "lead_time_days": 52,
+    "disruption_risk_score": 45,
+    "esg_score": 85,
+    "certifications": [
+      "BarrierLab Verified",
+      "LowVOC Seal"
+    ],
+    "supplied_material_ids": [
+      "MAT-004",
+      "MAT-005",
+      "MAT-013",
+      "MAT-019",
+      "MAT-027",
+      "MAT-039",
+      "MAT-040",
+      "MAT-063",
+      "MAT-073"
+    ]
+  },
+  {
+    "supplier_id": "SUP-019",
+    "name": "ElmRoute Specialty Films",
+    "country": "Chile",
+    "regions_served": [
+      "Latin America",
+      "Europe"
+    ],
+    "lead_time_days": 50,
+    "disruption_risk_score": 43,
+    "esg_score": 84,
+    "certifications": [
+      "ClosedLoop Ready",
+      "CompostMark EN13432",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-010",
+      "MAT-024",
+      "MAT-041",
+      "MAT-043",
+      "MAT-047",
+      "MAT-052",
+      "MAT-063",
+      "MAT-069",
+      "MAT-073",
+      "MAT-074"
+    ]
+  },
+  {
+    "supplier_id": "SUP-020",
+    "name": "DeltaNest Materials",
+    "country": "UAE",
+    "regions_served": [
+      "Middle East",
+      "Europe"
+    ],
+    "lead_time_days": 56,
+    "disruption_risk_score": 52,
+    "esg_score": 79,
+    "certifications": [
+      "BarrierLab Verified",
+      "CompostMark EN13432"
+    ],
+    "supplied_material_ids": [
+      "MAT-003",
+      "MAT-010",
+      "MAT-012",
+      "MAT-022",
+      "MAT-036",
+      "MAT-038",
+      "MAT-040",
+      "MAT-041",
+      "MAT-042",
+      "MAT-065",
+      "MAT-068",
+      "MAT-072"
+    ]
+  },
+  {
+    "supplier_id": "SUP-021",
+    "name": "LumenWeave Packaging",
+    "country": "Canada",
+    "regions_served": [
+      "North America",
+      "Europe"
+    ],
+    "lead_time_days": 59,
+    "disruption_risk_score": 43,
+    "esg_score": 95,
+    "certifications": [
+      "BarrierLab Verified",
+      "ForestFiber Plus",
+      "CompostMark EN13432",
+      "ClosedLoop Ready"
+    ],
+    "supplied_material_ids": [
+      "MAT-010",
+      "MAT-040",
+      "MAT-069",
+      "MAT-075"
+    ]
+  },
+  {
+    "supplier_id": "SUP-022",
+    "name": "Pioneer Crest Supplies",
+    "country": "Italy",
+    "regions_served": [
+      "Europe",
+      "North America"
+    ],
+    "lead_time_days": 29,
+    "disruption_risk_score": 55,
+    "esg_score": 87,
+    "certifications": [
+      "ForestFiber Plus",
+      "BarrierLab Verified",
+      "LowVOC Seal"
+    ],
+    "supplied_material_ids": [
+      "MAT-009",
+      "MAT-035",
+      "MAT-040",
+      "MAT-049"
+    ]
+  },
+  {
+    "supplier_id": "SUP-023",
+    "name": "TerraLatch Goods",
+    "country": "South Korea",
+    "regions_served": [
+      "Asia Pacific",
+      "North America"
+    ],
+    "lead_time_days": 59,
+    "disruption_risk_score": 38,
+    "esg_score": 83,
+    "certifications": [
+      "CompostMark EN13432",
+      "BarrierLab Verified",
+      "LowVOC Seal",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-006",
+      "MAT-023",
+      "MAT-026",
+      "MAT-031",
+      "MAT-059",
+      "MAT-066",
+      "MAT-067"
+    ]
+  },
+  {
+    "supplier_id": "SUP-024",
+    "name": "MarlinFiber Group",
+    "country": "Colombia",
+    "regions_served": [
+      "Latin America",
+      "Middle East"
+    ],
+    "lead_time_days": 29,
+    "disruption_risk_score": 38,
+    "esg_score": 85,
+    "certifications": [
+      "ClosedLoop Ready",
+      "FoodSafe EU 41"
+    ],
+    "supplied_material_ids": [
+      "MAT-005",
+      "MAT-009",
+      "MAT-012",
+      "MAT-019",
+      "MAT-029",
+      "MAT-032",
+      "MAT-044",
+      "MAT-055",
+      "MAT-066"
+    ]
+  },
+  {
+    "supplier_id": "SUP-025",
+    "name": "AsterArc Pack Systems",
+    "country": "Saudi Arabia",
+    "regions_served": [
+      "Middle East",
+      "Middle East"
+    ],
+    "lead_time_days": 44,
+    "disruption_risk_score": 41,
+    "esg_score": 96,
+    "certifications": [
+      "LowVOC Seal",
+      "BarrierLab Verified"
+    ],
+    "supplied_material_ids": [
+      "MAT-008",
+      "MAT-036",
+      "MAT-041",
+      "MAT-044",
+      "MAT-048",
+      "MAT-056",
+      "MAT-061"
+    ]
+  }
+]

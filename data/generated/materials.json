@@ -1,0 +1,3756 @@
+[
+  {
+    "material_id": "MAT-001",
+    "name": "Film A11",
+    "category": "film",
+    "composition": "PE, mPE",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 84,
+    "moisture_barrier": 69,
+    "grease_resistance": 50,
+    "seal_strength": 81,
+    "flexibility": 83,
+    "thermal_tolerance": 82,
+    "transparency": 47,
+    "food_contact_safe": true,
+    "recyclability_score": 76,
+    "compostability_score": 46,
+    "sustainability_score": 78,
+    "cost_range": {
+      "low": 3.25,
+      "high": 4.66,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-008",
+      "MAT-036",
+      "MAT-057"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-015"
+    ],
+    "supplier_ids": [
+      "SUP-008",
+      "SUP-007"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-001-A",
+      "DOC-001-B"
+    ]
+  },
+  {
+    "material_id": "MAT-002",
+    "name": "Bioplastic B12",
+    "category": "bioplastic",
+    "composition": "PLA, PHA",
+    "descriptor": "heat limited",
+    "oxygen_barrier": 68,
+    "moisture_barrier": 72,
+    "grease_resistance": 33,
+    "seal_strength": 70,
+    "flexibility": 80,
+    "thermal_tolerance": 57,
+    "transparency": 50,
+    "food_contact_safe": true,
+    "recyclability_score": 78,
+    "compostability_score": 73,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 3.53,
+      "high": 5.89,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-065",
+      "MAT-051",
+      "MAT-072"
+    ],
+    "target_applications": [
+      "APP-013",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-006",
+      "SUP-013"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-002-A",
+      "DOC-002-B"
+    ]
+  },
+  {
+    "material_id": "MAT-003",
+    "name": "Coating C13",
+    "category": "coating",
+    "composition": "mineral barrier, waterborne acrylic",
+    "descriptor": "surface barrier",
+    "oxygen_barrier": 68,
+    "moisture_barrier": 64,
+    "grease_resistance": 68,
+    "seal_strength": 59,
+    "flexibility": 64,
+    "thermal_tolerance": 59,
+    "transparency": 26,
+    "food_contact_safe": true,
+    "recyclability_score": 60,
+    "compostability_score": 44,
+    "sustainability_score": 79,
+    "cost_range": {
+      "low": 2.0,
+      "high": 3.71,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-031",
+      "MAT-073",
+      "MAT-059"
+    ],
+    "target_applications": [
+      "APP-008",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-003",
+      "SUP-020"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-003-A",
+      "DOC-003-B"
+    ]
+  },
+  {
+    "material_id": "MAT-004",
+    "name": "BarrierLayer D14",
+    "category": "barrier layer",
+    "composition": "SiOx, AlOx",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 99,
+    "moisture_barrier": 80,
+    "grease_resistance": 76,
+    "seal_strength": 44,
+    "flexibility": 60,
+    "thermal_tolerance": 76,
+    "transparency": 24,
+    "food_contact_safe": true,
+    "recyclability_score": 62,
+    "compostability_score": 39,
+    "sustainability_score": 67,
+    "cost_range": {
+      "low": 3.45,
+      "high": 6.05,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-046",
+      "MAT-025",
+      "MAT-039"
+    ],
+    "target_applications": [
+      "APP-017",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-003",
+      "SUP-018"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-004-A",
+      "DOC-004-B"
+    ]
+  },
+  {
+    "material_id": "MAT-005",
+    "name": "Adhesive E15",
+    "category": "adhesive",
+    "composition": "bio-binder, solvent-free PU",
+    "descriptor": "lamination ready",
+    "oxygen_barrier": 43,
+    "moisture_barrier": 58,
+    "grease_resistance": 65,
+    "seal_strength": 91,
+    "flexibility": 61,
+    "thermal_tolerance": 71,
+    "transparency": 28,
+    "food_contact_safe": true,
+    "recyclability_score": 51,
+    "compostability_score": 36,
+    "sustainability_score": 80,
+    "cost_range": {
+      "low": 2.28,
+      "high": 3.29,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-033",
+      "MAT-019",
+      "MAT-012"
+    ],
+    "target_applications": [
+      "APP-009",
+      "APP-010"
+    ],
+    "supplier_ids": [
+      "SUP-024",
+      "SUP-018"
+    ],
+    "compliance_flags": [
+      "recovery-gap"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-005-A",
+      "DOC-005-B"
+    ]
+  },
+  {
+    "material_id": "MAT-006",
+    "name": "Laminate A16",
+    "category": "laminate",
+    "composition": "PET/PE, paper/biopolymer",
+    "descriptor": "application tuned",
+    "oxygen_barrier": 79,
+    "moisture_barrier": 86,
+    "grease_resistance": 67,
+    "seal_strength": 82,
+    "flexibility": 72,
+    "thermal_tolerance": 70,
+    "transparency": 31,
+    "food_contact_safe": true,
+    "recyclability_score": 67,
+    "compostability_score": 45,
+    "sustainability_score": 75,
+    "cost_range": {
+      "low": 3.39,
+      "high": 5.46,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-055",
+      "MAT-013",
+      "MAT-020"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-001",
+      "SUP-004",
+      "SUP-003",
+      "SUP-023"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-006-A",
+      "DOC-006-B"
+    ]
+  },
+  {
+    "material_id": "MAT-007",
+    "name": "PaperComposite B17",
+    "category": "paper composite",
+    "composition": "kraft fiber, bagasse fiber",
+    "descriptor": "stiffness",
+    "oxygen_barrier": 65,
+    "moisture_barrier": 81,
+    "grease_resistance": 97,
+    "seal_strength": 56,
+    "flexibility": 79,
+    "thermal_tolerance": 65,
+    "transparency": 16,
+    "food_contact_safe": true,
+    "recyclability_score": 73,
+    "compostability_score": 80,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 5.31,
+      "high": 7.46,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-035",
+      "MAT-021",
+      "MAT-014"
+    ],
+    "target_applications": [
+      "APP-006",
+      "APP-011"
+    ],
+    "supplier_ids": [
+      "SUP-006",
+      "SUP-014"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-007-A",
+      "DOC-007-B"
+    ]
+  },
+  {
+    "material_id": "MAT-008",
+    "name": "Film C18",
+    "category": "film",
+    "composition": "mPE, PE",
+    "descriptor": "machine direction seal",
+    "oxygen_barrier": 83,
+    "moisture_barrier": 68,
+    "grease_resistance": 65,
+    "seal_strength": 88,
+    "flexibility": 80,
+    "thermal_tolerance": 93,
+    "transparency": 34,
+    "food_contact_safe": true,
+    "recyclability_score": 66,
+    "compostability_score": 40,
+    "sustainability_score": 73,
+    "cost_range": {
+      "low": 1.89,
+      "high": 3.04,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-071",
+      "MAT-001",
+      "MAT-057"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-017",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-009",
+      "SUP-003",
+      "SUP-025"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-008-A",
+      "DOC-008-B"
+    ]
+  },
+  {
+    "material_id": "MAT-009",
+    "name": "Bioplastic D19",
+    "category": "bioplastic",
+    "composition": "PLA, PHA",
+    "descriptor": "bio-based",
+    "oxygen_barrier": 54,
+    "moisture_barrier": 68,
+    "grease_resistance": 38,
+    "seal_strength": 73,
+    "flexibility": 78,
+    "thermal_tolerance": 75,
+    "transparency": 47,
+    "food_contact_safe": true,
+    "recyclability_score": 79,
+    "compostability_score": 72,
+    "sustainability_score": 91,
+    "cost_range": {
+      "low": 3.37,
+      "high": 5.11,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-072",
+      "MAT-002",
+      "MAT-030"
+    ],
+    "target_applications": [
+      "APP-003",
+      "APP-011",
+      "APP-019"
+    ],
+    "supplier_ids": [
+      "SUP-022",
+      "SUP-024",
+      "SUP-007",
+      "SUP-012"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-009-A",
+      "DOC-009-B"
+    ]
+  },
+  {
+    "material_id": "MAT-010",
+    "name": "Coating E20",
+    "category": "coating",
+    "composition": "mineral barrier, waterborne acrylic",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 72,
+    "moisture_barrier": 65,
+    "grease_resistance": 70,
+    "seal_strength": 54,
+    "flexibility": 78,
+    "thermal_tolerance": 67,
+    "transparency": 36,
+    "food_contact_safe": true,
+    "recyclability_score": 71,
+    "compostability_score": 25,
+    "sustainability_score": 75,
+    "cost_range": {
+      "low": 1.8,
+      "high": 3.12,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-003",
+      "MAT-052",
+      "MAT-059"
+    ],
+    "target_applications": [
+      "APP-015",
+      "APP-020",
+      "APP-019"
+    ],
+    "supplier_ids": [
+      "SUP-019",
+      "SUP-020",
+      "SUP-021"
+    ],
+    "compliance_flags": [
+      "pfas-review"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-010-A",
+      "DOC-010-B"
+    ]
+  },
+  {
+    "material_id": "MAT-011",
+    "name": "BarrierLayer A21",
+    "category": "barrier layer",
+    "composition": "EVOH, AlOx",
+    "descriptor": "thin gauge",
+    "oxygen_barrier": 87,
+    "moisture_barrier": 88,
+    "grease_resistance": 74,
+    "seal_strength": 41,
+    "flexibility": 69,
+    "thermal_tolerance": 58,
+    "transparency": 26,
+    "food_contact_safe": true,
+    "recyclability_score": 82,
+    "compostability_score": 20,
+    "sustainability_score": 67,
+    "cost_range": {
+      "low": 5.34,
+      "high": 7.24,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-032",
+      "MAT-067",
+      "MAT-074"
+    ],
+    "target_applications": [
+      "APP-019",
+      "APP-007",
+      "APP-013",
+      "APP-016"
+    ],
+    "supplier_ids": [
+      "SUP-015",
+      "SUP-014"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-011-A",
+      "DOC-011-B"
+    ]
+  },
+  {
+    "material_id": "MAT-012",
+    "name": "Adhesive B22",
+    "category": "adhesive",
+    "composition": "solvent-free PU, bio-binder",
+    "descriptor": "bond stability",
+    "oxygen_barrier": 44,
+    "moisture_barrier": 57,
+    "grease_resistance": 65,
+    "seal_strength": 88,
+    "flexibility": 54,
+    "thermal_tolerance": 76,
+    "transparency": 29,
+    "food_contact_safe": false,
+    "recyclability_score": 51,
+    "compostability_score": 32,
+    "sustainability_score": 69,
+    "cost_range": {
+      "low": 2.94,
+      "high": 5.1,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-005",
+      "MAT-026",
+      "MAT-040"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-015",
+      "APP-006"
+    ],
+    "supplier_ids": [
+      "SUP-020",
+      "SUP-024",
+      "SUP-017"
+    ],
+    "compliance_flags": [
+      "food-contact-watch",
+      "recovery-gap"
+    ],
+    "compliance_state": "non-compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-012-A",
+      "DOC-012-B"
+    ]
+  },
+  {
+    "material_id": "MAT-013",
+    "name": "Laminate C23",
+    "category": "laminate",
+    "composition": "paper/biopolymer, PET/PE",
+    "descriptor": "application tuned",
+    "oxygen_barrier": 85,
+    "moisture_barrier": 75,
+    "grease_resistance": 68,
+    "seal_strength": 77,
+    "flexibility": 63,
+    "thermal_tolerance": 77,
+    "transparency": 33,
+    "food_contact_safe": true,
+    "recyclability_score": 57,
+    "compostability_score": 23,
+    "sustainability_score": 71,
+    "cost_range": {
+      "low": 4.34,
+      "high": 5.26,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-034",
+      "MAT-048",
+      "MAT-041"
+    ],
+    "target_applications": [
+      "APP-002",
+      "APP-007",
+      "APP-014"
+    ],
+    "supplier_ids": [
+      "SUP-011",
+      "SUP-018",
+      "SUP-015"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-013-A",
+      "DOC-013-B"
+    ]
+  },
+  {
+    "material_id": "MAT-014",
+    "name": "PaperComposite D24",
+    "category": "paper composite",
+    "composition": "kraft fiber, bagasse fiber",
+    "descriptor": "renewable fiber",
+    "oxygen_barrier": 67,
+    "moisture_barrier": 81,
+    "grease_resistance": 84,
+    "seal_strength": 61,
+    "flexibility": 87,
+    "thermal_tolerance": 72,
+    "transparency": 22,
+    "food_contact_safe": true,
+    "recyclability_score": 86,
+    "compostability_score": 86,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 3.56,
+      "high": 4.85,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-049",
+      "MAT-035",
+      "MAT-028"
+    ],
+    "target_applications": [
+      "APP-013",
+      "APP-006",
+      "APP-015",
+      "APP-005"
+    ],
+    "supplier_ids": [
+      "SUP-001",
+      "SUP-013",
+      "SUP-011"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-014-A",
+      "DOC-014-B"
+    ]
+  },
+  {
+    "material_id": "MAT-015",
+    "name": "Film E25",
+    "category": "film",
+    "composition": "PE, EVOH",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 81,
+    "moisture_barrier": 68,
+    "grease_resistance": 57,
+    "seal_strength": 75,
+    "flexibility": 82,
+    "thermal_tolerance": 71,
+    "transparency": 37,
+    "food_contact_safe": true,
+    "recyclability_score": 78,
+    "compostability_score": 27,
+    "sustainability_score": 84,
+    "cost_range": {
+      "low": 4.79,
+      "high": 6.04,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-022",
+      "MAT-064",
+      "MAT-029"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-002",
+      "APP-012",
+      "APP-008"
+    ],
+    "supplier_ids": [
+      "SUP-016",
+      "SUP-001"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-015-A",
+      "DOC-015-B"
+    ]
+  },
+  {
+    "material_id": "MAT-016",
+    "name": "Bioplastic A26",
+    "category": "bioplastic",
+    "composition": "PLA, starch blend",
+    "descriptor": "bio-based",
+    "oxygen_barrier": 68,
+    "moisture_barrier": 68,
+    "grease_resistance": 36,
+    "seal_strength": 68,
+    "flexibility": 73,
+    "thermal_tolerance": 79,
+    "transparency": 53,
+    "food_contact_safe": true,
+    "recyclability_score": 61,
+    "compostability_score": 76,
+    "sustainability_score": 97,
+    "cost_range": {
+      "low": 5.27,
+      "high": 7.36,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-051",
+      "MAT-037",
+      "MAT-065"
+    ],
+    "target_applications": [
+      "APP-001",
+      "APP-010",
+      "APP-013",
+      "APP-018"
+    ],
+    "supplier_ids": [
+      "SUP-010",
+      "SUP-004"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-016-A",
+      "DOC-016-B"
+    ]
+  },
+  {
+    "material_id": "MAT-017",
+    "name": "Coating B27",
+    "category": "coating",
+    "composition": "waterborne acrylic, mineral barrier",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 78,
+    "moisture_barrier": 65,
+    "grease_resistance": 81,
+    "seal_strength": 60,
+    "flexibility": 76,
+    "thermal_tolerance": 71,
+    "transparency": 18,
+    "food_contact_safe": true,
+    "recyclability_score": 68,
+    "compostability_score": 36,
+    "sustainability_score": 69,
+    "cost_range": {
+      "low": 4.13,
+      "high": 4.95,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-003",
+      "MAT-066",
+      "MAT-024"
+    ],
+    "target_applications": [
+      "APP-015",
+      "APP-005",
+      "APP-014"
+    ],
+    "supplier_ids": [
+      "SUP-016",
+      "SUP-004",
+      "SUP-014"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-017-A",
+      "DOC-017-B"
+    ]
+  },
+  {
+    "material_id": "MAT-018",
+    "name": "BarrierLayer C28",
+    "category": "barrier layer",
+    "composition": "SiOx, AlOx",
+    "descriptor": "thin gauge",
+    "oxygen_barrier": 97,
+    "moisture_barrier": 87,
+    "grease_resistance": 68,
+    "seal_strength": 44,
+    "flexibility": 69,
+    "thermal_tolerance": 65,
+    "transparency": 32,
+    "food_contact_safe": true,
+    "recyclability_score": 80,
+    "compostability_score": 33,
+    "sustainability_score": 87,
+    "cost_range": {
+      "low": 3.01,
+      "high": 4.7,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-053",
+      "MAT-067",
+      "MAT-060"
+    ],
+    "target_applications": [
+      "APP-009",
+      "APP-011",
+      "APP-020"
+    ],
+    "supplier_ids": [
+      "SUP-006",
+      "SUP-016",
+      "SUP-007"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-018-A",
+      "DOC-018-B"
+    ]
+  },
+  {
+    "material_id": "MAT-019",
+    "name": "Adhesive D29",
+    "category": "adhesive",
+    "composition": "solvent-free PU, bio-binder",
+    "descriptor": "bond stability",
+    "oxygen_barrier": 53,
+    "moisture_barrier": 52,
+    "grease_resistance": 66,
+    "seal_strength": 92,
+    "flexibility": 55,
+    "thermal_tolerance": 72,
+    "transparency": 37,
+    "food_contact_safe": false,
+    "recyclability_score": 44,
+    "compostability_score": 37,
+    "sustainability_score": 62,
+    "cost_range": {
+      "low": 3.89,
+      "high": 5.54,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-005",
+      "MAT-047",
+      "MAT-054"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-015",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-012",
+      "SUP-014",
+      "SUP-024",
+      "SUP-018"
+    ],
+    "compliance_flags": [
+      "food-contact-watch",
+      "recovery-gap"
+    ],
+    "compliance_state": "non-compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-019-A",
+      "DOC-019-B"
+    ]
+  },
+  {
+    "material_id": "MAT-020",
+    "name": "Laminate E30",
+    "category": "laminate",
+    "composition": "paper/biopolymer, PE/PE",
+    "descriptor": "multi-layer",
+    "oxygen_barrier": 77,
+    "moisture_barrier": 83,
+    "grease_resistance": 72,
+    "seal_strength": 81,
+    "flexibility": 71,
+    "thermal_tolerance": 81,
+    "transparency": 36,
+    "food_contact_safe": true,
+    "recyclability_score": 81,
+    "compostability_score": 25,
+    "sustainability_score": 76,
+    "cost_range": {
+      "low": 2.89,
+      "high": 4.96,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-069",
+      "MAT-048",
+      "MAT-062"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-010"
+    ],
+    "supplier_ids": [
+      "SUP-009",
+      "SUP-002"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-020-A",
+      "DOC-020-B"
+    ]
+  },
+  {
+    "material_id": "MAT-021",
+    "name": "PaperComposite A31",
+    "category": "paper composite",
+    "composition": "kraft fiber, bagasse fiber",
+    "descriptor": "stiffness",
+    "oxygen_barrier": 66,
+    "moisture_barrier": 72,
+    "grease_resistance": 82,
+    "seal_strength": 56,
+    "flexibility": 88,
+    "thermal_tolerance": 60,
+    "transparency": 27,
+    "food_contact_safe": true,
+    "recyclability_score": 74,
+    "compostability_score": 70,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 1.99,
+      "high": 3.06,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-056",
+      "MAT-070",
+      "MAT-014"
+    ],
+    "target_applications": [
+      "APP-014",
+      "APP-008",
+      "APP-017",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-010",
+      "SUP-003",
+      "SUP-008",
+      "SUP-004"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-021-A",
+      "DOC-021-B"
+    ]
+  },
+  {
+    "material_id": "MAT-022",
+    "name": "Film B32",
+    "category": "film",
+    "composition": "mPE, EVOH",
+    "descriptor": "machine direction seal",
+    "oxygen_barrier": 79,
+    "moisture_barrier": 67,
+    "grease_resistance": 67,
+    "seal_strength": 76,
+    "flexibility": 88,
+    "thermal_tolerance": 81,
+    "transparency": 30,
+    "food_contact_safe": true,
+    "recyclability_score": 64,
+    "compostability_score": 23,
+    "sustainability_score": 71,
+    "cost_range": {
+      "low": 2.36,
+      "high": 3.9,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-036",
+      "MAT-050",
+      "MAT-015"
+    ],
+    "target_applications": [
+      "APP-010",
+      "APP-020"
+    ],
+    "supplier_ids": [
+      "SUP-020",
+      "SUP-016",
+      "SUP-010",
+      "SUP-002"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-022-A",
+      "DOC-022-B"
+    ]
+  },
+  {
+    "material_id": "MAT-023",
+    "name": "Bioplastic C33",
+    "category": "bioplastic",
+    "composition": "starch blend, PLA",
+    "descriptor": "bio-based",
+    "oxygen_barrier": 61,
+    "moisture_barrier": 67,
+    "grease_resistance": 44,
+    "seal_strength": 75,
+    "flexibility": 84,
+    "thermal_tolerance": 58,
+    "transparency": 44,
+    "food_contact_safe": true,
+    "recyclability_score": 68,
+    "compostability_score": 84,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 2.84,
+      "high": 3.86,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-065",
+      "MAT-058",
+      "MAT-030"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-016",
+      "APP-015",
+      "APP-003"
+    ],
+    "supplier_ids": [
+      "SUP-010",
+      "SUP-023",
+      "SUP-013",
+      "SUP-009"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-023-A",
+      "DOC-023-B"
+    ]
+  },
+  {
+    "material_id": "MAT-024",
+    "name": "Coating D34",
+    "category": "coating",
+    "composition": "mineral barrier, waterborne acrylic",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 67,
+    "moisture_barrier": 77,
+    "grease_resistance": 84,
+    "seal_strength": 56,
+    "flexibility": 78,
+    "thermal_tolerance": 73,
+    "transparency": 24,
+    "food_contact_safe": true,
+    "recyclability_score": 69,
+    "compostability_score": 17,
+    "sustainability_score": 75,
+    "cost_range": {
+      "low": 3.49,
+      "high": 5.46,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-031",
+      "MAT-038",
+      "MAT-017"
+    ],
+    "target_applications": [
+      "APP-016",
+      "APP-003",
+      "APP-020",
+      "APP-012"
+    ],
+    "supplier_ids": [
+      "SUP-006",
+      "SUP-019",
+      "SUP-014"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-024-A",
+      "DOC-024-B"
+    ]
+  },
+  {
+    "material_id": "MAT-025",
+    "name": "BarrierLayer E35",
+    "category": "barrier layer",
+    "composition": "SiOx, AlOx",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 87,
+    "moisture_barrier": 93,
+    "grease_resistance": 78,
+    "seal_strength": 49,
+    "flexibility": 61,
+    "thermal_tolerance": 64,
+    "transparency": 24,
+    "food_contact_safe": true,
+    "recyclability_score": 84,
+    "compostability_score": 28,
+    "sustainability_score": 83,
+    "cost_range": {
+      "low": 5.36,
+      "high": 7.34,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-060",
+      "MAT-004",
+      "MAT-053"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-016",
+      "APP-015",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-015",
+      "SUP-014",
+      "SUP-002",
+      "SUP-007"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-025-A",
+      "DOC-025-B"
+    ]
+  },
+  {
+    "material_id": "MAT-026",
+    "name": "Adhesive A36",
+    "category": "adhesive",
+    "composition": "bio-binder, solvent-free PU",
+    "descriptor": "lamination ready",
+    "oxygen_barrier": 42,
+    "moisture_barrier": 61,
+    "grease_resistance": 63,
+    "seal_strength": 85,
+    "flexibility": 48,
+    "thermal_tolerance": 65,
+    "transparency": 36,
+    "food_contact_safe": false,
+    "recyclability_score": 62,
+    "compostability_score": 43,
+    "sustainability_score": 78,
+    "cost_range": {
+      "low": 2.22,
+      "high": 4.52,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-054",
+      "MAT-068",
+      "MAT-019"
+    ],
+    "target_applications": [
+      "APP-009",
+      "APP-014",
+      "APP-016",
+      "APP-018"
+    ],
+    "supplier_ids": [
+      "SUP-023",
+      "SUP-010",
+      "SUP-017"
+    ],
+    "compliance_flags": [
+      "food-contact-watch"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-026-A",
+      "DOC-026-B"
+    ]
+  },
+  {
+    "material_id": "MAT-027",
+    "name": "Laminate B37",
+    "category": "laminate",
+    "composition": "PE/PE, PET/PE",
+    "descriptor": "multi-layer",
+    "oxygen_barrier": 88,
+    "moisture_barrier": 85,
+    "grease_resistance": 73,
+    "seal_strength": 85,
+    "flexibility": 63,
+    "thermal_tolerance": 75,
+    "transparency": 32,
+    "food_contact_safe": true,
+    "recyclability_score": 78,
+    "compostability_score": 33,
+    "sustainability_score": 85,
+    "cost_range": {
+      "low": 4.91,
+      "high": 6.51,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-055",
+      "MAT-034",
+      "MAT-020"
+    ],
+    "target_applications": [
+      "APP-013",
+      "APP-015",
+      "APP-011",
+      "APP-007"
+    ],
+    "supplier_ids": [
+      "SUP-012",
+      "SUP-011",
+      "SUP-018"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-027-A",
+      "DOC-027-B"
+    ]
+  },
+  {
+    "material_id": "MAT-028",
+    "name": "PaperComposite C38",
+    "category": "paper composite",
+    "composition": "kraft fiber, bagasse fiber",
+    "descriptor": "renewable fiber",
+    "oxygen_barrier": 71,
+    "moisture_barrier": 77,
+    "grease_resistance": 94,
+    "seal_strength": 61,
+    "flexibility": 84,
+    "thermal_tolerance": 74,
+    "transparency": 22,
+    "food_contact_safe": true,
+    "recyclability_score": 77,
+    "compostability_score": 69,
+    "sustainability_score": 99,
+    "cost_range": {
+      "low": 3.92,
+      "high": 6.29,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-035",
+      "MAT-049",
+      "MAT-063"
+    ],
+    "target_applications": [
+      "APP-005",
+      "APP-014"
+    ],
+    "supplier_ids": [
+      "SUP-004",
+      "SUP-017",
+      "SUP-015"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-028-A",
+      "DOC-028-B"
+    ]
+  },
+  {
+    "material_id": "MAT-029",
+    "name": "Film D39",
+    "category": "film",
+    "composition": "mPE, EVOH",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 81,
+    "moisture_barrier": 81,
+    "grease_resistance": 65,
+    "seal_strength": 88,
+    "flexibility": 82,
+    "thermal_tolerance": 80,
+    "transparency": 37,
+    "food_contact_safe": true,
+    "recyclability_score": 84,
+    "compostability_score": 42,
+    "sustainability_score": 79,
+    "cost_range": {
+      "low": 2.05,
+      "high": 3.99,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-008",
+      "MAT-057",
+      "MAT-043"
+    ],
+    "target_applications": [
+      "APP-004",
+      "APP-020",
+      "APP-015"
+    ],
+    "supplier_ids": [
+      "SUP-008",
+      "SUP-024",
+      "SUP-003"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-029-A",
+      "DOC-029-B"
+    ]
+  },
+  {
+    "material_id": "MAT-030",
+    "name": "Bioplastic E40",
+    "category": "bioplastic",
+    "composition": "PHA, PLA",
+    "descriptor": "heat limited",
+    "oxygen_barrier": 58,
+    "moisture_barrier": 64,
+    "grease_resistance": 34,
+    "seal_strength": 68,
+    "flexibility": 80,
+    "thermal_tolerance": 70,
+    "transparency": 50,
+    "food_contact_safe": true,
+    "recyclability_score": 59,
+    "compostability_score": 87,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 2.67,
+      "high": 5.11,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-009",
+      "MAT-065",
+      "MAT-023"
+    ],
+    "target_applications": [
+      "APP-009",
+      "APP-015",
+      "APP-020",
+      "APP-001"
+    ],
+    "supplier_ids": [
+      "SUP-008",
+      "SUP-015"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-030-A",
+      "DOC-030-B"
+    ]
+  },
+  {
+    "material_id": "MAT-031",
+    "name": "Coating A41",
+    "category": "coating",
+    "composition": "waterborne acrylic, mineral barrier",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 82,
+    "moisture_barrier": 78,
+    "grease_resistance": 73,
+    "seal_strength": 62,
+    "flexibility": 74,
+    "thermal_tolerance": 71,
+    "transparency": 26,
+    "food_contact_safe": true,
+    "recyclability_score": 84,
+    "compostability_score": 42,
+    "sustainability_score": 80,
+    "cost_range": {
+      "low": 3.17,
+      "high": 4.62,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-003",
+      "MAT-038",
+      "MAT-052"
+    ],
+    "target_applications": [
+      "APP-013",
+      "APP-009",
+      "APP-001",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-023",
+      "SUP-010",
+      "SUP-001"
+    ],
+    "compliance_flags": [
+      "pfas-review"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-031-A",
+      "DOC-031-B"
+    ]
+  },
+  {
+    "material_id": "MAT-032",
+    "name": "BarrierLayer B42",
+    "category": "barrier layer",
+    "composition": "AlOx, SiOx",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 86,
+    "moisture_barrier": 79,
+    "grease_resistance": 67,
+    "seal_strength": 52,
+    "flexibility": 66,
+    "thermal_tolerance": 73,
+    "transparency": 28,
+    "food_contact_safe": true,
+    "recyclability_score": 60,
+    "compostability_score": 35,
+    "sustainability_score": 63,
+    "cost_range": {
+      "low": 4.64,
+      "high": 5.5,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-074",
+      "MAT-004",
+      "MAT-011"
+    ],
+    "target_applications": [
+      "APP-011",
+      "APP-014",
+      "APP-006"
+    ],
+    "supplier_ids": [
+      "SUP-024",
+      "SUP-005",
+      "SUP-003"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-032-A",
+      "DOC-032-B"
+    ]
+  },
+  {
+    "material_id": "MAT-033",
+    "name": "Adhesive C43",
+    "category": "adhesive",
+    "composition": "bio-binder, solvent-free PU",
+    "descriptor": "bond stability",
+    "oxygen_barrier": 45,
+    "moisture_barrier": 58,
+    "grease_resistance": 61,
+    "seal_strength": 94,
+    "flexibility": 57,
+    "thermal_tolerance": 66,
+    "transparency": 32,
+    "food_contact_safe": true,
+    "recyclability_score": 46,
+    "compostability_score": 45,
+    "sustainability_score": 80,
+    "cost_range": {
+      "low": 4.41,
+      "high": 6.97,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-026",
+      "MAT-068",
+      "MAT-075"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-004",
+      "APP-015"
+    ],
+    "supplier_ids": [
+      "SUP-012",
+      "SUP-003",
+      "SUP-013",
+      "SUP-001"
+    ],
+    "compliance_flags": [
+      "recovery-gap"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-033-A",
+      "DOC-033-B"
+    ]
+  },
+  {
+    "material_id": "MAT-034",
+    "name": "Laminate D44",
+    "category": "laminate",
+    "composition": "PET/PE, paper/biopolymer",
+    "descriptor": "multi-layer",
+    "oxygen_barrier": 76,
+    "moisture_barrier": 74,
+    "grease_resistance": 67,
+    "seal_strength": 86,
+    "flexibility": 68,
+    "thermal_tolerance": 91,
+    "transparency": 29,
+    "food_contact_safe": true,
+    "recyclability_score": 57,
+    "compostability_score": 41,
+    "sustainability_score": 84,
+    "cost_range": {
+      "low": 2.89,
+      "high": 4.42,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-062",
+      "MAT-027",
+      "MAT-055"
+    ],
+    "target_applications": [
+      "APP-004",
+      "APP-020",
+      "APP-008"
+    ],
+    "supplier_ids": [
+      "SUP-002",
+      "SUP-010"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-034-A",
+      "DOC-034-B"
+    ]
+  },
+  {
+    "material_id": "MAT-035",
+    "name": "PaperComposite E45",
+    "category": "paper composite",
+    "composition": "dispersion barrier, bagasse fiber",
+    "descriptor": "renewable fiber",
+    "oxygen_barrier": 69,
+    "moisture_barrier": 77,
+    "grease_resistance": 96,
+    "seal_strength": 65,
+    "flexibility": 86,
+    "thermal_tolerance": 70,
+    "transparency": 20,
+    "food_contact_safe": true,
+    "recyclability_score": 73,
+    "compostability_score": 83,
+    "sustainability_score": 98,
+    "cost_range": {
+      "low": 3.4,
+      "high": 4.63,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-049",
+      "MAT-042",
+      "MAT-007"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-002",
+      "APP-013",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-004",
+      "SUP-022",
+      "SUP-012"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-035-A",
+      "DOC-035-B"
+    ]
+  },
+  {
+    "material_id": "MAT-036",
+    "name": "Film A46",
+    "category": "film",
+    "composition": "PE, EVOH",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 81,
+    "moisture_barrier": 77,
+    "grease_resistance": 48,
+    "seal_strength": 87,
+    "flexibility": 80,
+    "thermal_tolerance": 75,
+    "transparency": 46,
+    "food_contact_safe": true,
+    "recyclability_score": 65,
+    "compostability_score": 39,
+    "sustainability_score": 72,
+    "cost_range": {
+      "low": 2.58,
+      "high": 4.95,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-022",
+      "MAT-071",
+      "MAT-008"
+    ],
+    "target_applications": [
+      "APP-009",
+      "APP-005"
+    ],
+    "supplier_ids": [
+      "SUP-025",
+      "SUP-005",
+      "SUP-020"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-036-A",
+      "DOC-036-B"
+    ]
+  },
+  {
+    "material_id": "MAT-037",
+    "name": "Bioplastic B47",
+    "category": "bioplastic",
+    "composition": "starch blend, PLA",
+    "descriptor": "bio-based",
+    "oxygen_barrier": 55,
+    "moisture_barrier": 63,
+    "grease_resistance": 47,
+    "seal_strength": 69,
+    "flexibility": 71,
+    "thermal_tolerance": 56,
+    "transparency": 41,
+    "food_contact_safe": true,
+    "recyclability_score": 62,
+    "compostability_score": 71,
+    "sustainability_score": 83,
+    "cost_range": {
+      "low": 3.41,
+      "high": 4.86,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-058",
+      "MAT-023",
+      "MAT-065"
+    ],
+    "target_applications": [
+      "APP-002",
+      "APP-017",
+      "APP-010",
+      "APP-015"
+    ],
+    "supplier_ids": [
+      "SUP-004",
+      "SUP-015",
+      "SUP-017",
+      "SUP-008"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-037-A",
+      "DOC-037-B"
+    ]
+  },
+  {
+    "material_id": "MAT-038",
+    "name": "Coating C48",
+    "category": "coating",
+    "composition": "mineral barrier, waterborne acrylic",
+    "descriptor": "surface barrier",
+    "oxygen_barrier": 74,
+    "moisture_barrier": 76,
+    "grease_resistance": 68,
+    "seal_strength": 48,
+    "flexibility": 73,
+    "thermal_tolerance": 51,
+    "transparency": 29,
+    "food_contact_safe": true,
+    "recyclability_score": 74,
+    "compostability_score": 32,
+    "sustainability_score": 75,
+    "cost_range": {
+      "low": 5.38,
+      "high": 7.14,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-052",
+      "MAT-024",
+      "MAT-045"
+    ],
+    "target_applications": [
+      "APP-004",
+      "APP-018"
+    ],
+    "supplier_ids": [
+      "SUP-017",
+      "SUP-020",
+      "SUP-014"
+    ],
+    "compliance_flags": [
+      "pfas-review"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-038-A",
+      "DOC-038-B"
+    ]
+  },
+  {
+    "material_id": "MAT-039",
+    "name": "BarrierLayer D49",
+    "category": "barrier layer",
+    "composition": "SiOx, AlOx",
+    "descriptor": "thin gauge",
+    "oxygen_barrier": 89,
+    "moisture_barrier": 89,
+    "grease_resistance": 68,
+    "seal_strength": 45,
+    "flexibility": 58,
+    "thermal_tolerance": 78,
+    "transparency": 35,
+    "food_contact_safe": true,
+    "recyclability_score": 69,
+    "compostability_score": 19,
+    "sustainability_score": 61,
+    "cost_range": {
+      "low": 3.35,
+      "high": 5.49,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-032",
+      "MAT-053",
+      "MAT-060"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-020",
+      "APP-011",
+      "APP-004"
+    ],
+    "supplier_ids": [
+      "SUP-005",
+      "SUP-018",
+      "SUP-002"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-039-A",
+      "DOC-039-B"
+    ]
+  },
+  {
+    "material_id": "MAT-040",
+    "name": "Adhesive E50",
+    "category": "adhesive",
+    "composition": "solvent-free PU, bio-binder",
+    "descriptor": "lamination ready",
+    "oxygen_barrier": 51,
+    "moisture_barrier": 49,
+    "grease_resistance": 63,
+    "seal_strength": 84,
+    "flexibility": 56,
+    "thermal_tolerance": 61,
+    "transparency": 30,
+    "food_contact_safe": true,
+    "recyclability_score": 46,
+    "compostability_score": 39,
+    "sustainability_score": 70,
+    "cost_range": {
+      "low": 4.71,
+      "high": 7.03,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-068",
+      "MAT-047",
+      "MAT-033"
+    ],
+    "target_applications": [
+      "APP-020",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-020",
+      "SUP-022",
+      "SUP-021",
+      "SUP-018"
+    ],
+    "compliance_flags": [
+      "recovery-gap"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-040-A",
+      "DOC-040-B"
+    ]
+  },
+  {
+    "material_id": "MAT-041",
+    "name": "Laminate A51",
+    "category": "laminate",
+    "composition": "PET/PE, paper/biopolymer",
+    "descriptor": "multi-layer",
+    "oxygen_barrier": 74,
+    "moisture_barrier": 86,
+    "grease_resistance": 77,
+    "seal_strength": 78,
+    "flexibility": 61,
+    "thermal_tolerance": 79,
+    "transparency": 20,
+    "food_contact_safe": true,
+    "recyclability_score": 76,
+    "compostability_score": 22,
+    "sustainability_score": 73,
+    "cost_range": {
+      "low": 3.03,
+      "high": 4.5,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-034",
+      "MAT-048",
+      "MAT-069"
+    ],
+    "target_applications": [
+      "APP-002",
+      "APP-005"
+    ],
+    "supplier_ids": [
+      "SUP-011",
+      "SUP-025",
+      "SUP-019",
+      "SUP-020"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-041-A",
+      "DOC-041-B"
+    ]
+  },
+  {
+    "material_id": "MAT-042",
+    "name": "PaperComposite B52",
+    "category": "paper composite",
+    "composition": "bagasse fiber, dispersion barrier",
+    "descriptor": "renewable fiber",
+    "oxygen_barrier": 70,
+    "moisture_barrier": 73,
+    "grease_resistance": 87,
+    "seal_strength": 59,
+    "flexibility": 85,
+    "thermal_tolerance": 55,
+    "transparency": 19,
+    "food_contact_safe": true,
+    "recyclability_score": 71,
+    "compostability_score": 83,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 4.2,
+      "high": 5.08,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-063",
+      "MAT-070",
+      "MAT-007"
+    ],
+    "target_applications": [
+      "APP-010",
+      "APP-007"
+    ],
+    "supplier_ids": [
+      "SUP-020",
+      "SUP-002",
+      "SUP-001"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-042-A",
+      "DOC-042-B"
+    ]
+  },
+  {
+    "material_id": "MAT-043",
+    "name": "Film C53",
+    "category": "film",
+    "composition": "PE, mPE",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 82,
+    "moisture_barrier": 69,
+    "grease_resistance": 56,
+    "seal_strength": 85,
+    "flexibility": 84,
+    "thermal_tolerance": 92,
+    "transparency": 44,
+    "food_contact_safe": true,
+    "recyclability_score": 63,
+    "compostability_score": 42,
+    "sustainability_score": 68,
+    "cost_range": {
+      "low": 1.87,
+      "high": 4.33,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-057",
+      "MAT-036",
+      "MAT-022"
+    ],
+    "target_applications": [
+      "APP-014",
+      "APP-010",
+      "APP-004",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-019",
+      "SUP-014",
+      "SUP-013"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-043-A",
+      "DOC-043-B"
+    ]
+  },
+  {
+    "material_id": "MAT-044",
+    "name": "Bioplastic D54",
+    "category": "bioplastic",
+    "composition": "PHA, starch blend",
+    "descriptor": "heat limited",
+    "oxygen_barrier": 55,
+    "moisture_barrier": 72,
+    "grease_resistance": 36,
+    "seal_strength": 69,
+    "flexibility": 79,
+    "thermal_tolerance": 59,
+    "transparency": 51,
+    "food_contact_safe": true,
+    "recyclability_score": 68,
+    "compostability_score": 75,
+    "sustainability_score": 90,
+    "cost_range": {
+      "low": 3.64,
+      "high": 4.65,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-037",
+      "MAT-072",
+      "MAT-051"
+    ],
+    "target_applications": [
+      "APP-005",
+      "APP-008",
+      "APP-004",
+      "APP-020"
+    ],
+    "supplier_ids": [
+      "SUP-007",
+      "SUP-025",
+      "SUP-012",
+      "SUP-024"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-044-A",
+      "DOC-044-B"
+    ]
+  },
+  {
+    "material_id": "MAT-045",
+    "name": "Coating E55",
+    "category": "coating",
+    "composition": "waterborne acrylic, mineral barrier",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 82,
+    "moisture_barrier": 71,
+    "grease_resistance": 76,
+    "seal_strength": 56,
+    "flexibility": 72,
+    "thermal_tolerance": 73,
+    "transparency": 32,
+    "food_contact_safe": true,
+    "recyclability_score": 71,
+    "compostability_score": 46,
+    "sustainability_score": 81,
+    "cost_range": {
+      "low": 5.3,
+      "high": 6.67,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-003",
+      "MAT-024",
+      "MAT-017"
+    ],
+    "target_applications": [
+      "APP-010",
+      "APP-009",
+      "APP-002",
+      "APP-012"
+    ],
+    "supplier_ids": [
+      "SUP-003",
+      "SUP-016",
+      "SUP-015"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-045-A",
+      "DOC-045-B"
+    ]
+  },
+  {
+    "material_id": "MAT-046",
+    "name": "BarrierLayer A56",
+    "category": "barrier layer",
+    "composition": "SiOx, EVOH",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 94,
+    "moisture_barrier": 94,
+    "grease_resistance": 64,
+    "seal_strength": 50,
+    "flexibility": 60,
+    "thermal_tolerance": 74,
+    "transparency": 41,
+    "food_contact_safe": true,
+    "recyclability_score": 79,
+    "compostability_score": 17,
+    "sustainability_score": 83,
+    "cost_range": {
+      "low": 3.86,
+      "high": 5.0,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-004",
+      "MAT-032",
+      "MAT-053"
+    ],
+    "target_applications": [
+      "APP-004",
+      "APP-011",
+      "APP-003"
+    ],
+    "supplier_ids": [
+      "SUP-016",
+      "SUP-017",
+      "SUP-005",
+      "SUP-002"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-046-A",
+      "DOC-046-B"
+    ]
+  },
+  {
+    "material_id": "MAT-047",
+    "name": "Adhesive B57",
+    "category": "adhesive",
+    "composition": "solvent-free PU, bio-binder",
+    "descriptor": "lamination ready",
+    "oxygen_barrier": 47,
+    "moisture_barrier": 48,
+    "grease_resistance": 59,
+    "seal_strength": 86,
+    "flexibility": 55,
+    "thermal_tolerance": 73,
+    "transparency": 40,
+    "food_contact_safe": false,
+    "recyclability_score": 39,
+    "compostability_score": 36,
+    "sustainability_score": 59,
+    "cost_range": {
+      "low": 4.41,
+      "high": 6.39,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-033",
+      "MAT-019",
+      "MAT-026"
+    ],
+    "target_applications": [
+      "APP-005",
+      "APP-012",
+      "APP-010",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-005",
+      "SUP-011",
+      "SUP-003",
+      "SUP-019"
+    ],
+    "compliance_flags": [
+      "food-contact-watch",
+      "recovery-gap"
+    ],
+    "compliance_state": "watch",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-047-A",
+      "DOC-047-B"
+    ]
+  },
+  {
+    "material_id": "MAT-048",
+    "name": "Laminate C58",
+    "category": "laminate",
+    "composition": "paper/biopolymer, PE/PE",
+    "descriptor": "application tuned",
+    "oxygen_barrier": 86,
+    "moisture_barrier": 78,
+    "grease_resistance": 73,
+    "seal_strength": 78,
+    "flexibility": 62,
+    "thermal_tolerance": 75,
+    "transparency": 35,
+    "food_contact_safe": true,
+    "recyclability_score": 66,
+    "compostability_score": 23,
+    "sustainability_score": 63,
+    "cost_range": {
+      "low": 2.08,
+      "high": 4.4,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-041",
+      "MAT-027",
+      "MAT-062"
+    ],
+    "target_applications": [
+      "APP-017",
+      "APP-002",
+      "APP-011",
+      "APP-005"
+    ],
+    "supplier_ids": [
+      "SUP-017",
+      "SUP-025"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-048-A",
+      "DOC-048-B"
+    ]
+  },
+  {
+    "material_id": "MAT-049",
+    "name": "PaperComposite D59",
+    "category": "paper composite",
+    "composition": "dispersion barrier, kraft fiber",
+    "descriptor": "stiffness",
+    "oxygen_barrier": 71,
+    "moisture_barrier": 65,
+    "grease_resistance": 85,
+    "seal_strength": 67,
+    "flexibility": 89,
+    "thermal_tolerance": 72,
+    "transparency": 25,
+    "food_contact_safe": true,
+    "recyclability_score": 80,
+    "compostability_score": 73,
+    "sustainability_score": 97,
+    "cost_range": {
+      "low": 5.28,
+      "high": 7.49,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-028",
+      "MAT-063",
+      "MAT-035"
+    ],
+    "target_applications": [
+      "APP-015",
+      "APP-020",
+      "APP-010",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-012",
+      "SUP-022"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-049-A",
+      "DOC-049-B"
+    ]
+  },
+  {
+    "material_id": "MAT-050",
+    "name": "Film E60",
+    "category": "film",
+    "composition": "PE, mPE",
+    "descriptor": "machine direction seal",
+    "oxygen_barrier": 70,
+    "moisture_barrier": 75,
+    "grease_resistance": 55,
+    "seal_strength": 89,
+    "flexibility": 87,
+    "thermal_tolerance": 80,
+    "transparency": 36,
+    "food_contact_safe": true,
+    "recyclability_score": 68,
+    "compostability_score": 21,
+    "sustainability_score": 70,
+    "cost_range": {
+      "low": 3.65,
+      "high": 5.95,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-036",
+      "MAT-029",
+      "MAT-057"
+    ],
+    "target_applications": [
+      "APP-001",
+      "APP-014",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-008",
+      "SUP-015"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-050-A",
+      "DOC-050-B"
+    ]
+  },
+  {
+    "material_id": "MAT-051",
+    "name": "Bioplastic A61",
+    "category": "bioplastic",
+    "composition": "PHA, PLA",
+    "descriptor": "heat limited",
+    "oxygen_barrier": 54,
+    "moisture_barrier": 74,
+    "grease_resistance": 48,
+    "seal_strength": 70,
+    "flexibility": 84,
+    "thermal_tolerance": 53,
+    "transparency": 43,
+    "food_contact_safe": true,
+    "recyclability_score": 83,
+    "compostability_score": 83,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 4.34,
+      "high": 5.95,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-058",
+      "MAT-072",
+      "MAT-016"
+    ],
+    "target_applications": [
+      "APP-007",
+      "APP-005",
+      "APP-018"
+    ],
+    "supplier_ids": [
+      "SUP-003",
+      "SUP-001"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-051-A",
+      "DOC-051-B"
+    ]
+  },
+  {
+    "material_id": "MAT-052",
+    "name": "Coating B62",
+    "category": "coating",
+    "composition": "waterborne acrylic, mineral barrier",
+    "descriptor": "surface barrier",
+    "oxygen_barrier": 69,
+    "moisture_barrier": 72,
+    "grease_resistance": 79,
+    "seal_strength": 48,
+    "flexibility": 76,
+    "thermal_tolerance": 58,
+    "transparency": 26,
+    "food_contact_safe": true,
+    "recyclability_score": 74,
+    "compostability_score": 33,
+    "sustainability_score": 85,
+    "cost_range": {
+      "low": 2.85,
+      "high": 3.65,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-038",
+      "MAT-017",
+      "MAT-066"
+    ],
+    "target_applications": [
+      "APP-003",
+      "APP-017"
+    ],
+    "supplier_ids": [
+      "SUP-008",
+      "SUP-019",
+      "SUP-014"
+    ],
+    "compliance_flags": [
+      "pfas-review"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America"
+    ],
+    "source_document_ids": [
+      "DOC-052-A",
+      "DOC-052-B"
+    ]
+  },
+  {
+    "material_id": "MAT-053",
+    "name": "BarrierLayer C63",
+    "category": "barrier layer",
+    "composition": "AlOx, EVOH",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 89,
+    "moisture_barrier": 84,
+    "grease_resistance": 75,
+    "seal_strength": 56,
+    "flexibility": 58,
+    "thermal_tolerance": 61,
+    "transparency": 32,
+    "food_contact_safe": true,
+    "recyclability_score": 64,
+    "compostability_score": 38,
+    "sustainability_score": 80,
+    "cost_range": {
+      "low": 4.58,
+      "high": 6.7,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-067",
+      "MAT-060",
+      "MAT-018"
+    ],
+    "target_applications": [
+      "APP-011",
+      "APP-006",
+      "APP-015",
+      "APP-016"
+    ],
+    "supplier_ids": [
+      "SUP-005",
+      "SUP-002",
+      "SUP-012"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-053-A",
+      "DOC-053-B"
+    ]
+  },
+  {
+    "material_id": "MAT-054",
+    "name": "Adhesive D64",
+    "category": "adhesive",
+    "composition": "solvent-free PU, bio-binder",
+    "descriptor": "bond stability",
+    "oxygen_barrier": 44,
+    "moisture_barrier": 57,
+    "grease_resistance": 69,
+    "seal_strength": 86,
+    "flexibility": 50,
+    "thermal_tolerance": 63,
+    "transparency": 36,
+    "food_contact_safe": true,
+    "recyclability_score": 39,
+    "compostability_score": 35,
+    "sustainability_score": 58,
+    "cost_range": {
+      "low": 4.9,
+      "high": 5.79,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-068",
+      "MAT-005",
+      "MAT-075"
+    ],
+    "target_applications": [
+      "APP-013",
+      "APP-015",
+      "APP-020"
+    ],
+    "supplier_ids": [
+      "SUP-011",
+      "SUP-009",
+      "SUP-004",
+      "SUP-012"
+    ],
+    "compliance_flags": [
+      "recovery-gap"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-054-A",
+      "DOC-054-B"
+    ]
+  },
+  {
+    "material_id": "MAT-055",
+    "name": "Laminate E65",
+    "category": "laminate",
+    "composition": "PET/PE, paper/biopolymer",
+    "descriptor": "multi-layer",
+    "oxygen_barrier": 88,
+    "moisture_barrier": 83,
+    "grease_resistance": 68,
+    "seal_strength": 82,
+    "flexibility": 72,
+    "thermal_tolerance": 86,
+    "transparency": 30,
+    "food_contact_safe": true,
+    "recyclability_score": 64,
+    "compostability_score": 36,
+    "sustainability_score": 72,
+    "cost_range": {
+      "low": 3.97,
+      "high": 5.54,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-013",
+      "MAT-006",
+      "MAT-048"
+    ],
+    "target_applications": [
+      "APP-020",
+      "APP-014",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-015",
+      "SUP-012",
+      "SUP-002",
+      "SUP-024"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-055-A",
+      "DOC-055-B"
+    ]
+  },
+  {
+    "material_id": "MAT-056",
+    "name": "PaperComposite A66",
+    "category": "paper composite",
+    "composition": "dispersion barrier, kraft fiber",
+    "descriptor": "stiffness",
+    "oxygen_barrier": 75,
+    "moisture_barrier": 67,
+    "grease_resistance": 90,
+    "seal_strength": 68,
+    "flexibility": 74,
+    "thermal_tolerance": 61,
+    "transparency": 22,
+    "food_contact_safe": true,
+    "recyclability_score": 64,
+    "compostability_score": 76,
+    "sustainability_score": 98,
+    "cost_range": {
+      "low": 3.98,
+      "high": 6.0,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-007",
+      "MAT-049",
+      "MAT-014"
+    ],
+    "target_applications": [
+      "APP-019",
+      "APP-005"
+    ],
+    "supplier_ids": [
+      "SUP-012",
+      "SUP-015",
+      "SUP-025"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-056-A",
+      "DOC-056-B"
+    ]
+  },
+  {
+    "material_id": "MAT-057",
+    "name": "Film B67",
+    "category": "film",
+    "composition": "PE, EVOH",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 82,
+    "moisture_barrier": 75,
+    "grease_resistance": 56,
+    "seal_strength": 83,
+    "flexibility": 80,
+    "thermal_tolerance": 77,
+    "transparency": 39,
+    "food_contact_safe": true,
+    "recyclability_score": 85,
+    "compostability_score": 25,
+    "sustainability_score": 91,
+    "cost_range": {
+      "low": 3.57,
+      "high": 4.59,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-022",
+      "MAT-008",
+      "MAT-015"
+    ],
+    "target_applications": [
+      "APP-015",
+      "APP-003",
+      "APP-011",
+      "APP-012"
+    ],
+    "supplier_ids": [
+      "SUP-015",
+      "SUP-006"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-057-A",
+      "DOC-057-B"
+    ]
+  },
+  {
+    "material_id": "MAT-058",
+    "name": "Bioplastic C68",
+    "category": "bioplastic",
+    "composition": "PLA, starch blend",
+    "descriptor": "heat limited",
+    "oxygen_barrier": 67,
+    "moisture_barrier": 66,
+    "grease_resistance": 33,
+    "seal_strength": 63,
+    "flexibility": 73,
+    "thermal_tolerance": 72,
+    "transparency": 49,
+    "food_contact_safe": true,
+    "recyclability_score": 67,
+    "compostability_score": 76,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 3.79,
+      "high": 5.69,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-002",
+      "MAT-023",
+      "MAT-051"
+    ],
+    "target_applications": [
+      "APP-016",
+      "APP-017",
+      "APP-014"
+    ],
+    "supplier_ids": [
+      "SUP-003",
+      "SUP-010"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-058-A",
+      "DOC-058-B"
+    ]
+  },
+  {
+    "material_id": "MAT-059",
+    "name": "Coating D69",
+    "category": "coating",
+    "composition": "waterborne acrylic, mineral barrier",
+    "descriptor": "surface barrier",
+    "oxygen_barrier": 73,
+    "moisture_barrier": 69,
+    "grease_resistance": 70,
+    "seal_strength": 60,
+    "flexibility": 72,
+    "thermal_tolerance": 69,
+    "transparency": 34,
+    "food_contact_safe": true,
+    "recyclability_score": 58,
+    "compostability_score": 31,
+    "sustainability_score": 79,
+    "cost_range": {
+      "low": 4.79,
+      "high": 6.52,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-038",
+      "MAT-003",
+      "MAT-052"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-017"
+    ],
+    "supplier_ids": [
+      "SUP-006",
+      "SUP-011",
+      "SUP-023"
+    ],
+    "compliance_flags": [
+      "pfas-review"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-059-A",
+      "DOC-059-B"
+    ]
+  },
+  {
+    "material_id": "MAT-060",
+    "name": "BarrierLayer E70",
+    "category": "barrier layer",
+    "composition": "SiOx, EVOH",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 93,
+    "moisture_barrier": 87,
+    "grease_resistance": 64,
+    "seal_strength": 50,
+    "flexibility": 63,
+    "thermal_tolerance": 73,
+    "transparency": 31,
+    "food_contact_safe": true,
+    "recyclability_score": 74,
+    "compostability_score": 43,
+    "sustainability_score": 81,
+    "cost_range": {
+      "low": 5.13,
+      "high": 6.0,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-053",
+      "MAT-004",
+      "MAT-067"
+    ],
+    "target_applications": [
+      "APP-019",
+      "APP-009",
+      "APP-007",
+      "APP-014"
+    ],
+    "supplier_ids": [
+      "SUP-003",
+      "SUP-002"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America"
+    ],
+    "source_document_ids": [
+      "DOC-060-A",
+      "DOC-060-B"
+    ]
+  },
+  {
+    "material_id": "MAT-061",
+    "name": "Adhesive A71",
+    "category": "adhesive",
+    "composition": "bio-binder, solvent-free PU",
+    "descriptor": "bond stability",
+    "oxygen_barrier": 44,
+    "moisture_barrier": 58,
+    "grease_resistance": 59,
+    "seal_strength": 88,
+    "flexibility": 56,
+    "thermal_tolerance": 58,
+    "transparency": 37,
+    "food_contact_safe": true,
+    "recyclability_score": 50,
+    "compostability_score": 20,
+    "sustainability_score": 69,
+    "cost_range": {
+      "low": 2.95,
+      "high": 5.53,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-068",
+      "MAT-075",
+      "MAT-047"
+    ],
+    "target_applications": [
+      "APP-017",
+      "APP-018",
+      "APP-004"
+    ],
+    "supplier_ids": [
+      "SUP-013",
+      "SUP-005",
+      "SUP-025"
+    ],
+    "compliance_flags": [
+      "recovery-gap"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-061-A",
+      "DOC-061-B"
+    ]
+  },
+  {
+    "material_id": "MAT-062",
+    "name": "Laminate B72",
+    "category": "laminate",
+    "composition": "PE/PE, paper/biopolymer",
+    "descriptor": "application tuned",
+    "oxygen_barrier": 76,
+    "moisture_barrier": 75,
+    "grease_resistance": 74,
+    "seal_strength": 82,
+    "flexibility": 63,
+    "thermal_tolerance": 88,
+    "transparency": 24,
+    "food_contact_safe": true,
+    "recyclability_score": 62,
+    "compostability_score": 33,
+    "sustainability_score": 70,
+    "cost_range": {
+      "low": 4.55,
+      "high": 6.25,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-006",
+      "MAT-069",
+      "MAT-034"
+    ],
+    "target_applications": [
+      "APP-013",
+      "APP-017"
+    ],
+    "supplier_ids": [
+      "SUP-015",
+      "SUP-016",
+      "SUP-010",
+      "SUP-001"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-062-A",
+      "DOC-062-B"
+    ]
+  },
+  {
+    "material_id": "MAT-063",
+    "name": "PaperComposite C73",
+    "category": "paper composite",
+    "composition": "kraft fiber, dispersion barrier",
+    "descriptor": "stiffness",
+    "oxygen_barrier": 63,
+    "moisture_barrier": 75,
+    "grease_resistance": 95,
+    "seal_strength": 66,
+    "flexibility": 78,
+    "thermal_tolerance": 53,
+    "transparency": 10,
+    "food_contact_safe": true,
+    "recyclability_score": 65,
+    "compostability_score": 74,
+    "sustainability_score": 93,
+    "cost_range": {
+      "low": 3.25,
+      "high": 4.13,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-035",
+      "MAT-070",
+      "MAT-007"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-018"
+    ],
+    "supplier_ids": [
+      "SUP-019",
+      "SUP-018"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-063-A",
+      "DOC-063-B"
+    ]
+  },
+  {
+    "material_id": "MAT-064",
+    "name": "Film D74",
+    "category": "film",
+    "composition": "mPE, PE",
+    "descriptor": "high clarity",
+    "oxygen_barrier": 71,
+    "moisture_barrier": 68,
+    "grease_resistance": 55,
+    "seal_strength": 90,
+    "flexibility": 85,
+    "thermal_tolerance": 77,
+    "transparency": 36,
+    "food_contact_safe": true,
+    "recyclability_score": 75,
+    "compostability_score": 28,
+    "sustainability_score": 67,
+    "cost_range": {
+      "low": 1.94,
+      "high": 4.02,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-057",
+      "MAT-043",
+      "MAT-015"
+    ],
+    "target_applications": [
+      "APP-017",
+      "APP-005",
+      "APP-011",
+      "APP-018"
+    ],
+    "supplier_ids": [
+      "SUP-017",
+      "SUP-015",
+      "SUP-005"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-064-A",
+      "DOC-064-B"
+    ]
+  },
+  {
+    "material_id": "MAT-065",
+    "name": "Bioplastic E75",
+    "category": "bioplastic",
+    "composition": "starch blend, PHA",
+    "descriptor": "heat limited",
+    "oxygen_barrier": 62,
+    "moisture_barrier": 66,
+    "grease_resistance": 41,
+    "seal_strength": 69,
+    "flexibility": 79,
+    "thermal_tolerance": 54,
+    "transparency": 48,
+    "food_contact_safe": true,
+    "recyclability_score": 60,
+    "compostability_score": 77,
+    "sustainability_score": 90,
+    "cost_range": {
+      "low": 5.04,
+      "high": 7.41,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-009",
+      "MAT-072",
+      "MAT-016"
+    ],
+    "target_applications": [
+      "APP-019",
+      "APP-020",
+      "APP-008",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-001",
+      "SUP-020",
+      "SUP-016",
+      "SUP-009"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-065-A",
+      "DOC-065-B"
+    ]
+  },
+  {
+    "material_id": "MAT-066",
+    "name": "Coating A76",
+    "category": "coating",
+    "composition": "mineral barrier, waterborne acrylic",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 80,
+    "moisture_barrier": 64,
+    "grease_resistance": 78,
+    "seal_strength": 58,
+    "flexibility": 66,
+    "thermal_tolerance": 68,
+    "transparency": 25,
+    "food_contact_safe": true,
+    "recyclability_score": 59,
+    "compostability_score": 22,
+    "sustainability_score": 67,
+    "cost_range": {
+      "low": 4.0,
+      "high": 5.65,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-024",
+      "MAT-073",
+      "MAT-031"
+    ],
+    "target_applications": [
+      "APP-007",
+      "APP-018",
+      "APP-011",
+      "APP-016"
+    ],
+    "supplier_ids": [
+      "SUP-024",
+      "SUP-002",
+      "SUP-023",
+      "SUP-005"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-066-A",
+      "DOC-066-B"
+    ]
+  },
+  {
+    "material_id": "MAT-067",
+    "name": "BarrierLayer B77",
+    "category": "barrier layer",
+    "composition": "SiOx, AlOx",
+    "descriptor": "thin gauge",
+    "oxygen_barrier": 94,
+    "moisture_barrier": 92,
+    "grease_resistance": 76,
+    "seal_strength": 53,
+    "flexibility": 58,
+    "thermal_tolerance": 73,
+    "transparency": 33,
+    "food_contact_safe": true,
+    "recyclability_score": 66,
+    "compostability_score": 25,
+    "sustainability_score": 82,
+    "cost_range": {
+      "low": 5.34,
+      "high": 7.53,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-039",
+      "MAT-032",
+      "MAT-046"
+    ],
+    "target_applications": [
+      "APP-012",
+      "APP-018",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-007",
+      "SUP-023",
+      "SUP-016",
+      "SUP-011"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-067-A",
+      "DOC-067-B"
+    ]
+  },
+  {
+    "material_id": "MAT-068",
+    "name": "Adhesive C78",
+    "category": "adhesive",
+    "composition": "bio-binder, solvent-free PU",
+    "descriptor": "lamination ready",
+    "oxygen_barrier": 57,
+    "moisture_barrier": 57,
+    "grease_resistance": 57,
+    "seal_strength": 86,
+    "flexibility": 56,
+    "thermal_tolerance": 68,
+    "transparency": 39,
+    "food_contact_safe": false,
+    "recyclability_score": 53,
+    "compostability_score": 22,
+    "sustainability_score": 65,
+    "cost_range": {
+      "low": 5.16,
+      "high": 7.21,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-012",
+      "MAT-040",
+      "MAT-047"
+    ],
+    "target_applications": [
+      "APP-019",
+      "APP-008",
+      "APP-020",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-004",
+      "SUP-020"
+    ],
+    "compliance_flags": [
+      "food-contact-watch",
+      "recovery-gap"
+    ],
+    "compliance_state": "watch",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-068-A",
+      "DOC-068-B"
+    ]
+  },
+  {
+    "material_id": "MAT-069",
+    "name": "Laminate D79",
+    "category": "laminate",
+    "composition": "PE/PE, paper/biopolymer",
+    "descriptor": "multi-layer",
+    "oxygen_barrier": 74,
+    "moisture_barrier": 80,
+    "grease_resistance": 85,
+    "seal_strength": 79,
+    "flexibility": 74,
+    "thermal_tolerance": 86,
+    "transparency": 21,
+    "food_contact_safe": true,
+    "recyclability_score": 67,
+    "compostability_score": 45,
+    "sustainability_score": 78,
+    "cost_range": {
+      "low": 4.13,
+      "high": 6.56,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-055",
+      "MAT-027",
+      "MAT-041"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-002"
+    ],
+    "supplier_ids": [
+      "SUP-021",
+      "SUP-019"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-069-A",
+      "DOC-069-B"
+    ]
+  },
+  {
+    "material_id": "MAT-070",
+    "name": "PaperComposite E80",
+    "category": "paper composite",
+    "composition": "bagasse fiber, dispersion barrier",
+    "descriptor": "renewable fiber",
+    "oxygen_barrier": 61,
+    "moisture_barrier": 77,
+    "grease_resistance": 95,
+    "seal_strength": 60,
+    "flexibility": 74,
+    "thermal_tolerance": 56,
+    "transparency": 16,
+    "food_contact_safe": true,
+    "recyclability_score": 82,
+    "compostability_score": 75,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 4.11,
+      "high": 5.85,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-028",
+      "MAT-035",
+      "MAT-042"
+    ],
+    "target_applications": [
+      "APP-007",
+      "APP-004",
+      "APP-011"
+    ],
+    "supplier_ids": [
+      "SUP-017",
+      "SUP-015"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-070-A",
+      "DOC-070-B"
+    ]
+  },
+  {
+    "material_id": "MAT-071",
+    "name": "Film A81",
+    "category": "film",
+    "composition": "PE, EVOH",
+    "descriptor": "machine direction seal",
+    "oxygen_barrier": 82,
+    "moisture_barrier": 80,
+    "grease_resistance": 59,
+    "seal_strength": 86,
+    "flexibility": 79,
+    "thermal_tolerance": 93,
+    "transparency": 43,
+    "food_contact_safe": true,
+    "recyclability_score": 84,
+    "compostability_score": 31,
+    "sustainability_score": 74,
+    "cost_range": {
+      "low": 4.21,
+      "high": 5.34,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-008",
+      "MAT-001",
+      "MAT-064"
+    ],
+    "target_applications": [
+      "APP-001",
+      "APP-009"
+    ],
+    "supplier_ids": [
+      "SUP-016",
+      "SUP-011"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Europe",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-071-A",
+      "DOC-071-B"
+    ]
+  },
+  {
+    "material_id": "MAT-072",
+    "name": "Bioplastic B82",
+    "category": "bioplastic",
+    "composition": "PHA, PLA",
+    "descriptor": "bio-based",
+    "oxygen_barrier": 58,
+    "moisture_barrier": 63,
+    "grease_resistance": 36,
+    "seal_strength": 71,
+    "flexibility": 78,
+    "thermal_tolerance": 56,
+    "transparency": 56,
+    "food_contact_safe": true,
+    "recyclability_score": 77,
+    "compostability_score": 88,
+    "sustainability_score": 100,
+    "cost_range": {
+      "low": 4.29,
+      "high": 6.24,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-044",
+      "MAT-065",
+      "MAT-058"
+    ],
+    "target_applications": [
+      "APP-005",
+      "APP-016"
+    ],
+    "supplier_ids": [
+      "SUP-012",
+      "SUP-020",
+      "SUP-008"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Middle East"
+    ],
+    "source_document_ids": [
+      "DOC-072-A",
+      "DOC-072-B"
+    ]
+  },
+  {
+    "material_id": "MAT-073",
+    "name": "Coating C83",
+    "category": "coating",
+    "composition": "mineral barrier, waterborne acrylic",
+    "descriptor": "print receptive",
+    "oxygen_barrier": 79,
+    "moisture_barrier": 74,
+    "grease_resistance": 84,
+    "seal_strength": 59,
+    "flexibility": 74,
+    "thermal_tolerance": 71,
+    "transparency": 26,
+    "food_contact_safe": true,
+    "recyclability_score": 71,
+    "compostability_score": 32,
+    "sustainability_score": 75,
+    "cost_range": {
+      "low": 5.1,
+      "high": 6.1,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-059",
+      "MAT-052",
+      "MAT-003"
+    ],
+    "target_applications": [
+      "APP-006",
+      "APP-011"
+    ],
+    "supplier_ids": [
+      "SUP-017",
+      "SUP-007",
+      "SUP-019",
+      "SUP-018"
+    ],
+    "compliance_flags": [
+      "pfas-review"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-073-A",
+      "DOC-073-B"
+    ]
+  },
+  {
+    "material_id": "MAT-074",
+    "name": "BarrierLayer D84",
+    "category": "barrier layer",
+    "composition": "SiOx, EVOH",
+    "descriptor": "aroma retention",
+    "oxygen_barrier": 98,
+    "moisture_barrier": 84,
+    "grease_resistance": 63,
+    "seal_strength": 42,
+    "flexibility": 61,
+    "thermal_tolerance": 72,
+    "transparency": 36,
+    "food_contact_safe": true,
+    "recyclability_score": 73,
+    "compostability_score": 25,
+    "sustainability_score": 64,
+    "cost_range": {
+      "low": 2.72,
+      "high": 3.53,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-004",
+      "MAT-018",
+      "MAT-011"
+    ],
+    "target_applications": [
+      "APP-014",
+      "APP-012"
+    ],
+    "supplier_ids": [
+      "SUP-019",
+      "SUP-003"
+    ],
+    "compliance_flags": [],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America"
+    ],
+    "source_document_ids": [
+      "DOC-074-A",
+      "DOC-074-B"
+    ]
+  },
+  {
+    "material_id": "MAT-075",
+    "name": "Adhesive E85",
+    "category": "adhesive",
+    "composition": "bio-binder, solvent-free PU",
+    "descriptor": "lamination ready",
+    "oxygen_barrier": 45,
+    "moisture_barrier": 46,
+    "grease_resistance": 54,
+    "seal_strength": 91,
+    "flexibility": 57,
+    "thermal_tolerance": 79,
+    "transparency": 40,
+    "food_contact_safe": true,
+    "recyclability_score": 47,
+    "compostability_score": 44,
+    "sustainability_score": 69,
+    "cost_range": {
+      "low": 2.09,
+      "high": 4.63,
+      "currency": "USD/kg"
+    },
+    "substitute_material_ids": [
+      "MAT-054",
+      "MAT-047",
+      "MAT-040"
+    ],
+    "target_applications": [
+      "APP-018",
+      "APP-013"
+    ],
+    "supplier_ids": [
+      "SUP-005",
+      "SUP-021",
+      "SUP-012",
+      "SUP-004"
+    ],
+    "compliance_flags": [
+      "recovery-gap"
+    ],
+    "compliance_state": "compliant",
+    "regions_available": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "Middle East",
+      "North America"
+    ],
+    "source_document_ids": [
+      "DOC-075-A",
+      "DOC-075-B"
+    ]
+  }
+]

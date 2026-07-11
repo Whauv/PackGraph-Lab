@@ -1,0 +1,752 @@
+[
+  {
+    "report_id": "LAB-001",
+    "material_id": "MAT-001",
+    "title": "Film A11 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 84,
+    "seal_strength_result": 81,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-002",
+    "material_id": "MAT-002",
+    "title": "Bioplastic B12 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 68,
+    "seal_strength_result": 70,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-003",
+    "material_id": "MAT-003",
+    "title": "Coating C13 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 68,
+    "seal_strength_result": 59,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-004",
+    "material_id": "MAT-004",
+    "title": "BarrierLayer D14 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 99,
+    "seal_strength_result": 44,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-005",
+    "material_id": "MAT-005",
+    "title": "Adhesive E15 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 43,
+    "seal_strength_result": 91,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-006",
+    "material_id": "MAT-006",
+    "title": "Laminate A16 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 79,
+    "seal_strength_result": 82,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-007",
+    "material_id": "MAT-007",
+    "title": "PaperComposite B17 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 65,
+    "seal_strength_result": 56,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-008",
+    "material_id": "MAT-008",
+    "title": "Film C18 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 83,
+    "seal_strength_result": 88,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-009",
+    "material_id": "MAT-009",
+    "title": "Bioplastic D19 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 54,
+    "seal_strength_result": 73,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-010",
+    "material_id": "MAT-010",
+    "title": "Coating E20 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 72,
+    "seal_strength_result": 54,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-011",
+    "material_id": "MAT-011",
+    "title": "BarrierLayer A21 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 87,
+    "seal_strength_result": 41,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-012",
+    "material_id": "MAT-012",
+    "title": "Adhesive B22 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 44,
+    "seal_strength_result": 88,
+    "migration_status": "review"
+  },
+  {
+    "report_id": "LAB-013",
+    "material_id": "MAT-013",
+    "title": "Laminate C23 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 85,
+    "seal_strength_result": 77,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-014",
+    "material_id": "MAT-014",
+    "title": "PaperComposite D24 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 67,
+    "seal_strength_result": 61,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-015",
+    "material_id": "MAT-015",
+    "title": "Film E25 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 81,
+    "seal_strength_result": 75,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-016",
+    "material_id": "MAT-016",
+    "title": "Bioplastic A26 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 68,
+    "seal_strength_result": 68,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-017",
+    "material_id": "MAT-017",
+    "title": "Coating B27 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 78,
+    "seal_strength_result": 60,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-018",
+    "material_id": "MAT-018",
+    "title": "BarrierLayer C28 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 97,
+    "seal_strength_result": 44,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-019",
+    "material_id": "MAT-019",
+    "title": "Adhesive D29 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 53,
+    "seal_strength_result": 92,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-020",
+    "material_id": "MAT-020",
+    "title": "Laminate E30 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 77,
+    "seal_strength_result": 81,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-021",
+    "material_id": "MAT-021",
+    "title": "PaperComposite A31 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 66,
+    "seal_strength_result": 56,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-022",
+    "material_id": "MAT-022",
+    "title": "Film B32 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 79,
+    "seal_strength_result": 76,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-023",
+    "material_id": "MAT-023",
+    "title": "Bioplastic C33 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 61,
+    "seal_strength_result": 75,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-024",
+    "material_id": "MAT-024",
+    "title": "Coating D34 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 67,
+    "seal_strength_result": 56,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-025",
+    "material_id": "MAT-025",
+    "title": "BarrierLayer E35 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 87,
+    "seal_strength_result": 49,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-026",
+    "material_id": "MAT-026",
+    "title": "Adhesive A36 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 42,
+    "seal_strength_result": 85,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-027",
+    "material_id": "MAT-027",
+    "title": "Laminate B37 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 88,
+    "seal_strength_result": 85,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-028",
+    "material_id": "MAT-028",
+    "title": "PaperComposite C38 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 71,
+    "seal_strength_result": 61,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-029",
+    "material_id": "MAT-029",
+    "title": "Film D39 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 81,
+    "seal_strength_result": 88,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-030",
+    "material_id": "MAT-030",
+    "title": "Bioplastic E40 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 58,
+    "seal_strength_result": 68,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-031",
+    "material_id": "MAT-031",
+    "title": "Coating A41 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 82,
+    "seal_strength_result": 62,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-032",
+    "material_id": "MAT-032",
+    "title": "BarrierLayer B42 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 86,
+    "seal_strength_result": 52,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-033",
+    "material_id": "MAT-033",
+    "title": "Adhesive C43 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 45,
+    "seal_strength_result": 94,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-034",
+    "material_id": "MAT-034",
+    "title": "Laminate D44 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 76,
+    "seal_strength_result": 86,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-035",
+    "material_id": "MAT-035",
+    "title": "PaperComposite E45 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 69,
+    "seal_strength_result": 65,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-036",
+    "material_id": "MAT-036",
+    "title": "Film A46 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 81,
+    "seal_strength_result": 87,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-037",
+    "material_id": "MAT-037",
+    "title": "Bioplastic B47 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 55,
+    "seal_strength_result": 69,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-038",
+    "material_id": "MAT-038",
+    "title": "Coating C48 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 74,
+    "seal_strength_result": 48,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-039",
+    "material_id": "MAT-039",
+    "title": "BarrierLayer D49 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 89,
+    "seal_strength_result": 45,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-040",
+    "material_id": "MAT-040",
+    "title": "Adhesive E50 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 51,
+    "seal_strength_result": 84,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-041",
+    "material_id": "MAT-041",
+    "title": "Laminate A51 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 74,
+    "seal_strength_result": 78,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-042",
+    "material_id": "MAT-042",
+    "title": "PaperComposite B52 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 70,
+    "seal_strength_result": 59,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-043",
+    "material_id": "MAT-043",
+    "title": "Film C53 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 82,
+    "seal_strength_result": 85,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-044",
+    "material_id": "MAT-044",
+    "title": "Bioplastic D54 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 55,
+    "seal_strength_result": 69,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-045",
+    "material_id": "MAT-045",
+    "title": "Coating E55 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 82,
+    "seal_strength_result": 56,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-046",
+    "material_id": "MAT-046",
+    "title": "BarrierLayer A56 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 94,
+    "seal_strength_result": 50,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-047",
+    "material_id": "MAT-047",
+    "title": "Adhesive B57 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 47,
+    "seal_strength_result": 86,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-048",
+    "material_id": "MAT-048",
+    "title": "Laminate C58 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 86,
+    "seal_strength_result": 78,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-049",
+    "material_id": "MAT-049",
+    "title": "PaperComposite D59 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 71,
+    "seal_strength_result": 67,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-050",
+    "material_id": "MAT-050",
+    "title": "Film E60 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 70,
+    "seal_strength_result": 89,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-051",
+    "material_id": "MAT-051",
+    "title": "Bioplastic A61 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 54,
+    "seal_strength_result": 70,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-052",
+    "material_id": "MAT-052",
+    "title": "Coating B62 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 69,
+    "seal_strength_result": 48,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-053",
+    "material_id": "MAT-053",
+    "title": "BarrierLayer C63 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 89,
+    "seal_strength_result": 56,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-054",
+    "material_id": "MAT-054",
+    "title": "Adhesive D64 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 44,
+    "seal_strength_result": 86,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-055",
+    "material_id": "MAT-055",
+    "title": "Laminate E65 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 88,
+    "seal_strength_result": 82,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-056",
+    "material_id": "MAT-056",
+    "title": "PaperComposite A66 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 75,
+    "seal_strength_result": 68,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-057",
+    "material_id": "MAT-057",
+    "title": "Film B67 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 82,
+    "seal_strength_result": 83,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-058",
+    "material_id": "MAT-058",
+    "title": "Bioplastic C68 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 67,
+    "seal_strength_result": 63,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-059",
+    "material_id": "MAT-059",
+    "title": "Coating D69 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 73,
+    "seal_strength_result": 60,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-060",
+    "material_id": "MAT-060",
+    "title": "BarrierLayer E70 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 93,
+    "seal_strength_result": 50,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-061",
+    "material_id": "MAT-061",
+    "title": "Adhesive A71 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 44,
+    "seal_strength_result": 88,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-062",
+    "material_id": "MAT-062",
+    "title": "Laminate B72 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 76,
+    "seal_strength_result": 82,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-063",
+    "material_id": "MAT-063",
+    "title": "PaperComposite C73 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 63,
+    "seal_strength_result": 66,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-064",
+    "material_id": "MAT-064",
+    "title": "Film D74 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 71,
+    "seal_strength_result": 90,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-065",
+    "material_id": "MAT-065",
+    "title": "Bioplastic E75 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 62,
+    "seal_strength_result": 69,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-066",
+    "material_id": "MAT-066",
+    "title": "Coating A76 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 80,
+    "seal_strength_result": 58,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-067",
+    "material_id": "MAT-067",
+    "title": "BarrierLayer B77 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 94,
+    "seal_strength_result": 53,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-068",
+    "material_id": "MAT-068",
+    "title": "Adhesive C78 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 57,
+    "seal_strength_result": 86,
+    "migration_status": "review"
+  },
+  {
+    "report_id": "LAB-069",
+    "material_id": "MAT-069",
+    "title": "Laminate D79 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 74,
+    "seal_strength_result": 79,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-070",
+    "material_id": "MAT-070",
+    "title": "PaperComposite E80 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-04-15",
+    "oxygen_barrier_result": 61,
+    "seal_strength_result": 60,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-071",
+    "material_id": "MAT-071",
+    "title": "Film A81 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-05-15",
+    "oxygen_barrier_result": 82,
+    "seal_strength_result": 86,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-072",
+    "material_id": "MAT-072",
+    "title": "Bioplastic B82 barrier and seal validation",
+    "lab": "Blue Mesa Labs",
+    "test_date": "2026-06-15",
+    "oxygen_barrier_result": 58,
+    "seal_strength_result": 71,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-073",
+    "material_id": "MAT-073",
+    "title": "Coating C83 barrier and seal validation",
+    "lab": "Crescent Validation Works",
+    "test_date": "2026-01-15",
+    "oxygen_barrier_result": 79,
+    "seal_strength_result": 59,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-074",
+    "material_id": "MAT-074",
+    "title": "BarrierLayer D84 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-02-15",
+    "oxygen_barrier_result": 98,
+    "seal_strength_result": 42,
+    "migration_status": "pass"
+  },
+  {
+    "report_id": "LAB-075",
+    "material_id": "MAT-075",
+    "title": "Adhesive E85 barrier and seal validation",
+    "lab": "Arcwell Test House",
+    "test_date": "2026-03-15",
+    "oxygen_barrier_result": 45,
+    "seal_strength_result": 91,
+    "migration_status": "pass"
+  }
+]

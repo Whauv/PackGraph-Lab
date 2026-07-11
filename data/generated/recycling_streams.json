@@ -1,0 +1,41 @@
+[
+  {
+    "stream_id": "REC-001",
+    "name": "Store Drop-off PE",
+    "accepted_categories": [
+      "film",
+      "laminate"
+    ]
+  },
+  {
+    "stream_id": "REC-002",
+    "name": "Rigid Fiber Recovery",
+    "accepted_categories": [
+      "paper composite"
+    ]
+  },
+  {
+    "stream_id": "REC-003",
+    "name": "Industrial Compost",
+    "accepted_categories": [
+      "bioplastic",
+      "paper composite"
+    ]
+  },
+  {
+    "stream_id": "REC-004",
+    "name": "Mixed Flexible Recovery",
+    "accepted_categories": [
+      "film",
+      "coating"
+    ]
+  },
+  {
+    "stream_id": "REC-005",
+    "name": "Specialty Pharma Waste",
+    "accepted_categories": [
+      "adhesive",
+      "laminate"
+    ]
+  }
+]

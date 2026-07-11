@@ -1,0 +1,22 @@
+[
+  {
+    "region_id": "REG-NA",
+    "name": "North America"
+  },
+  {
+    "region_id": "REG-EU",
+    "name": "Europe"
+  },
+  {
+    "region_id": "REG-AP",
+    "name": "Asia Pacific"
+  },
+  {
+    "region_id": "REG-LA",
+    "name": "Latin America"
+  },
+  {
+    "region_id": "REG-ME",
+    "name": "Middle East"
+  }
+]

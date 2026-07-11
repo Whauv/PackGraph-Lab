@@ -1,0 +1,1502 @@
+[
+  {
+    "document_id": "DOC-001-A",
+    "title": "Film A11 synthetic datasheet",
+    "material_id": "MAT-001",
+    "supplier_id": "SUP-008",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-01",
+    "provenance_score": 76,
+    "checksum": "film-a11-doc-001-a-42"
+  },
+  {
+    "document_id": "DOC-001-B",
+    "title": "Film A11 synthetic declaration",
+    "material_id": "MAT-001",
+    "supplier_id": "SUP-007",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-01",
+    "provenance_score": 73,
+    "checksum": "film-a11-doc-001-b-42"
+  },
+  {
+    "document_id": "DOC-002-A",
+    "title": "Bioplastic B12 synthetic datasheet",
+    "material_id": "MAT-002",
+    "supplier_id": "SUP-006",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-02",
+    "provenance_score": 73,
+    "checksum": "bioplastic-b12-doc-002-a-42"
+  },
+  {
+    "document_id": "DOC-002-B",
+    "title": "Bioplastic B12 synthetic declaration",
+    "material_id": "MAT-002",
+    "supplier_id": "SUP-013",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-02",
+    "provenance_score": 83,
+    "checksum": "bioplastic-b12-doc-002-b-42"
+  },
+  {
+    "document_id": "DOC-003-A",
+    "title": "Coating C13 synthetic datasheet",
+    "material_id": "MAT-003",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-03",
+    "provenance_score": 80,
+    "checksum": "coating-c13-doc-003-a-42"
+  },
+  {
+    "document_id": "DOC-003-B",
+    "title": "Coating C13 synthetic declaration",
+    "material_id": "MAT-003",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-03",
+    "provenance_score": 67,
+    "checksum": "coating-c13-doc-003-b-42"
+  },
+  {
+    "document_id": "DOC-004-A",
+    "title": "BarrierLayer D14 synthetic datasheet",
+    "material_id": "MAT-004",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-04",
+    "provenance_score": 88,
+    "checksum": "barrierlayer-d14-doc-004-a-42"
+  },
+  {
+    "document_id": "DOC-004-B",
+    "title": "BarrierLayer D14 synthetic declaration",
+    "material_id": "MAT-004",
+    "supplier_id": "SUP-018",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-04",
+    "provenance_score": 87,
+    "checksum": "barrierlayer-d14-doc-004-b-42"
+  },
+  {
+    "document_id": "DOC-005-A",
+    "title": "Adhesive E15 synthetic datasheet",
+    "material_id": "MAT-005",
+    "supplier_id": "SUP-024",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-05",
+    "provenance_score": 83,
+    "checksum": "adhesive-e15-doc-005-a-42"
+  },
+  {
+    "document_id": "DOC-005-B",
+    "title": "Adhesive E15 synthetic declaration",
+    "material_id": "MAT-005",
+    "supplier_id": "SUP-018",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-05",
+    "provenance_score": 71,
+    "checksum": "adhesive-e15-doc-005-b-42"
+  },
+  {
+    "document_id": "DOC-006-A",
+    "title": "Laminate A16 synthetic datasheet",
+    "material_id": "MAT-006",
+    "supplier_id": "SUP-001",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-06",
+    "provenance_score": 80,
+    "checksum": "laminate-a16-doc-006-a-42"
+  },
+  {
+    "document_id": "DOC-006-B",
+    "title": "Laminate A16 synthetic declaration",
+    "material_id": "MAT-006",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-06",
+    "provenance_score": 70,
+    "checksum": "laminate-a16-doc-006-b-42"
+  },
+  {
+    "document_id": "DOC-007-A",
+    "title": "PaperComposite B17 synthetic datasheet",
+    "material_id": "MAT-007",
+    "supplier_id": "SUP-006",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-07",
+    "provenance_score": 85,
+    "checksum": "papercomposite-b17-doc-007-a-42"
+  },
+  {
+    "document_id": "DOC-007-B",
+    "title": "PaperComposite B17 synthetic declaration",
+    "material_id": "MAT-007",
+    "supplier_id": "SUP-014",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-07",
+    "provenance_score": 87,
+    "checksum": "papercomposite-b17-doc-007-b-42"
+  },
+  {
+    "document_id": "DOC-008-A",
+    "title": "Film C18 synthetic datasheet",
+    "material_id": "MAT-008",
+    "supplier_id": "SUP-009",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-08",
+    "provenance_score": 89,
+    "checksum": "film-c18-doc-008-a-42"
+  },
+  {
+    "document_id": "DOC-008-B",
+    "title": "Film C18 synthetic declaration",
+    "material_id": "MAT-008",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-08",
+    "provenance_score": 69,
+    "checksum": "film-c18-doc-008-b-42"
+  },
+  {
+    "document_id": "DOC-009-A",
+    "title": "Bioplastic D19 synthetic datasheet",
+    "material_id": "MAT-009",
+    "supplier_id": "SUP-022",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-09",
+    "provenance_score": 83,
+    "checksum": "bioplastic-d19-doc-009-a-42"
+  },
+  {
+    "document_id": "DOC-009-B",
+    "title": "Bioplastic D19 synthetic declaration",
+    "material_id": "MAT-009",
+    "supplier_id": "SUP-024",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-09",
+    "provenance_score": 73,
+    "checksum": "bioplastic-d19-doc-009-b-42"
+  },
+  {
+    "document_id": "DOC-010-A",
+    "title": "Coating E20 synthetic datasheet",
+    "material_id": "MAT-010",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-10",
+    "provenance_score": 85,
+    "checksum": "coating-e20-doc-010-a-42"
+  },
+  {
+    "document_id": "DOC-010-B",
+    "title": "Coating E20 synthetic declaration",
+    "material_id": "MAT-010",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-10",
+    "provenance_score": 89,
+    "checksum": "coating-e20-doc-010-b-42"
+  },
+  {
+    "document_id": "DOC-011-A",
+    "title": "BarrierLayer A21 synthetic datasheet",
+    "material_id": "MAT-011",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-11",
+    "provenance_score": 72,
+    "checksum": "barrierlayer-a21-doc-011-a-42"
+  },
+  {
+    "document_id": "DOC-011-B",
+    "title": "BarrierLayer A21 synthetic declaration",
+    "material_id": "MAT-011",
+    "supplier_id": "SUP-014",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-11",
+    "provenance_score": 82,
+    "checksum": "barrierlayer-a21-doc-011-b-42"
+  },
+  {
+    "document_id": "DOC-012-A",
+    "title": "Adhesive B22 synthetic datasheet",
+    "material_id": "MAT-012",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-12",
+    "provenance_score": 72,
+    "checksum": "adhesive-b22-doc-012-a-42"
+  },
+  {
+    "document_id": "DOC-012-B",
+    "title": "Adhesive B22 synthetic declaration",
+    "material_id": "MAT-012",
+    "supplier_id": "SUP-024",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-12",
+    "provenance_score": 72,
+    "checksum": "adhesive-b22-doc-012-b-42"
+  },
+  {
+    "document_id": "DOC-013-A",
+    "title": "Laminate C23 synthetic datasheet",
+    "material_id": "MAT-013",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-13",
+    "provenance_score": 88,
+    "checksum": "laminate-c23-doc-013-a-42"
+  },
+  {
+    "document_id": "DOC-013-B",
+    "title": "Laminate C23 synthetic declaration",
+    "material_id": "MAT-013",
+    "supplier_id": "SUP-018",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-13",
+    "provenance_score": 80,
+    "checksum": "laminate-c23-doc-013-b-42"
+  },
+  {
+    "document_id": "DOC-014-A",
+    "title": "PaperComposite D24 synthetic datasheet",
+    "material_id": "MAT-014",
+    "supplier_id": "SUP-001",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-14",
+    "provenance_score": 88,
+    "checksum": "papercomposite-d24-doc-014-a-42"
+  },
+  {
+    "document_id": "DOC-014-B",
+    "title": "PaperComposite D24 synthetic declaration",
+    "material_id": "MAT-014",
+    "supplier_id": "SUP-013",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-14",
+    "provenance_score": 80,
+    "checksum": "papercomposite-d24-doc-014-b-42"
+  },
+  {
+    "document_id": "DOC-015-A",
+    "title": "Film E25 synthetic datasheet",
+    "material_id": "MAT-015",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-15",
+    "provenance_score": 85,
+    "checksum": "film-e25-doc-015-a-42"
+  },
+  {
+    "document_id": "DOC-015-B",
+    "title": "Film E25 synthetic declaration",
+    "material_id": "MAT-015",
+    "supplier_id": "SUP-001",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-15",
+    "provenance_score": 82,
+    "checksum": "film-e25-doc-015-b-42"
+  },
+  {
+    "document_id": "DOC-016-A",
+    "title": "Bioplastic A26 synthetic datasheet",
+    "material_id": "MAT-016",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-16",
+    "provenance_score": 68,
+    "checksum": "bioplastic-a26-doc-016-a-42"
+  },
+  {
+    "document_id": "DOC-016-B",
+    "title": "Bioplastic A26 synthetic declaration",
+    "material_id": "MAT-016",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-16",
+    "provenance_score": 83,
+    "checksum": "bioplastic-a26-doc-016-b-42"
+  },
+  {
+    "document_id": "DOC-017-A",
+    "title": "Coating B27 synthetic datasheet",
+    "material_id": "MAT-017",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-17",
+    "provenance_score": 81,
+    "checksum": "coating-b27-doc-017-a-42"
+  },
+  {
+    "document_id": "DOC-017-B",
+    "title": "Coating B27 synthetic declaration",
+    "material_id": "MAT-017",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-17",
+    "provenance_score": 88,
+    "checksum": "coating-b27-doc-017-b-42"
+  },
+  {
+    "document_id": "DOC-018-A",
+    "title": "BarrierLayer C28 synthetic datasheet",
+    "material_id": "MAT-018",
+    "supplier_id": "SUP-006",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-18",
+    "provenance_score": 79,
+    "checksum": "barrierlayer-c28-doc-018-a-42"
+  },
+  {
+    "document_id": "DOC-018-B",
+    "title": "BarrierLayer C28 synthetic declaration",
+    "material_id": "MAT-018",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-18",
+    "provenance_score": 78,
+    "checksum": "barrierlayer-c28-doc-018-b-42"
+  },
+  {
+    "document_id": "DOC-019-A",
+    "title": "Adhesive D29 synthetic datasheet",
+    "material_id": "MAT-019",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-19",
+    "provenance_score": 72,
+    "checksum": "adhesive-d29-doc-019-a-42"
+  },
+  {
+    "document_id": "DOC-019-B",
+    "title": "Adhesive D29 synthetic declaration",
+    "material_id": "MAT-019",
+    "supplier_id": "SUP-014",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-19",
+    "provenance_score": 83,
+    "checksum": "adhesive-d29-doc-019-b-42"
+  },
+  {
+    "document_id": "DOC-020-A",
+    "title": "Laminate E30 synthetic datasheet",
+    "material_id": "MAT-020",
+    "supplier_id": "SUP-009",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-20",
+    "provenance_score": 81,
+    "checksum": "laminate-e30-doc-020-a-42"
+  },
+  {
+    "document_id": "DOC-020-B",
+    "title": "Laminate E30 synthetic declaration",
+    "material_id": "MAT-020",
+    "supplier_id": "SUP-002",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-20",
+    "provenance_score": 84,
+    "checksum": "laminate-e30-doc-020-b-42"
+  },
+  {
+    "document_id": "DOC-021-A",
+    "title": "PaperComposite A31 synthetic datasheet",
+    "material_id": "MAT-021",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-01",
+    "provenance_score": 88,
+    "checksum": "papercomposite-a31-doc-021-a-42"
+  },
+  {
+    "document_id": "DOC-021-B",
+    "title": "PaperComposite A31 synthetic declaration",
+    "material_id": "MAT-021",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-01",
+    "provenance_score": 73,
+    "checksum": "papercomposite-a31-doc-021-b-42"
+  },
+  {
+    "document_id": "DOC-022-A",
+    "title": "Film B32 synthetic datasheet",
+    "material_id": "MAT-022",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-02",
+    "provenance_score": 68,
+    "checksum": "film-b32-doc-022-a-42"
+  },
+  {
+    "document_id": "DOC-022-B",
+    "title": "Film B32 synthetic declaration",
+    "material_id": "MAT-022",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-02",
+    "provenance_score": 72,
+    "checksum": "film-b32-doc-022-b-42"
+  },
+  {
+    "document_id": "DOC-023-A",
+    "title": "Bioplastic C33 synthetic datasheet",
+    "material_id": "MAT-023",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-03",
+    "provenance_score": 87,
+    "checksum": "bioplastic-c33-doc-023-a-42"
+  },
+  {
+    "document_id": "DOC-023-B",
+    "title": "Bioplastic C33 synthetic declaration",
+    "material_id": "MAT-023",
+    "supplier_id": "SUP-023",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-03",
+    "provenance_score": 84,
+    "checksum": "bioplastic-c33-doc-023-b-42"
+  },
+  {
+    "document_id": "DOC-024-A",
+    "title": "Coating D34 synthetic datasheet",
+    "material_id": "MAT-024",
+    "supplier_id": "SUP-006",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-04",
+    "provenance_score": 82,
+    "checksum": "coating-d34-doc-024-a-42"
+  },
+  {
+    "document_id": "DOC-024-B",
+    "title": "Coating D34 synthetic declaration",
+    "material_id": "MAT-024",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-04",
+    "provenance_score": 87,
+    "checksum": "coating-d34-doc-024-b-42"
+  },
+  {
+    "document_id": "DOC-025-A",
+    "title": "BarrierLayer E35 synthetic datasheet",
+    "material_id": "MAT-025",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-05",
+    "provenance_score": 72,
+    "checksum": "barrierlayer-e35-doc-025-a-42"
+  },
+  {
+    "document_id": "DOC-025-B",
+    "title": "BarrierLayer E35 synthetic declaration",
+    "material_id": "MAT-025",
+    "supplier_id": "SUP-014",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-05",
+    "provenance_score": 69,
+    "checksum": "barrierlayer-e35-doc-025-b-42"
+  },
+  {
+    "document_id": "DOC-026-A",
+    "title": "Adhesive A36 synthetic datasheet",
+    "material_id": "MAT-026",
+    "supplier_id": "SUP-023",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-06",
+    "provenance_score": 77,
+    "checksum": "adhesive-a36-doc-026-a-42"
+  },
+  {
+    "document_id": "DOC-026-B",
+    "title": "Adhesive A36 synthetic declaration",
+    "material_id": "MAT-026",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-06",
+    "provenance_score": 69,
+    "checksum": "adhesive-a36-doc-026-b-42"
+  },
+  {
+    "document_id": "DOC-027-A",
+    "title": "Laminate B37 synthetic datasheet",
+    "material_id": "MAT-027",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-07",
+    "provenance_score": 80,
+    "checksum": "laminate-b37-doc-027-a-42"
+  },
+  {
+    "document_id": "DOC-027-B",
+    "title": "Laminate B37 synthetic declaration",
+    "material_id": "MAT-027",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-07",
+    "provenance_score": 72,
+    "checksum": "laminate-b37-doc-027-b-42"
+  },
+  {
+    "document_id": "DOC-028-A",
+    "title": "PaperComposite C38 synthetic datasheet",
+    "material_id": "MAT-028",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-08",
+    "provenance_score": 68,
+    "checksum": "papercomposite-c38-doc-028-a-42"
+  },
+  {
+    "document_id": "DOC-028-B",
+    "title": "PaperComposite C38 synthetic declaration",
+    "material_id": "MAT-028",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-08",
+    "provenance_score": 85,
+    "checksum": "papercomposite-c38-doc-028-b-42"
+  },
+  {
+    "document_id": "DOC-029-A",
+    "title": "Film D39 synthetic datasheet",
+    "material_id": "MAT-029",
+    "supplier_id": "SUP-008",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-09",
+    "provenance_score": 83,
+    "checksum": "film-d39-doc-029-a-42"
+  },
+  {
+    "document_id": "DOC-029-B",
+    "title": "Film D39 synthetic declaration",
+    "material_id": "MAT-029",
+    "supplier_id": "SUP-024",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-09",
+    "provenance_score": 88,
+    "checksum": "film-d39-doc-029-b-42"
+  },
+  {
+    "document_id": "DOC-030-A",
+    "title": "Bioplastic E40 synthetic datasheet",
+    "material_id": "MAT-030",
+    "supplier_id": "SUP-008",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-10",
+    "provenance_score": 88,
+    "checksum": "bioplastic-e40-doc-030-a-42"
+  },
+  {
+    "document_id": "DOC-030-B",
+    "title": "Bioplastic E40 synthetic declaration",
+    "material_id": "MAT-030",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-10",
+    "provenance_score": 82,
+    "checksum": "bioplastic-e40-doc-030-b-42"
+  },
+  {
+    "document_id": "DOC-031-A",
+    "title": "Coating A41 synthetic datasheet",
+    "material_id": "MAT-031",
+    "supplier_id": "SUP-023",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-11",
+    "provenance_score": 86,
+    "checksum": "coating-a41-doc-031-a-42"
+  },
+  {
+    "document_id": "DOC-031-B",
+    "title": "Coating A41 synthetic declaration",
+    "material_id": "MAT-031",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-11",
+    "provenance_score": 88,
+    "checksum": "coating-a41-doc-031-b-42"
+  },
+  {
+    "document_id": "DOC-032-A",
+    "title": "BarrierLayer B42 synthetic datasheet",
+    "material_id": "MAT-032",
+    "supplier_id": "SUP-024",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-12",
+    "provenance_score": 69,
+    "checksum": "barrierlayer-b42-doc-032-a-42"
+  },
+  {
+    "document_id": "DOC-032-B",
+    "title": "BarrierLayer B42 synthetic declaration",
+    "material_id": "MAT-032",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-12",
+    "provenance_score": 79,
+    "checksum": "barrierlayer-b42-doc-032-b-42"
+  },
+  {
+    "document_id": "DOC-033-A",
+    "title": "Adhesive C43 synthetic datasheet",
+    "material_id": "MAT-033",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-13",
+    "provenance_score": 82,
+    "checksum": "adhesive-c43-doc-033-a-42"
+  },
+  {
+    "document_id": "DOC-033-B",
+    "title": "Adhesive C43 synthetic declaration",
+    "material_id": "MAT-033",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-13",
+    "provenance_score": 82,
+    "checksum": "adhesive-c43-doc-033-b-42"
+  },
+  {
+    "document_id": "DOC-034-A",
+    "title": "Laminate D44 synthetic datasheet",
+    "material_id": "MAT-034",
+    "supplier_id": "SUP-002",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-14",
+    "provenance_score": 75,
+    "checksum": "laminate-d44-doc-034-a-42"
+  },
+  {
+    "document_id": "DOC-034-B",
+    "title": "Laminate D44 synthetic declaration",
+    "material_id": "MAT-034",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-14",
+    "provenance_score": 75,
+    "checksum": "laminate-d44-doc-034-b-42"
+  },
+  {
+    "document_id": "DOC-035-A",
+    "title": "PaperComposite E45 synthetic datasheet",
+    "material_id": "MAT-035",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-15",
+    "provenance_score": 89,
+    "checksum": "papercomposite-e45-doc-035-a-42"
+  },
+  {
+    "document_id": "DOC-035-B",
+    "title": "PaperComposite E45 synthetic declaration",
+    "material_id": "MAT-035",
+    "supplier_id": "SUP-022",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-15",
+    "provenance_score": 89,
+    "checksum": "papercomposite-e45-doc-035-b-42"
+  },
+  {
+    "document_id": "DOC-036-A",
+    "title": "Film A46 synthetic datasheet",
+    "material_id": "MAT-036",
+    "supplier_id": "SUP-025",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-16",
+    "provenance_score": 79,
+    "checksum": "film-a46-doc-036-a-42"
+  },
+  {
+    "document_id": "DOC-036-B",
+    "title": "Film A46 synthetic declaration",
+    "material_id": "MAT-036",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-16",
+    "provenance_score": 85,
+    "checksum": "film-a46-doc-036-b-42"
+  },
+  {
+    "document_id": "DOC-037-A",
+    "title": "Bioplastic B47 synthetic datasheet",
+    "material_id": "MAT-037",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-17",
+    "provenance_score": 67,
+    "checksum": "bioplastic-b47-doc-037-a-42"
+  },
+  {
+    "document_id": "DOC-037-B",
+    "title": "Bioplastic B47 synthetic declaration",
+    "material_id": "MAT-037",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-17",
+    "provenance_score": 77,
+    "checksum": "bioplastic-b47-doc-037-b-42"
+  },
+  {
+    "document_id": "DOC-038-A",
+    "title": "Coating C48 synthetic datasheet",
+    "material_id": "MAT-038",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-18",
+    "provenance_score": 76,
+    "checksum": "coating-c48-doc-038-a-42"
+  },
+  {
+    "document_id": "DOC-038-B",
+    "title": "Coating C48 synthetic declaration",
+    "material_id": "MAT-038",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-18",
+    "provenance_score": 87,
+    "checksum": "coating-c48-doc-038-b-42"
+  },
+  {
+    "document_id": "DOC-039-A",
+    "title": "BarrierLayer D49 synthetic datasheet",
+    "material_id": "MAT-039",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-19",
+    "provenance_score": 74,
+    "checksum": "barrierlayer-d49-doc-039-a-42"
+  },
+  {
+    "document_id": "DOC-039-B",
+    "title": "BarrierLayer D49 synthetic declaration",
+    "material_id": "MAT-039",
+    "supplier_id": "SUP-018",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-19",
+    "provenance_score": 82,
+    "checksum": "barrierlayer-d49-doc-039-b-42"
+  },
+  {
+    "document_id": "DOC-040-A",
+    "title": "Adhesive E50 synthetic datasheet",
+    "material_id": "MAT-040",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-20",
+    "provenance_score": 70,
+    "checksum": "adhesive-e50-doc-040-a-42"
+  },
+  {
+    "document_id": "DOC-040-B",
+    "title": "Adhesive E50 synthetic declaration",
+    "material_id": "MAT-040",
+    "supplier_id": "SUP-022",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-20",
+    "provenance_score": 83,
+    "checksum": "adhesive-e50-doc-040-b-42"
+  },
+  {
+    "document_id": "DOC-041-A",
+    "title": "Laminate A51 synthetic datasheet",
+    "material_id": "MAT-041",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-01",
+    "provenance_score": 84,
+    "checksum": "laminate-a51-doc-041-a-42"
+  },
+  {
+    "document_id": "DOC-041-B",
+    "title": "Laminate A51 synthetic declaration",
+    "material_id": "MAT-041",
+    "supplier_id": "SUP-025",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-01",
+    "provenance_score": 67,
+    "checksum": "laminate-a51-doc-041-b-42"
+  },
+  {
+    "document_id": "DOC-042-A",
+    "title": "PaperComposite B52 synthetic datasheet",
+    "material_id": "MAT-042",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-02",
+    "provenance_score": 84,
+    "checksum": "papercomposite-b52-doc-042-a-42"
+  },
+  {
+    "document_id": "DOC-042-B",
+    "title": "PaperComposite B52 synthetic declaration",
+    "material_id": "MAT-042",
+    "supplier_id": "SUP-002",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-02",
+    "provenance_score": 73,
+    "checksum": "papercomposite-b52-doc-042-b-42"
+  },
+  {
+    "document_id": "DOC-043-A",
+    "title": "Film C53 synthetic datasheet",
+    "material_id": "MAT-043",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-03",
+    "provenance_score": 89,
+    "checksum": "film-c53-doc-043-a-42"
+  },
+  {
+    "document_id": "DOC-043-B",
+    "title": "Film C53 synthetic declaration",
+    "material_id": "MAT-043",
+    "supplier_id": "SUP-014",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-03",
+    "provenance_score": 70,
+    "checksum": "film-c53-doc-043-b-42"
+  },
+  {
+    "document_id": "DOC-044-A",
+    "title": "Bioplastic D54 synthetic datasheet",
+    "material_id": "MAT-044",
+    "supplier_id": "SUP-007",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-04",
+    "provenance_score": 71,
+    "checksum": "bioplastic-d54-doc-044-a-42"
+  },
+  {
+    "document_id": "DOC-044-B",
+    "title": "Bioplastic D54 synthetic declaration",
+    "material_id": "MAT-044",
+    "supplier_id": "SUP-025",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-04",
+    "provenance_score": 80,
+    "checksum": "bioplastic-d54-doc-044-b-42"
+  },
+  {
+    "document_id": "DOC-045-A",
+    "title": "Coating E55 synthetic datasheet",
+    "material_id": "MAT-045",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-05",
+    "provenance_score": 77,
+    "checksum": "coating-e55-doc-045-a-42"
+  },
+  {
+    "document_id": "DOC-045-B",
+    "title": "Coating E55 synthetic declaration",
+    "material_id": "MAT-045",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-05",
+    "provenance_score": 67,
+    "checksum": "coating-e55-doc-045-b-42"
+  },
+  {
+    "document_id": "DOC-046-A",
+    "title": "BarrierLayer A56 synthetic datasheet",
+    "material_id": "MAT-046",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-06",
+    "provenance_score": 67,
+    "checksum": "barrierlayer-a56-doc-046-a-42"
+  },
+  {
+    "document_id": "DOC-046-B",
+    "title": "BarrierLayer A56 synthetic declaration",
+    "material_id": "MAT-046",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-06",
+    "provenance_score": 83,
+    "checksum": "barrierlayer-a56-doc-046-b-42"
+  },
+  {
+    "document_id": "DOC-047-A",
+    "title": "Adhesive B57 synthetic datasheet",
+    "material_id": "MAT-047",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-07",
+    "provenance_score": 73,
+    "checksum": "adhesive-b57-doc-047-a-42"
+  },
+  {
+    "document_id": "DOC-047-B",
+    "title": "Adhesive B57 synthetic declaration",
+    "material_id": "MAT-047",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-07",
+    "provenance_score": 75,
+    "checksum": "adhesive-b57-doc-047-b-42"
+  },
+  {
+    "document_id": "DOC-048-A",
+    "title": "Laminate C58 synthetic datasheet",
+    "material_id": "MAT-048",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-08",
+    "provenance_score": 70,
+    "checksum": "laminate-c58-doc-048-a-42"
+  },
+  {
+    "document_id": "DOC-048-B",
+    "title": "Laminate C58 synthetic declaration",
+    "material_id": "MAT-048",
+    "supplier_id": "SUP-025",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-08",
+    "provenance_score": 70,
+    "checksum": "laminate-c58-doc-048-b-42"
+  },
+  {
+    "document_id": "DOC-049-A",
+    "title": "PaperComposite D59 synthetic datasheet",
+    "material_id": "MAT-049",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-09",
+    "provenance_score": 89,
+    "checksum": "papercomposite-d59-doc-049-a-42"
+  },
+  {
+    "document_id": "DOC-049-B",
+    "title": "PaperComposite D59 synthetic declaration",
+    "material_id": "MAT-049",
+    "supplier_id": "SUP-022",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-09",
+    "provenance_score": 86,
+    "checksum": "papercomposite-d59-doc-049-b-42"
+  },
+  {
+    "document_id": "DOC-050-A",
+    "title": "Film E60 synthetic datasheet",
+    "material_id": "MAT-050",
+    "supplier_id": "SUP-008",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-10",
+    "provenance_score": 78,
+    "checksum": "film-e60-doc-050-a-42"
+  },
+  {
+    "document_id": "DOC-050-B",
+    "title": "Film E60 synthetic declaration",
+    "material_id": "MAT-050",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-10",
+    "provenance_score": 72,
+    "checksum": "film-e60-doc-050-b-42"
+  },
+  {
+    "document_id": "DOC-051-A",
+    "title": "Bioplastic A61 synthetic datasheet",
+    "material_id": "MAT-051",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-11",
+    "provenance_score": 69,
+    "checksum": "bioplastic-a61-doc-051-a-42"
+  },
+  {
+    "document_id": "DOC-051-B",
+    "title": "Bioplastic A61 synthetic declaration",
+    "material_id": "MAT-051",
+    "supplier_id": "SUP-001",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-11",
+    "provenance_score": 73,
+    "checksum": "bioplastic-a61-doc-051-b-42"
+  },
+  {
+    "document_id": "DOC-052-A",
+    "title": "Coating B62 synthetic datasheet",
+    "material_id": "MAT-052",
+    "supplier_id": "SUP-008",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-12",
+    "provenance_score": 89,
+    "checksum": "coating-b62-doc-052-a-42"
+  },
+  {
+    "document_id": "DOC-052-B",
+    "title": "Coating B62 synthetic declaration",
+    "material_id": "MAT-052",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-12",
+    "provenance_score": 79,
+    "checksum": "coating-b62-doc-052-b-42"
+  },
+  {
+    "document_id": "DOC-053-A",
+    "title": "BarrierLayer C63 synthetic datasheet",
+    "material_id": "MAT-053",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-13",
+    "provenance_score": 85,
+    "checksum": "barrierlayer-c63-doc-053-a-42"
+  },
+  {
+    "document_id": "DOC-053-B",
+    "title": "BarrierLayer C63 synthetic declaration",
+    "material_id": "MAT-053",
+    "supplier_id": "SUP-002",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-13",
+    "provenance_score": 68,
+    "checksum": "barrierlayer-c63-doc-053-b-42"
+  },
+  {
+    "document_id": "DOC-054-A",
+    "title": "Adhesive D64 synthetic datasheet",
+    "material_id": "MAT-054",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-14",
+    "provenance_score": 89,
+    "checksum": "adhesive-d64-doc-054-a-42"
+  },
+  {
+    "document_id": "DOC-054-B",
+    "title": "Adhesive D64 synthetic declaration",
+    "material_id": "MAT-054",
+    "supplier_id": "SUP-009",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-14",
+    "provenance_score": 78,
+    "checksum": "adhesive-d64-doc-054-b-42"
+  },
+  {
+    "document_id": "DOC-055-A",
+    "title": "Laminate E65 synthetic datasheet",
+    "material_id": "MAT-055",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-15",
+    "provenance_score": 68,
+    "checksum": "laminate-e65-doc-055-a-42"
+  },
+  {
+    "document_id": "DOC-055-B",
+    "title": "Laminate E65 synthetic declaration",
+    "material_id": "MAT-055",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-15",
+    "provenance_score": 81,
+    "checksum": "laminate-e65-doc-055-b-42"
+  },
+  {
+    "document_id": "DOC-056-A",
+    "title": "PaperComposite A66 synthetic datasheet",
+    "material_id": "MAT-056",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-16",
+    "provenance_score": 76,
+    "checksum": "papercomposite-a66-doc-056-a-42"
+  },
+  {
+    "document_id": "DOC-056-B",
+    "title": "PaperComposite A66 synthetic declaration",
+    "material_id": "MAT-056",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-16",
+    "provenance_score": 82,
+    "checksum": "papercomposite-a66-doc-056-b-42"
+  },
+  {
+    "document_id": "DOC-057-A",
+    "title": "Film B67 synthetic datasheet",
+    "material_id": "MAT-057",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-17",
+    "provenance_score": 79,
+    "checksum": "film-b67-doc-057-a-42"
+  },
+  {
+    "document_id": "DOC-057-B",
+    "title": "Film B67 synthetic declaration",
+    "material_id": "MAT-057",
+    "supplier_id": "SUP-006",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-17",
+    "provenance_score": 73,
+    "checksum": "film-b67-doc-057-b-42"
+  },
+  {
+    "document_id": "DOC-058-A",
+    "title": "Bioplastic C68 synthetic datasheet",
+    "material_id": "MAT-058",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-18",
+    "provenance_score": 86,
+    "checksum": "bioplastic-c68-doc-058-a-42"
+  },
+  {
+    "document_id": "DOC-058-B",
+    "title": "Bioplastic C68 synthetic declaration",
+    "material_id": "MAT-058",
+    "supplier_id": "SUP-010",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-18",
+    "provenance_score": 68,
+    "checksum": "bioplastic-c68-doc-058-b-42"
+  },
+  {
+    "document_id": "DOC-059-A",
+    "title": "Coating D69 synthetic datasheet",
+    "material_id": "MAT-059",
+    "supplier_id": "SUP-006",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-19",
+    "provenance_score": 72,
+    "checksum": "coating-d69-doc-059-a-42"
+  },
+  {
+    "document_id": "DOC-059-B",
+    "title": "Coating D69 synthetic declaration",
+    "material_id": "MAT-059",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-19",
+    "provenance_score": 81,
+    "checksum": "coating-d69-doc-059-b-42"
+  },
+  {
+    "document_id": "DOC-060-A",
+    "title": "BarrierLayer E70 synthetic datasheet",
+    "material_id": "MAT-060",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-20",
+    "provenance_score": 78,
+    "checksum": "barrierlayer-e70-doc-060-a-42"
+  },
+  {
+    "document_id": "DOC-060-B",
+    "title": "BarrierLayer E70 synthetic declaration",
+    "material_id": "MAT-060",
+    "supplier_id": "SUP-002",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-20",
+    "provenance_score": 81,
+    "checksum": "barrierlayer-e70-doc-060-b-42"
+  },
+  {
+    "document_id": "DOC-061-A",
+    "title": "Adhesive A71 synthetic datasheet",
+    "material_id": "MAT-061",
+    "supplier_id": "SUP-013",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-01",
+    "provenance_score": 72,
+    "checksum": "adhesive-a71-doc-061-a-42"
+  },
+  {
+    "document_id": "DOC-061-B",
+    "title": "Adhesive A71 synthetic declaration",
+    "material_id": "MAT-061",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-01",
+    "provenance_score": 69,
+    "checksum": "adhesive-a71-doc-061-b-42"
+  },
+  {
+    "document_id": "DOC-062-A",
+    "title": "Laminate B72 synthetic datasheet",
+    "material_id": "MAT-062",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-02",
+    "provenance_score": 89,
+    "checksum": "laminate-b72-doc-062-a-42"
+  },
+  {
+    "document_id": "DOC-062-B",
+    "title": "Laminate B72 synthetic declaration",
+    "material_id": "MAT-062",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-02",
+    "provenance_score": 71,
+    "checksum": "laminate-b72-doc-062-b-42"
+  },
+  {
+    "document_id": "DOC-063-A",
+    "title": "PaperComposite C73 synthetic datasheet",
+    "material_id": "MAT-063",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-03",
+    "provenance_score": 68,
+    "checksum": "papercomposite-c73-doc-063-a-42"
+  },
+  {
+    "document_id": "DOC-063-B",
+    "title": "PaperComposite C73 synthetic declaration",
+    "material_id": "MAT-063",
+    "supplier_id": "SUP-018",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-03",
+    "provenance_score": 78,
+    "checksum": "papercomposite-c73-doc-063-b-42"
+  },
+  {
+    "document_id": "DOC-064-A",
+    "title": "Film D74 synthetic datasheet",
+    "material_id": "MAT-064",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-04",
+    "provenance_score": 75,
+    "checksum": "film-d74-doc-064-a-42"
+  },
+  {
+    "document_id": "DOC-064-B",
+    "title": "Film D74 synthetic declaration",
+    "material_id": "MAT-064",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-04",
+    "provenance_score": 81,
+    "checksum": "film-d74-doc-064-b-42"
+  },
+  {
+    "document_id": "DOC-065-A",
+    "title": "Bioplastic E75 synthetic datasheet",
+    "material_id": "MAT-065",
+    "supplier_id": "SUP-001",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-05",
+    "provenance_score": 70,
+    "checksum": "bioplastic-e75-doc-065-a-42"
+  },
+  {
+    "document_id": "DOC-065-B",
+    "title": "Bioplastic E75 synthetic declaration",
+    "material_id": "MAT-065",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-05",
+    "provenance_score": 81,
+    "checksum": "bioplastic-e75-doc-065-b-42"
+  },
+  {
+    "document_id": "DOC-066-A",
+    "title": "Coating A76 synthetic datasheet",
+    "material_id": "MAT-066",
+    "supplier_id": "SUP-024",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-06",
+    "provenance_score": 89,
+    "checksum": "coating-a76-doc-066-a-42"
+  },
+  {
+    "document_id": "DOC-066-B",
+    "title": "Coating A76 synthetic declaration",
+    "material_id": "MAT-066",
+    "supplier_id": "SUP-002",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-06",
+    "provenance_score": 77,
+    "checksum": "coating-a76-doc-066-b-42"
+  },
+  {
+    "document_id": "DOC-067-A",
+    "title": "BarrierLayer B77 synthetic datasheet",
+    "material_id": "MAT-067",
+    "supplier_id": "SUP-007",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-07",
+    "provenance_score": 69,
+    "checksum": "barrierlayer-b77-doc-067-a-42"
+  },
+  {
+    "document_id": "DOC-067-B",
+    "title": "BarrierLayer B77 synthetic declaration",
+    "material_id": "MAT-067",
+    "supplier_id": "SUP-023",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-07",
+    "provenance_score": 82,
+    "checksum": "barrierlayer-b77-doc-067-b-42"
+  },
+  {
+    "document_id": "DOC-068-A",
+    "title": "Adhesive C78 synthetic datasheet",
+    "material_id": "MAT-068",
+    "supplier_id": "SUP-004",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-08",
+    "provenance_score": 67,
+    "checksum": "adhesive-c78-doc-068-a-42"
+  },
+  {
+    "document_id": "DOC-068-B",
+    "title": "Adhesive C78 synthetic declaration",
+    "material_id": "MAT-068",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-08",
+    "provenance_score": 76,
+    "checksum": "adhesive-c78-doc-068-b-42"
+  },
+  {
+    "document_id": "DOC-069-A",
+    "title": "Laminate D79 synthetic datasheet",
+    "material_id": "MAT-069",
+    "supplier_id": "SUP-021",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-09",
+    "provenance_score": 76,
+    "checksum": "laminate-d79-doc-069-a-42"
+  },
+  {
+    "document_id": "DOC-069-B",
+    "title": "Laminate D79 synthetic declaration",
+    "material_id": "MAT-069",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-09",
+    "provenance_score": 86,
+    "checksum": "laminate-d79-doc-069-b-42"
+  },
+  {
+    "document_id": "DOC-070-A",
+    "title": "PaperComposite E80 synthetic datasheet",
+    "material_id": "MAT-070",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-10",
+    "provenance_score": 84,
+    "checksum": "papercomposite-e80-doc-070-a-42"
+  },
+  {
+    "document_id": "DOC-070-B",
+    "title": "PaperComposite E80 synthetic declaration",
+    "material_id": "MAT-070",
+    "supplier_id": "SUP-015",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-10",
+    "provenance_score": 82,
+    "checksum": "papercomposite-e80-doc-070-b-42"
+  },
+  {
+    "document_id": "DOC-071-A",
+    "title": "Film A81 synthetic datasheet",
+    "material_id": "MAT-071",
+    "supplier_id": "SUP-016",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-11",
+    "provenance_score": 72,
+    "checksum": "film-a81-doc-071-a-42"
+  },
+  {
+    "document_id": "DOC-071-B",
+    "title": "Film A81 synthetic declaration",
+    "material_id": "MAT-071",
+    "supplier_id": "SUP-011",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-11",
+    "provenance_score": 84,
+    "checksum": "film-a81-doc-071-b-42"
+  },
+  {
+    "document_id": "DOC-072-A",
+    "title": "Bioplastic B82 synthetic datasheet",
+    "material_id": "MAT-072",
+    "supplier_id": "SUP-012",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-12",
+    "provenance_score": 77,
+    "checksum": "bioplastic-b82-doc-072-a-42"
+  },
+  {
+    "document_id": "DOC-072-B",
+    "title": "Bioplastic B82 synthetic declaration",
+    "material_id": "MAT-072",
+    "supplier_id": "SUP-020",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-12",
+    "provenance_score": 90,
+    "checksum": "bioplastic-b82-doc-072-b-42"
+  },
+  {
+    "document_id": "DOC-073-A",
+    "title": "Coating C83 synthetic datasheet",
+    "material_id": "MAT-073",
+    "supplier_id": "SUP-017",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-13",
+    "provenance_score": 69,
+    "checksum": "coating-c83-doc-073-a-42"
+  },
+  {
+    "document_id": "DOC-073-B",
+    "title": "Coating C83 synthetic declaration",
+    "material_id": "MAT-073",
+    "supplier_id": "SUP-007",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-13",
+    "provenance_score": 71,
+    "checksum": "coating-c83-doc-073-b-42"
+  },
+  {
+    "document_id": "DOC-074-A",
+    "title": "BarrierLayer D84 synthetic datasheet",
+    "material_id": "MAT-074",
+    "supplier_id": "SUP-019",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-14",
+    "provenance_score": 79,
+    "checksum": "barrierlayer-d84-doc-074-a-42"
+  },
+  {
+    "document_id": "DOC-074-B",
+    "title": "BarrierLayer D84 synthetic declaration",
+    "material_id": "MAT-074",
+    "supplier_id": "SUP-003",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-14",
+    "provenance_score": 67,
+    "checksum": "barrierlayer-d84-doc-074-b-42"
+  },
+  {
+    "document_id": "DOC-075-A",
+    "title": "Adhesive E85 synthetic datasheet",
+    "material_id": "MAT-075",
+    "supplier_id": "SUP-005",
+    "document_type": "synthetic datasheet",
+    "issued_on": "2026-03-15",
+    "provenance_score": 83,
+    "checksum": "adhesive-e85-doc-075-a-42"
+  },
+  {
+    "document_id": "DOC-075-B",
+    "title": "Adhesive E85 synthetic declaration",
+    "material_id": "MAT-075",
+    "supplier_id": "SUP-021",
+    "document_type": "synthetic declaration",
+    "issued_on": "2026-04-15",
+    "provenance_score": 71,
+    "checksum": "adhesive-e85-doc-075-b-42"
+  }
+]

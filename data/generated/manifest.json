@@ -1,0 +1,25 @@
+{
+  "project": "PackGraph Lab",
+  "seed": 42,
+  "generated_on": "2026-07-11",
+  "counts": {
+    "materials": 75,
+    "suppliers": 25,
+    "applications": 20,
+    "regulations": 12,
+    "certifications": 6,
+    "source_documents": 150,
+    "test_reports": 75,
+    "quarterly_snapshots": 1110,
+    "relationships": 1142
+  },
+  "category_distribution": {
+    "film": 11,
+    "bioplastic": 11,
+    "coating": 11,
+    "barrier layer": 11,
+    "adhesive": 11,
+    "laminate": 10,
+    "paper composite": 10
+  }
+}

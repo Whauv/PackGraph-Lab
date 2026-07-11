@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PackGraph Lab</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Synthetic Packaging Intelligence</p>
+          <h1>PackGraph Lab</h1>
+          <p class="lede">A local-first graph product demo for material selection, provenance, compliance, and scenario analysis.</p>
+        </div>
+        <div class="stack">
+          <div class="status-card">
+            <span>Active backend</span>
+            <strong id="active-backend">Loading</strong>
+          </div>
+          <div class="status-card">
+            <span>Dataset scale</span>
+            <strong id="dataset-scale">Loading</strong>
+          </div>
+          <div class="status-card">
+            <span>Open investigations</span>
+            <strong id="investigation-count">Loading</strong>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Decision cockpit</p>
+            <h2>Graph-native materials intelligence for sustainable packaging</h2>
+          </div>
+          <div class="hero-actions">
+            <button data-tab-target="chat">Ask the graph</button>
+            <button data-tab-target="workspace" class="ghost">Open investigations</button>
+          </div>
+        </section>
+
+        <section class="panel-grid top-grid">
+          <article class="panel accent">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Chat interface</p>
+                <h3>LLM-guided query routing</h3>
+              </div>
+            </div>
+            <div class="chat-box" id="chat-log"></div>
+            <form id="ask-form" class="inline-form">
+              <input id="question-input" type="text" placeholder="Ask about substitutes, provenance, supplier risk, or food-safe recommendations" />
+              <button type="submit">Run</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Compliance dashboard</p>
+                <h3>Portfolio exposure</h3>
+              </div>
+            </div>
+            <div id="compliance-summary" class="metric-grid"></div>
+            <div id="regulation-list" class="pill-list"></div>
+          </article>
+        </section>
+
+        <nav class="tabs">
+          <button class="tab active" data-tab="materials">Material detail</button>
+          <button class="tab" data-tab="suppliers">Supplier comparison</button>
+          <button class="tab" data-tab="provenance">Provenance explorer</button>
+          <button class="tab" data-tab="workspace">Investigation workspace</button>
+          <button class="tab" data-tab="graph">Graph explorer</button>
+          <button class="tab" data-tab="timeline">Timeline panel</button>
+        </nav>
+
+        <section class="tab-panels">
+          <article class="panel tab-panel active" data-panel="materials">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Material detail view</p>
+                <h3 id="material-title">Loading material</h3>
+              </div>
+              <select id="material-select"></select>
+            </div>
+            <div id="material-detail" class="detail-grid"></div>
+          </article>
+
+          <article class="panel tab-panel" data-panel="suppliers">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Supplier comparison view</p>
+                <h3>ESG, risk, and lead-time signals</h3>
+              </div>
+            </div>
+            <div id="supplier-table" class="table-card"></div>
+          </article>
+
+          <article class="panel tab-panel" data-panel="provenance">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Provenance explorer</p>
+                <h3>Evidence chain for the selected material</h3>
+              </div>
+            </div>
+            <div id="provenance-panel" class="split-grid"></div>
+          </article>
+
+          <article class="panel tab-panel" data-panel="workspace">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Investigation workspace</p>
+                <h3>Saved investigations and rationale</h3>
+              </div>
+            </div>
+            <form id="investigation-form" class="stack-form">
+              <input id="investigation-title" type="text" placeholder="New investigation title" />
+              <textarea id="investigation-notes" placeholder="Notes, shortlist rationale, comparison goals"></textarea>
+              <button type="submit">Save investigation</button>
+            </form>
+            <div id="investigation-list" class="card-list"></div>
+          </article>
+
+          <article class="panel tab-panel" data-panel="graph">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Relationship explorer</p>
+                <h3>Material to application to recycling path preview</h3>
+              </div>
+            </div>
+            <div id="relationship-list" class="card-list compact"></div>
+          </article>
+
+          <article class="panel tab-panel" data-panel="timeline">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Timeline and history panel</p>
+                <h3>Quarterly changes for the selected material</h3>
+              </div>
+              <button id="scenario-button" class="ghost">Run compostability-priority scenario</button>
+            </div>
+            <div id="timeline-list" class="card-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="/assets/app.js"></script>
+  </body>
+  </html>

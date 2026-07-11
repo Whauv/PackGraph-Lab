@@ -1,0 +1,5712 @@
+[
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-001",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-001",
+    "to": "APP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-001",
+    "to": "SUP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-001",
+    "to": "SUP-007"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-001",
+    "to": "DOC-001-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-001",
+    "to": "DOC-001-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-001",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-001",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-001",
+    "to": "MAT-057"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-001",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-002",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-002",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-002",
+    "to": "SUP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-002",
+    "to": "SUP-013"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-002",
+    "to": "DOC-002-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-002",
+    "to": "DOC-002-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-002",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-002",
+    "to": "MAT-051"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-002",
+    "to": "MAT-072"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-002",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-003",
+    "to": "APP-008"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-003",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-003",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-003",
+    "to": "SUP-020"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-003",
+    "to": "DOC-003-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-003",
+    "to": "DOC-003-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-003",
+    "to": "MAT-031"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-003",
+    "to": "MAT-073"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-003",
+    "to": "MAT-059"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-003",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-004",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-004",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-004",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-004",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-004",
+    "to": "DOC-004-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-004",
+    "to": "DOC-004-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-004",
+    "to": "MAT-046"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-004",
+    "to": "MAT-025"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-004",
+    "to": "MAT-039"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-004",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-005",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-005",
+    "to": "APP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-005",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-005",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-005",
+    "to": "DOC-005-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-005",
+    "to": "DOC-005-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-005",
+    "to": "MAT-033"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-005",
+    "to": "MAT-019"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-005",
+    "to": "MAT-012"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-005",
+    "to": "REC-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-005",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-006",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-006",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-006",
+    "to": "SUP-001"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-006",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-006",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-006",
+    "to": "SUP-023"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-006",
+    "to": "DOC-006-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-006",
+    "to": "DOC-006-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-006",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-006",
+    "to": "MAT-013"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-006",
+    "to": "MAT-020"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-006",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-007",
+    "to": "APP-006"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-007",
+    "to": "APP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-007",
+    "to": "SUP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-007",
+    "to": "SUP-014"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-007",
+    "to": "DOC-007-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-007",
+    "to": "DOC-007-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-007",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-007",
+    "to": "MAT-021"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-007",
+    "to": "MAT-014"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-007",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-008",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-008",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-008",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-008",
+    "to": "SUP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-008",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-008",
+    "to": "SUP-025"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-008",
+    "to": "DOC-008-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-008",
+    "to": "DOC-008-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-008",
+    "to": "MAT-071"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-008",
+    "to": "MAT-001"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-008",
+    "to": "MAT-057"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-008",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-009",
+    "to": "APP-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-009",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-009",
+    "to": "APP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-009",
+    "to": "SUP-022"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-009",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-009",
+    "to": "SUP-007"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-009",
+    "to": "SUP-012"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-009",
+    "to": "DOC-009-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-009",
+    "to": "DOC-009-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-009",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-009",
+    "to": "MAT-002"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-009",
+    "to": "MAT-030"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-009",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-010",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-010",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-010",
+    "to": "APP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-010",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-010",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-010",
+    "to": "SUP-021"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-010",
+    "to": "DOC-010-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-010",
+    "to": "DOC-010-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-010",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-010",
+    "to": "MAT-052"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-010",
+    "to": "MAT-059"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-010",
+    "to": "REC-003"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-010",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-011",
+    "to": "APP-019"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-011",
+    "to": "APP-007"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-011",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-011",
+    "to": "APP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-011",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-011",
+    "to": "SUP-014"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-011",
+    "to": "DOC-011-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-011",
+    "to": "DOC-011-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-011",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-011",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-011",
+    "to": "MAT-074"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-011",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-012",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-012",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-012",
+    "to": "APP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-012",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-012",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-012",
+    "to": "SUP-017"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-012",
+    "to": "DOC-012-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-012",
+    "to": "DOC-012-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-012",
+    "to": "MAT-005"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-012",
+    "to": "MAT-026"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-012",
+    "to": "MAT-040"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-012",
+    "to": "REC-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-012",
+    "to": "REGU-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-012",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-013",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-013",
+    "to": "APP-007"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-013",
+    "to": "APP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-013",
+    "to": "SUP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-013",
+    "to": "SUP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-013",
+    "to": "SUP-015"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-013",
+    "to": "DOC-013-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-013",
+    "to": "DOC-013-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-013",
+    "to": "MAT-034"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-013",
+    "to": "MAT-048"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-013",
+    "to": "MAT-041"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-013",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-014",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-014",
+    "to": "APP-006"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-014",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-014",
+    "to": "APP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-014",
+    "to": "SUP-001"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-014",
+    "to": "SUP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-014",
+    "to": "SUP-011"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-014",
+    "to": "DOC-014-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-014",
+    "to": "DOC-014-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-014",
+    "to": "MAT-049"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-014",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-014",
+    "to": "MAT-028"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-014",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-015",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-015",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-015",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-015",
+    "to": "APP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-015",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-015",
+    "to": "SUP-001"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-015",
+    "to": "DOC-015-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-015",
+    "to": "DOC-015-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-015",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-015",
+    "to": "MAT-064"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-015",
+    "to": "MAT-029"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-015",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-016",
+    "to": "APP-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-016",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-016",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-016",
+    "to": "APP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-016",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-016",
+    "to": "SUP-004"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-016",
+    "to": "DOC-016-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-016",
+    "to": "DOC-016-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-016",
+    "to": "MAT-051"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-016",
+    "to": "MAT-037"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-016",
+    "to": "MAT-065"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-016",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-017",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-017",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-017",
+    "to": "APP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-017",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-017",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-017",
+    "to": "SUP-014"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-017",
+    "to": "DOC-017-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-017",
+    "to": "DOC-017-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-017",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-017",
+    "to": "MAT-066"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-017",
+    "to": "MAT-024"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-017",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-018",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-018",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-018",
+    "to": "APP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-018",
+    "to": "SUP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-018",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-018",
+    "to": "SUP-007"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-018",
+    "to": "DOC-018-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-018",
+    "to": "DOC-018-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-018",
+    "to": "MAT-053"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-018",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-018",
+    "to": "MAT-060"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-018",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-019",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-019",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-019",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-019",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-019",
+    "to": "SUP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-019",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-019",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-019",
+    "to": "DOC-019-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-019",
+    "to": "DOC-019-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-019",
+    "to": "MAT-005"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-019",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-019",
+    "to": "MAT-054"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-019",
+    "to": "REC-002"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-019",
+    "to": "REGU-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-019",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-020",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-020",
+    "to": "APP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-020",
+    "to": "SUP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-020",
+    "to": "SUP-002"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-020",
+    "to": "DOC-020-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-020",
+    "to": "DOC-020-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-020",
+    "to": "MAT-069"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-020",
+    "to": "MAT-048"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-020",
+    "to": "MAT-062"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-020",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-021",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-021",
+    "to": "APP-008"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-021",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-021",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-021",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-021",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-021",
+    "to": "SUP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-021",
+    "to": "SUP-004"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-021",
+    "to": "DOC-021-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-021",
+    "to": "DOC-021-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-021",
+    "to": "MAT-056"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-021",
+    "to": "MAT-070"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-021",
+    "to": "MAT-014"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-021",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-022",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-022",
+    "to": "APP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-022",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-022",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-022",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-022",
+    "to": "SUP-002"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-022",
+    "to": "DOC-022-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-022",
+    "to": "DOC-022-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-022",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-022",
+    "to": "MAT-050"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-022",
+    "to": "MAT-015"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-022",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-023",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-023",
+    "to": "APP-016"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-023",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-023",
+    "to": "APP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-023",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-023",
+    "to": "SUP-023"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-023",
+    "to": "SUP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-023",
+    "to": "SUP-009"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-023",
+    "to": "DOC-023-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-023",
+    "to": "DOC-023-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-023",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-023",
+    "to": "MAT-058"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-023",
+    "to": "MAT-030"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-023",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-024",
+    "to": "APP-016"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-024",
+    "to": "APP-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-024",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-024",
+    "to": "APP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-024",
+    "to": "SUP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-024",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-024",
+    "to": "SUP-014"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-024",
+    "to": "DOC-024-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-024",
+    "to": "DOC-024-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-024",
+    "to": "MAT-031"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-024",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-024",
+    "to": "MAT-017"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-024",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-025",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-025",
+    "to": "APP-016"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-025",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-025",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-025",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-025",
+    "to": "SUP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-025",
+    "to": "SUP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-025",
+    "to": "SUP-007"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-025",
+    "to": "DOC-025-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-025",
+    "to": "DOC-025-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-025",
+    "to": "MAT-060"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-025",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-025",
+    "to": "MAT-053"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-025",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-026",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-026",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-026",
+    "to": "APP-016"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-026",
+    "to": "APP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-026",
+    "to": "SUP-023"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-026",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-026",
+    "to": "SUP-017"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-026",
+    "to": "DOC-026-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-026",
+    "to": "DOC-026-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-026",
+    "to": "MAT-054"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-026",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-026",
+    "to": "MAT-019"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-026",
+    "to": "REC-002"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-026",
+    "to": "REGU-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-027",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-027",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-027",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-027",
+    "to": "APP-007"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-027",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-027",
+    "to": "SUP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-027",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-027",
+    "to": "DOC-027-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-027",
+    "to": "DOC-027-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-027",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-027",
+    "to": "MAT-034"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-027",
+    "to": "MAT-020"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-027",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-028",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-028",
+    "to": "APP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-028",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-028",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-028",
+    "to": "SUP-015"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-028",
+    "to": "DOC-028-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-028",
+    "to": "DOC-028-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-028",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-028",
+    "to": "MAT-049"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-028",
+    "to": "MAT-063"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-028",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-029",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-029",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-029",
+    "to": "APP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-029",
+    "to": "SUP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-029",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-029",
+    "to": "SUP-003"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-029",
+    "to": "DOC-029-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-029",
+    "to": "DOC-029-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-029",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-029",
+    "to": "MAT-057"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-029",
+    "to": "MAT-043"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-029",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-030",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-030",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-030",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-030",
+    "to": "APP-001"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-030",
+    "to": "SUP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-030",
+    "to": "SUP-015"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-030",
+    "to": "DOC-030-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-030",
+    "to": "DOC-030-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-030",
+    "to": "MAT-009"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-030",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-030",
+    "to": "MAT-023"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-030",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-031",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-031",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-031",
+    "to": "APP-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-031",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-031",
+    "to": "SUP-023"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-031",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-031",
+    "to": "SUP-001"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-031",
+    "to": "DOC-031-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-031",
+    "to": "DOC-031-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-031",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-031",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-031",
+    "to": "MAT-052"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-031",
+    "to": "REC-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-031",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-032",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-032",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-032",
+    "to": "APP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-032",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-032",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-032",
+    "to": "SUP-003"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-032",
+    "to": "DOC-032-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-032",
+    "to": "DOC-032-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-032",
+    "to": "MAT-074"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-032",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-032",
+    "to": "MAT-011"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-032",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-033",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-033",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-033",
+    "to": "APP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-033",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-033",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-033",
+    "to": "SUP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-033",
+    "to": "SUP-001"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-033",
+    "to": "DOC-033-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-033",
+    "to": "DOC-033-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-033",
+    "to": "MAT-026"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-033",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-033",
+    "to": "MAT-075"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-033",
+    "to": "REC-005"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-033",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-034",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-034",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-034",
+    "to": "APP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-034",
+    "to": "SUP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-034",
+    "to": "SUP-010"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-034",
+    "to": "DOC-034-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-034",
+    "to": "DOC-034-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-034",
+    "to": "MAT-062"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-034",
+    "to": "MAT-027"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-034",
+    "to": "MAT-055"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-034",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-035",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-035",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-035",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-035",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-035",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-035",
+    "to": "SUP-022"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-035",
+    "to": "SUP-012"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-035",
+    "to": "DOC-035-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-035",
+    "to": "DOC-035-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-035",
+    "to": "MAT-049"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-035",
+    "to": "MAT-042"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-035",
+    "to": "MAT-007"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-035",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-036",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-036",
+    "to": "APP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-036",
+    "to": "SUP-025"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-036",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-036",
+    "to": "SUP-020"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-036",
+    "to": "DOC-036-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-036",
+    "to": "DOC-036-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-036",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-036",
+    "to": "MAT-071"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-036",
+    "to": "MAT-008"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-036",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-037",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-037",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-037",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-037",
+    "to": "APP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-037",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-037",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-037",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-037",
+    "to": "SUP-008"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-037",
+    "to": "DOC-037-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-037",
+    "to": "DOC-037-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-037",
+    "to": "MAT-058"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-037",
+    "to": "MAT-023"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-037",
+    "to": "MAT-065"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-037",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-038",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-038",
+    "to": "APP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-038",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-038",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-038",
+    "to": "SUP-014"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-038",
+    "to": "DOC-038-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-038",
+    "to": "DOC-038-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-038",
+    "to": "MAT-052"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-038",
+    "to": "MAT-024"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-038",
+    "to": "MAT-045"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-038",
+    "to": "REC-003"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-038",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-039",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-039",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-039",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-039",
+    "to": "APP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-039",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-039",
+    "to": "SUP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-039",
+    "to": "SUP-002"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-039",
+    "to": "DOC-039-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-039",
+    "to": "DOC-039-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-039",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-039",
+    "to": "MAT-053"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-039",
+    "to": "MAT-060"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-039",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-040",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-040",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-040",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-040",
+    "to": "SUP-022"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-040",
+    "to": "SUP-021"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-040",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-040",
+    "to": "DOC-040-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-040",
+    "to": "DOC-040-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-040",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-040",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-040",
+    "to": "MAT-033"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-040",
+    "to": "REC-002"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-040",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-041",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-041",
+    "to": "APP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-041",
+    "to": "SUP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-041",
+    "to": "SUP-025"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-041",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-041",
+    "to": "SUP-020"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-041",
+    "to": "DOC-041-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-041",
+    "to": "DOC-041-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-041",
+    "to": "MAT-034"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-041",
+    "to": "MAT-048"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-041",
+    "to": "MAT-069"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-041",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-042",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-042",
+    "to": "APP-007"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-042",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-042",
+    "to": "SUP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-042",
+    "to": "SUP-001"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-042",
+    "to": "DOC-042-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-042",
+    "to": "DOC-042-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-042",
+    "to": "MAT-063"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-042",
+    "to": "MAT-070"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-042",
+    "to": "MAT-007"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-042",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-043",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-043",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-043",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-043",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-043",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-043",
+    "to": "SUP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-043",
+    "to": "SUP-013"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-043",
+    "to": "DOC-043-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-043",
+    "to": "DOC-043-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-043",
+    "to": "MAT-057"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-043",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-043",
+    "to": "MAT-022"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-043",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-044",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-044",
+    "to": "APP-008"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-044",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-044",
+    "to": "APP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-044",
+    "to": "SUP-007"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-044",
+    "to": "SUP-025"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-044",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-044",
+    "to": "SUP-024"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-044",
+    "to": "DOC-044-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-044",
+    "to": "DOC-044-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-044",
+    "to": "MAT-037"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-044",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-044",
+    "to": "MAT-051"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-044",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-045",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-045",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-045",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-045",
+    "to": "APP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-045",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-045",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-045",
+    "to": "SUP-015"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-045",
+    "to": "DOC-045-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-045",
+    "to": "DOC-045-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-045",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-045",
+    "to": "MAT-024"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-045",
+    "to": "MAT-017"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-045",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-046",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-046",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-046",
+    "to": "APP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-046",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-046",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-046",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-046",
+    "to": "SUP-002"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-046",
+    "to": "DOC-046-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-046",
+    "to": "DOC-046-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-046",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-046",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-046",
+    "to": "MAT-053"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-046",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-047",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-047",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-047",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-047",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-047",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-047",
+    "to": "SUP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-047",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-047",
+    "to": "SUP-019"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-047",
+    "to": "DOC-047-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-047",
+    "to": "DOC-047-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-047",
+    "to": "MAT-033"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-047",
+    "to": "MAT-019"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-047",
+    "to": "MAT-026"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-047",
+    "to": "REC-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-047",
+    "to": "REGU-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-047",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-048",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-048",
+    "to": "APP-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-048",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-048",
+    "to": "APP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-048",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-048",
+    "to": "SUP-025"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-048",
+    "to": "DOC-048-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-048",
+    "to": "DOC-048-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-048",
+    "to": "MAT-041"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-048",
+    "to": "MAT-027"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-048",
+    "to": "MAT-062"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-048",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-049",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-049",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-049",
+    "to": "APP-010"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-049",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-049",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-049",
+    "to": "SUP-022"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-049",
+    "to": "DOC-049-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-049",
+    "to": "DOC-049-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-049",
+    "to": "MAT-028"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-049",
+    "to": "MAT-063"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-049",
+    "to": "MAT-035"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-049",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-050",
+    "to": "APP-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-050",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-050",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-050",
+    "to": "SUP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-050",
+    "to": "SUP-015"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-050",
+    "to": "DOC-050-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-050",
+    "to": "DOC-050-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-050",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-050",
+    "to": "MAT-029"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-050",
+    "to": "MAT-057"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-050",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-051",
+    "to": "APP-007"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-051",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-051",
+    "to": "APP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-051",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-051",
+    "to": "SUP-001"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-051",
+    "to": "DOC-051-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-051",
+    "to": "DOC-051-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-051",
+    "to": "MAT-058"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-051",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-051",
+    "to": "MAT-016"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-051",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-052",
+    "to": "APP-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-052",
+    "to": "APP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-052",
+    "to": "SUP-008"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-052",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-052",
+    "to": "SUP-014"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-052",
+    "to": "DOC-052-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-052",
+    "to": "DOC-052-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-052",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-052",
+    "to": "MAT-017"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-052",
+    "to": "MAT-066"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-052",
+    "to": "REC-005"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-052",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-053",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-053",
+    "to": "APP-006"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-053",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-053",
+    "to": "APP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-053",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-053",
+    "to": "SUP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-053",
+    "to": "SUP-012"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-053",
+    "to": "DOC-053-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-053",
+    "to": "DOC-053-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-053",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-053",
+    "to": "MAT-060"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-053",
+    "to": "MAT-018"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-053",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-054",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-054",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-054",
+    "to": "APP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-054",
+    "to": "SUP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-054",
+    "to": "SUP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-054",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-054",
+    "to": "SUP-012"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-054",
+    "to": "DOC-054-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-054",
+    "to": "DOC-054-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-054",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-054",
+    "to": "MAT-005"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-054",
+    "to": "MAT-075"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-054",
+    "to": "REC-005"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-054",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-055",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-055",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-055",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-055",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-055",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-055",
+    "to": "SUP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-055",
+    "to": "SUP-024"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-055",
+    "to": "DOC-055-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-055",
+    "to": "DOC-055-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-055",
+    "to": "MAT-013"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-055",
+    "to": "MAT-006"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-055",
+    "to": "MAT-048"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-055",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-056",
+    "to": "APP-019"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-056",
+    "to": "APP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-056",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-056",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-056",
+    "to": "SUP-025"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-056",
+    "to": "DOC-056-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-056",
+    "to": "DOC-056-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-056",
+    "to": "MAT-007"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-056",
+    "to": "MAT-049"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-056",
+    "to": "MAT-014"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-056",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-057",
+    "to": "APP-015"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-057",
+    "to": "APP-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-057",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-057",
+    "to": "APP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-057",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-057",
+    "to": "SUP-006"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-057",
+    "to": "DOC-057-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-057",
+    "to": "DOC-057-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-057",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-057",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-057",
+    "to": "MAT-015"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-057",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-058",
+    "to": "APP-016"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-058",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-058",
+    "to": "APP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-058",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-058",
+    "to": "SUP-010"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-058",
+    "to": "DOC-058-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-058",
+    "to": "DOC-058-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-058",
+    "to": "MAT-002"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-058",
+    "to": "MAT-023"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-058",
+    "to": "MAT-051"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-058",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-059",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-059",
+    "to": "APP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-059",
+    "to": "SUP-006"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-059",
+    "to": "SUP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-059",
+    "to": "SUP-023"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-059",
+    "to": "DOC-059-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-059",
+    "to": "DOC-059-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-059",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-059",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-059",
+    "to": "MAT-052"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-059",
+    "to": "REC-005"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-059",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-060",
+    "to": "APP-019"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-060",
+    "to": "APP-009"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-060",
+    "to": "APP-007"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-060",
+    "to": "APP-014"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-060",
+    "to": "SUP-003"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-060",
+    "to": "SUP-002"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-060",
+    "to": "DOC-060-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-060",
+    "to": "DOC-060-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-060",
+    "to": "MAT-053"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-060",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-060",
+    "to": "MAT-067"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-060",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-061",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-061",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-061",
+    "to": "APP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-061",
+    "to": "SUP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-061",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-061",
+    "to": "SUP-025"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-061",
+    "to": "DOC-061-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-061",
+    "to": "DOC-061-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-061",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-061",
+    "to": "MAT-075"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-061",
+    "to": "MAT-047"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-061",
+    "to": "REC-003"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-061",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-062",
+    "to": "APP-013"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-062",
+    "to": "APP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-062",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-062",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-062",
+    "to": "SUP-010"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-062",
+    "to": "SUP-001"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-062",
+    "to": "DOC-062-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-062",
+    "to": "DOC-062-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-062",
+    "to": "MAT-006"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-062",
+    "to": "MAT-069"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-062",
+    "to": "MAT-034"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-062",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-063",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-063",
+    "to": "APP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-063",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-063",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-063",
+    "to": "DOC-063-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-063",
+    "to": "DOC-063-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-063",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-063",
+    "to": "MAT-070"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-063",
+    "to": "MAT-007"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-063",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-064",
+    "to": "APP-017"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-064",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-064",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-064",
+    "to": "APP-018"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-064",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-064",
+    "to": "SUP-015"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-064",
+    "to": "SUP-005"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-064",
+    "to": "DOC-064-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-064",
+    "to": "DOC-064-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-064",
+    "to": "MAT-057"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-064",
+    "to": "MAT-043"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-064",
+    "to": "MAT-015"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-064",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-065",
+    "to": "APP-019"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-065",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-065",
+    "to": "APP-008"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-065",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-065",
+    "to": "SUP-001"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-065",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-065",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-065",
+    "to": "SUP-009"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-065",
+    "to": "DOC-065-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-065",
+    "to": "DOC-065-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-065",
+    "to": "MAT-009"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-065",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-065",
+    "to": "MAT-016"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-065",
+    "to": "REC-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-066",
+    "to": "APP-007"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-066",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-066",
+    "to": "APP-011"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-066",
+    "to": "APP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-066",
+    "to": "SUP-024"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-066",
+    "to": "SUP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-066",
+    "to": "SUP-023"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-066",
+    "to": "SUP-005"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-066",
+    "to": "DOC-066-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-066",
+    "to": "DOC-066-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-066",
+    "to": "MAT-024"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-066",
+    "to": "MAT-073"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-066",
+    "to": "MAT-031"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-066",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-067",
+    "to": "APP-012"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-067",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-067",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-067",
+    "to": "SUP-007"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-067",
+    "to": "SUP-023"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-067",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-067",
+    "to": "SUP-011"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-067",
+    "to": "DOC-067-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-067",
+    "to": "DOC-067-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-067",
+    "to": "MAT-039"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-067",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-067",
+    "to": "MAT-046"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-067",
+    "to": "REC-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-068",
+    "to": "APP-019"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-068",
+    "to": "APP-008"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-068",
+    "to": "APP-020"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-068",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-068",
+    "to": "SUP-004"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-068",
+    "to": "SUP-020"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-068",
+    "to": "DOC-068-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-068",
+    "to": "DOC-068-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-068",
+    "to": "MAT-012"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-068",
+    "to": "MAT-040"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-068",
+    "to": "MAT-047"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-068",
+    "to": "REC-002"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-068",
+    "to": "REGU-001"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-068",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-069",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-069",
+    "to": "APP-002"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-069",
+    "to": "SUP-021"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-069",
+    "to": "SUP-019"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-069",
+    "to": "DOC-069-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-069",
+    "to": "DOC-069-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-069",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-069",
+    "to": "MAT-027"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-069",
+    "to": "MAT-041"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-069",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-070",
+    "to": "APP-007"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-070",
+    "to": "APP-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-070",
+    "to": "APP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-070",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-070",
+    "to": "SUP-015"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-070",
+    "to": "DOC-070-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-070",
+    "to": "DOC-070-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-070",
+    "to": "MAT-028"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-070",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-070",
+    "to": "MAT-042"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-070",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-071",
+    "to": "APP-001"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-071",
+    "to": "APP-009"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-071",
+    "to": "SUP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-071",
+    "to": "SUP-011"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-071",
+    "to": "DOC-071-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-071",
+    "to": "DOC-071-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-071",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-071",
+    "to": "MAT-001"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-071",
+    "to": "MAT-064"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-071",
+    "to": "REC-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-072",
+    "to": "APP-005"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-072",
+    "to": "APP-016"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-072",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-072",
+    "to": "SUP-020"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-072",
+    "to": "SUP-008"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-072",
+    "to": "DOC-072-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-072",
+    "to": "DOC-072-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-072",
+    "to": "MAT-044"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-072",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-072",
+    "to": "MAT-058"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-072",
+    "to": "REC-002"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-073",
+    "to": "APP-006"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-073",
+    "to": "APP-011"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-073",
+    "to": "SUP-017"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-073",
+    "to": "SUP-007"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-073",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-073",
+    "to": "SUP-018"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-073",
+    "to": "DOC-073-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-073",
+    "to": "DOC-073-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-073",
+    "to": "MAT-059"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-073",
+    "to": "MAT-052"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-073",
+    "to": "MAT-003"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-073",
+    "to": "REC-002"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-073",
+    "to": "REGU-003"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-074",
+    "to": "APP-014"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-074",
+    "to": "APP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-074",
+    "to": "SUP-019"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-074",
+    "to": "SUP-003"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-074",
+    "to": "DOC-074-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-074",
+    "to": "DOC-074-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-074",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-074",
+    "to": "MAT-018"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-074",
+    "to": "MAT-011"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-074",
+    "to": "REC-004"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-075",
+    "to": "APP-018"
+  },
+  {
+    "type": "TARGETS_APPLICATION",
+    "from": "MAT-075",
+    "to": "APP-013"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-075",
+    "to": "SUP-005"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-075",
+    "to": "SUP-021"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-075",
+    "to": "SUP-012"
+  },
+  {
+    "type": "SUPPLIED_BY",
+    "from": "MAT-075",
+    "to": "SUP-004"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-075",
+    "to": "DOC-075-A"
+  },
+  {
+    "type": "HAS_DOCUMENT",
+    "from": "MAT-075",
+    "to": "DOC-075-B"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-075",
+    "to": "MAT-054"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-075",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUBSTITUTES_WITH",
+    "from": "MAT-075",
+    "to": "MAT-040"
+  },
+  {
+    "type": "RECYCLES_INTO",
+    "from": "MAT-075",
+    "to": "REC-002"
+  },
+  {
+    "type": "REVIEWED_UNDER",
+    "from": "MAT-075",
+    "to": "REGU-003"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-006"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-014"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-015"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-031"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-033"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-042"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-051"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-062"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-001",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-020"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-025"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-034"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-039"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-042"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-046"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-053"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-060"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-002",
+    "to": "MAT-066"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-006"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-021"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-029"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-033"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-045"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-051"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-058"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-060"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-003",
+    "to": "MAT-074"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-006"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-016"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-017"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-021"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-028"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-037"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-054"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-004",
+    "to": "MAT-075"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-039"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-046"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-053"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-061"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-064"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-066"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-005",
+    "to": "MAT-075"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-006",
+    "to": "MAT-002"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-006",
+    "to": "MAT-007"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-006",
+    "to": "MAT-018"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-006",
+    "to": "MAT-024"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-006",
+    "to": "MAT-057"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-006",
+    "to": "MAT-059"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-001"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-009"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-018"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-025"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-044"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-007",
+    "to": "MAT-073"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-001"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-021"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-029"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-030"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-037"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-050"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-052"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-008",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-009",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-009",
+    "to": "MAT-020"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-009",
+    "to": "MAT-023"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-009",
+    "to": "MAT-054"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-009",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-016"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-021"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-023"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-026"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-031"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-034"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-058"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-010",
+    "to": "MAT-062"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-013"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-014"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-027"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-041"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-054"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-059"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-011",
+    "to": "MAT-071"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-009"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-019"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-027"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-033"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-044"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-049"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-053"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-054"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-056"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-012",
+    "to": "MAT-075"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-013",
+    "to": "MAT-002"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-013",
+    "to": "MAT-014"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-013",
+    "to": "MAT-023"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-013",
+    "to": "MAT-033"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-013",
+    "to": "MAT-043"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-013",
+    "to": "MAT-061"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-007"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-011"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-017"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-019"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-024"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-025"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-043"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-014",
+    "to": "MAT-052"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-011"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-013"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-025"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-028"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-030"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-037"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-045"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-050"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-056"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-057"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-062"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-064"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-015",
+    "to": "MAT-070"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-015"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-017"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-018"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-045"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-046"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-062"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-016",
+    "to": "MAT-071"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-012"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-026"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-028"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-037"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-046"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-048"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-064"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-070"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-017",
+    "to": "MAT-073"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-004"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-005"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-013"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-019"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-027"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-039"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-040"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-063"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-018",
+    "to": "MAT-073"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-010"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-024"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-041"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-043"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-047"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-052"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-063"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-069"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-073"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-019",
+    "to": "MAT-074"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-003"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-010"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-012"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-022"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-038"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-040"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-041"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-042"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-065"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-068"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-020",
+    "to": "MAT-072"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-021",
+    "to": "MAT-010"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-021",
+    "to": "MAT-040"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-021",
+    "to": "MAT-069"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-021",
+    "to": "MAT-075"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-022",
+    "to": "MAT-009"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-022",
+    "to": "MAT-035"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-022",
+    "to": "MAT-040"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-022",
+    "to": "MAT-049"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-006"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-023"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-026"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-031"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-059"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-066"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-023",
+    "to": "MAT-067"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-005"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-009"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-012"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-019"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-029"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-032"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-044"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-055"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-024",
+    "to": "MAT-066"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-008"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-036"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-041"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-044"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-048"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-056"
+  },
+  {
+    "type": "SUPPLIES",
+    "from": "SUP-025",
+    "to": "MAT-061"
+  }
+]

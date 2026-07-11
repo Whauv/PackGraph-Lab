@@ -1,0 +1,26 @@
+[
+  {
+    "industry_id": "IND-SNACK",
+    "name": "Snack Foods"
+  },
+  {
+    "industry_id": "IND-BEV",
+    "name": "Beverages"
+  },
+  {
+    "industry_id": "IND-DAIRY",
+    "name": "Dairy"
+  },
+  {
+    "industry_id": "IND-HOME",
+    "name": "Home Care"
+  },
+  {
+    "industry_id": "IND-PHARMA",
+    "name": "Pharma"
+  },
+  {
+    "industry_id": "IND-PET",
+    "name": "Pet Care"
+  }
+]

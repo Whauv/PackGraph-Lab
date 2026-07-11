@@ -1,0 +1,20 @@
+[
+  {
+    "investigation_id": "INV-001",
+    "title": "Snack pouch redesign Q3",
+    "focus_material_id": "MAT-001",
+    "notes": "Benchmarking lighter-weight recyclable replacements for a snack pouch line.",
+    "shortlisted_material_ids": [
+      "MAT-001",
+      "MAT-005",
+      "MAT-009"
+    ],
+    "comparison_material_ids": [
+      "MAT-001",
+      "MAT-002",
+      "MAT-003"
+    ],
+    "decision_rationale": "Prioritize recyclable mono-material options with stable supplier coverage in North America.",
+    "status": "open"
+  }
+]

@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  neo4j:
+    image: neo4j:5.26
+    container_name: packgraph-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/packgraph123
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 512m
+    volumes:
+      - neo4j_data:/data
+
+  memgraph:
+    image: memgraph/memgraph:2.20.0
+    container_name: packgraph-memgraph
+    ports:
+      - "7688:7687"
+
+  api:
+    image: python:3.12-slim
+    container_name: packgraph-api
+    working_dir: /workspace
+    command: >
+      sh -c "pip install -r requirements.txt &&
+      python scripts/generate_data.py &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    env_file:
+      - .env.example
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/workspace
+    depends_on:
+      - neo4j
+
+volumes:
+  neo4j_data:

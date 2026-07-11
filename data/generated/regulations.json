@@ -1,0 +1,86 @@
+[
+  {
+    "regulation_id": "REGU-001",
+    "name": "Food Contact Framework 2030",
+    "focus": "food-contact",
+    "effective_date": "2026-10-01",
+    "active": false
+  },
+  {
+    "regulation_id": "REGU-002",
+    "name": "Flexible Film Recyclability Rule",
+    "focus": "recyclability",
+    "effective_date": "2026-07-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-003",
+    "name": "PFAS Surface Restriction",
+    "focus": "coating",
+    "effective_date": "2026-04-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-004",
+    "name": "Compostability Claim Standard",
+    "focus": "compostability",
+    "effective_date": "2026-12-01",
+    "active": false
+  },
+  {
+    "regulation_id": "REGU-005",
+    "name": "Adhesive Residue Limit",
+    "focus": "adhesive",
+    "effective_date": "2025-11-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-006",
+    "name": "Virgin Plastic Disclosure",
+    "focus": "bioplastic",
+    "effective_date": "2025-09-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-007",
+    "name": "Thermal Seal Migration Rule",
+    "focus": "seal",
+    "effective_date": "2026-01-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-008",
+    "name": "Medical Packaging Evidence Act",
+    "focus": "pharma",
+    "effective_date": "2026-02-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-009",
+    "name": "Export Fiber Traceability Code",
+    "focus": "paper",
+    "effective_date": "2026-06-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-010",
+    "name": "Post-Consumer Content Mandate",
+    "focus": "recyclability",
+    "effective_date": "2026-09-15",
+    "active": false
+  },
+  {
+    "regulation_id": "REGU-011",
+    "name": "Moisture Barrier Labeling Rule",
+    "focus": "barrier",
+    "effective_date": "2025-12-01",
+    "active": true
+  },
+  {
+    "regulation_id": "REGU-012",
+    "name": "High-Risk Supplier Disclosure",
+    "focus": "supplier",
+    "effective_date": "2026-03-01",
+    "active": true
+  }
+]

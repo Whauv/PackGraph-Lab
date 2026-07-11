@@ -1,0 +1,142 @@
+[
+  {
+    "application_id": "APP-001",
+    "name": "Stand-up pouch",
+    "use_case": "high moisture snacks",
+    "industry_id": "IND-PHARMA",
+    "priority": "barrier"
+  },
+  {
+    "application_id": "APP-002",
+    "name": "Flow wrap",
+    "use_case": "single-serve confectionery",
+    "industry_id": "IND-PHARMA",
+    "priority": "barrier"
+  },
+  {
+    "application_id": "APP-003",
+    "name": "Lidding film",
+    "use_case": "chilled ready meals",
+    "industry_id": "IND-BEV",
+    "priority": "cost"
+  },
+  {
+    "application_id": "APP-004",
+    "name": "Retort pouch",
+    "use_case": "shelf stable sauces",
+    "industry_id": "IND-PET",
+    "priority": "recyclability"
+  },
+  {
+    "application_id": "APP-005",
+    "name": "Paper mailer",
+    "use_case": "e-commerce soft goods",
+    "industry_id": "IND-DAIRY",
+    "priority": "barrier"
+  },
+  {
+    "application_id": "APP-006",
+    "name": "Produce bag",
+    "use_case": "fresh produce",
+    "industry_id": "IND-SNACK",
+    "priority": "compostability"
+  },
+  {
+    "application_id": "APP-007",
+    "name": "Blister backing",
+    "use_case": "pharma dose packs",
+    "industry_id": "IND-PHARMA",
+    "priority": "barrier"
+  },
+  {
+    "application_id": "APP-008",
+    "name": "Frozen food overwrap",
+    "use_case": "frozen meals",
+    "industry_id": "IND-BEV",
+    "priority": "compostability"
+  },
+  {
+    "application_id": "APP-009",
+    "name": "Coffee pouch",
+    "use_case": "aroma-sensitive beverages",
+    "industry_id": "IND-SNACK",
+    "priority": "cost"
+  },
+  {
+    "application_id": "APP-010",
+    "name": "Bakery window bag",
+    "use_case": "artisanal bread",
+    "industry_id": "IND-PHARMA",
+    "priority": "cost"
+  },
+  {
+    "application_id": "APP-011",
+    "name": "Yogurt lid",
+    "use_case": "dairy cups",
+    "industry_id": "IND-PET",
+    "priority": "recyclability"
+  },
+  {
+    "application_id": "APP-012",
+    "name": "Detergent refill pouch",
+    "use_case": "home care",
+    "industry_id": "IND-SNACK",
+    "priority": "compostability"
+  },
+  {
+    "application_id": "APP-013",
+    "name": "Tea sachet laminate",
+    "use_case": "dry tea and botanicals",
+    "industry_id": "IND-BEV",
+    "priority": "cost"
+  },
+  {
+    "application_id": "APP-014",
+    "name": "Dry pet food bag",
+    "use_case": "pet nutrition",
+    "industry_id": "IND-PHARMA",
+    "priority": "recyclability"
+  },
+  {
+    "application_id": "APP-015",
+    "name": "Medical peel pack",
+    "use_case": "sterile devices",
+    "industry_id": "IND-PET",
+    "priority": "compostability"
+  },
+  {
+    "application_id": "APP-016",
+    "name": "Condiment sachet",
+    "use_case": "food service",
+    "industry_id": "IND-HOME",
+    "priority": "cost"
+  },
+  {
+    "application_id": "APP-017",
+    "name": "Fruit punnet wrap",
+    "use_case": "fresh berries",
+    "industry_id": "IND-PET",
+    "priority": "barrier"
+  },
+  {
+    "application_id": "APP-018",
+    "name": "Compostable takeaway bowl",
+    "use_case": "prepared meals",
+    "industry_id": "IND-PHARMA",
+    "priority": "compostability"
+  },
+  {
+    "application_id": "APP-019",
+    "name": "Pharma carton liner",
+    "use_case": "secondary packaging",
+    "industry_id": "IND-SNACK",
+    "priority": "barrier"
+  },
+  {
+    "application_id": "APP-020",
+    "name": "Protein powder pouch",
+    "use_case": "sports nutrition",
+    "industry_id": "IND-HOME",
+    "priority": "cost"
+  }
+]

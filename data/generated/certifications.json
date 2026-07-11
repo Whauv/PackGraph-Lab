@@ -1,0 +1,38 @@
+[
+  {
+    "certification_id": "CERT-001",
+    "name": "FoodSafe EU 41",
+    "focus": "food contact",
+    "expires_after_months": 12
+  },
+  {
+    "certification_id": "CERT-002",
+    "name": "CompostMark EN13432",
+    "focus": "compostability",
+    "expires_after_months": 24
+  },
+  {
+    "certification_id": "CERT-003",
+    "name": "ClosedLoop Ready",
+    "focus": "recyclability",
+    "expires_after_months": 36
+  },
+  {
+    "certification_id": "CERT-004",
+    "name": "ForestFiber Plus",
+    "focus": "fiber sourcing",
+    "expires_after_months": 24
+  },
+  {
+    "certification_id": "CERT-005",
+    "name": "BarrierLab Verified",
+    "focus": "barrier performance",
+    "expires_after_months": 12
+  },
+  {
+    "certification_id": "CERT-006",
+    "name": "LowVOC Seal",
+    "focus": "process emissions",
+    "expires_after_months": 24
+  }
+]
