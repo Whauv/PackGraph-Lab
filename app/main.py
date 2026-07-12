@@ -12,6 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes import build_router
 from app.core.config import get_settings
 from app.repositories.graph_repository import LocalGraphRepository
+from app.services.auth_service import AuthService
+from app.services.export_service import ExportService
 from app.services.investigation_service import InvestigationService
 from app.services.query_engine import QueryEngine
 
@@ -22,8 +24,11 @@ class AppState:
         self.settings = settings
         self.repository = LocalGraphRepository()
         self.query_engine = QueryEngine(self.repository)
+        self.auth = AuthService(settings.packgraph_runtime_dir)
+        self.auth.ensure_seed()
         self.investigations = InvestigationService(settings.packgraph_runtime_dir)
         self.investigations.ensure_seed(self.repository.bundle["investigations"])
+        self.exports = ExportService()
 
     def benchmarks(self) -> dict:
         benchmark_path = Path("data/runtime/benchmark_results.json")

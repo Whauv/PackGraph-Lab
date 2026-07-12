@@ -16,11 +16,18 @@
             <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme">Dark mode</button>
           </div>
           <h1>PackGraph Lab</h1>
-          <p class="lede">
-            A graph-native workspace for packaging material decisions, supplier
-            monitoring, provenance review, and scenario planning.
-          </p>
+          <p class="lede">A graph-native workspace for packaging decisions, provenance review, risk monitoring, and scenario planning.</p>
         </div>
+
+        <section class="sidebar-section">
+          <div class="section-label">Demo session</div>
+          <div id="user-card" class="status-card"></div>
+          <form id="login-form" class="stack-form compact-form">
+            <input id="login-email" type="email" value="analyst@packgraph.local" />
+            <input id="login-password" type="password" value="packgraph-demo" />
+            <button type="submit">Switch user</button>
+          </form>
+        </section>
 
         <section class="sidebar-section">
           <div class="section-label">Runtime</div>
@@ -41,29 +48,17 @@
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label">Focus areas</div>
-          <div class="tag-group">
-            <span class="tag neutral">Films</span>
-            <span class="tag neutral">Bioplastics</span>
-            <span class="tag neutral">Barrier Layers</span>
-            <span class="tag neutral">Recyclability</span>
-            <span class="tag neutral">Food Contact</span>
-            <span class="tag neutral">Provenance</span>
-          </div>
+          <div class="section-label">Alerts</div>
+          <div id="alerts-list" class="card-list compact-list"></div>
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label">Operating cues</div>
-          <div class="sidebar-note-list">
-            <div class="sidebar-note">
-              <strong>Recommendation flow</strong>
-              <p>Start with food-safe candidates, then weigh evidence, supplier resilience, and recovery fit.</p>
-            </div>
-            <div class="sidebar-note">
-              <strong>Scenario mode</strong>
-              <p>Use simulations to preview supplier outages, cost movement, and regulation timing before shortlisting.</p>
-            </div>
-          </div>
+          <div class="section-label">Saved workspaces</div>
+          <form id="workspace-form" class="stack-form compact-form">
+            <input id="workspace-name" type="text" placeholder="Save current workspace" />
+            <button type="submit">Save workspace</button>
+          </form>
+          <div id="workspace-list" class="card-list compact-list"></div>
         </section>
       </aside>
 
@@ -71,11 +66,8 @@
         <section class="hero">
           <div class="hero-copy">
             <p class="eyebrow">Decision cockpit</p>
-            <h2>Calm, evidence-led workflows for sustainable packaging decisions</h2>
-            <p class="hero-text">
-              Review material fit, compliance pressure, supplier exposure, and
-              provenance without leaving a single workspace.
-            </p>
+            <h2>Evidence-first graph workflows for sustainable packaging teams</h2>
+            <p class="hero-text">Filter materials, compare alternatives, trace supplier risk, search supporting documents, and move from shortlist to exportable investigation reports.</p>
           </div>
 
           <div class="hero-rail">
@@ -84,18 +76,10 @@
               <button type="button" id="jump-workspace" class="secondary">Open investigations</button>
             </div>
             <div class="hero-summary" id="hero-summary">
-              <div class="summary-card">
-                <span>Food-safe recommendations</span>
-                <strong id="hero-recommendations">Loading</strong>
-              </div>
-              <div class="summary-card">
-                <span>At-risk materials</span>
-                <strong id="hero-risk-count">Loading</strong>
-              </div>
-              <div class="summary-card">
-                <span>Upcoming regulations</span>
-                <strong id="hero-regulations">Loading</strong>
-              </div>
+              <div class="summary-card"><span>Food-safe recommendations</span><strong id="hero-recommendations">Loading</strong></div>
+              <div class="summary-card"><span>At-risk materials</span><strong id="hero-risk-count">Loading</strong></div>
+              <div class="summary-card"><span>Upcoming regulations</span><strong id="hero-regulations">Loading</strong></div>
+              <div class="summary-card"><span>Live alerts</span><strong id="hero-alert-count">Loading</strong></div>
             </div>
           </div>
         </section>
@@ -116,11 +100,7 @@
             </div>
             <div class="chat-box" id="chat-log"></div>
             <form id="ask-form" class="inline-form">
-              <input
-                id="question-input"
-                type="text"
-                placeholder="Ask about substitutes, supplier risk, provenance, or compliance"
-              />
+              <input id="question-input" type="text" placeholder="Ask about substitutes, supplier risk, provenance, or compliance" />
               <button type="submit">Run query</button>
             </form>
           </article>
@@ -146,11 +126,12 @@
 
         <nav class="tabs">
           <button class="tab active" data-tab="materials">Material detail</button>
-          <button class="tab" data-tab="suppliers">Supplier comparison</button>
+          <button class="tab" data-tab="compare">Comparison lab</button>
           <button class="tab" data-tab="provenance">Provenance explorer</button>
           <button class="tab" data-tab="workspace">Investigation workspace</button>
           <button class="tab" data-tab="graph">Graph explorer</button>
-          <button class="tab" data-tab="timeline">Timeline panel</button>
+          <button class="tab" data-tab="analytics">Analytics</button>
+          <button class="tab" data-tab="benchmarks">Benchmarks</button>
         </nav>
 
         <section class="tab-panels">
@@ -162,26 +143,53 @@
               </div>
               <select id="material-select"></select>
             </div>
+            <form id="filter-form" class="filter-grid">
+              <input id="filter-search" type="text" placeholder="Search material or composition" />
+              <select id="filter-region"><option value="">All regions</option></select>
+              <select id="filter-category"><option value="">All categories</option></select>
+              <select id="filter-compliance"><option value="">Any compliance state</option><option value="compliant">Compliant</option><option value="watch">Watch</option><option value="non-compliant">Non-compliant</option></select>
+              <input id="filter-sustainability" type="number" min="0" max="100" placeholder="Min sustainability" />
+              <button type="submit">Apply filters</button>
+            </form>
+            <div id="filter-results-summary" class="subsection-heading">Showing full portfolio</div>
             <div id="material-detail" class="detail-layout"></div>
           </article>
 
-          <article class="panel tab-panel" data-panel="suppliers">
+          <article class="panel tab-panel" data-panel="compare">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Supplier comparison view</p>
-                <h3>ESG, risk, and lead-time signals</h3>
+                <p class="eyebrow">Multi-material comparison</p>
+                <h3>Weighted ranking controls</h3>
               </div>
             </div>
-            <div id="supplier-table" class="table-card"></div>
+            <div class="compare-layout">
+              <form id="compare-form" class="stack-form">
+                <select id="compare-materials" multiple size="8"></select>
+                <div class="weight-grid">
+                  <label><span class="field-label">Sustainability</span><input id="weight-sustainability" type="number" step="0.1" value="1.0" /></label>
+                  <label><span class="field-label">Recyclability</span><input id="weight-recyclability" type="number" step="0.1" value="0.9" /></label>
+                  <label><span class="field-label">Compostability</span><input id="weight-compostability" type="number" step="0.1" value="0.8" /></label>
+                  <label><span class="field-label">Barrier</span><input id="weight-barrier" type="number" step="0.1" value="0.6" /></label>
+                  <label><span class="field-label">Cost efficiency</span><input id="weight-cost" type="number" step="0.1" value="0.7" /></label>
+                </div>
+                <button type="submit">Run comparison</button>
+              </form>
+              <div id="compare-results" class="card-list"></div>
+            </div>
           </article>
 
           <article class="panel tab-panel" data-panel="provenance">
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Provenance explorer</p>
-                <h3>Evidence chain for the selected material</h3>
+                <h3>Evidence chain and document search</h3>
               </div>
             </div>
+            <form id="document-search-form" class="inline-form">
+              <input id="document-search-input" type="text" placeholder="Search datasheets, declarations, labs, or migration status" />
+              <button type="submit">Search</button>
+            </form>
+            <div id="document-search-results" class="card-list compact-list"></div>
             <div id="provenance-panel" class="split-grid"></div>
           </article>
 
@@ -189,19 +197,13 @@
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Investigation workspace</p>
-                <h3>Shortlists, notes, and decision rationale</h3>
+                <h3>Shortlists, notes, rationale, and export</h3>
               </div>
             </div>
             <div class="workspace-grid">
               <form id="investigation-form" class="stack-form workspace-form">
-                <label>
-                  <span class="field-label">Investigation title</span>
-                  <input id="investigation-title" type="text" placeholder="Packaging redesign Q4" />
-                </label>
-                <label>
-                  <span class="field-label">Notes</span>
-                  <textarea id="investigation-notes" placeholder="Capture comparison goals, supply concerns, and recommendation logic"></textarea>
-                </label>
+                <label><span class="field-label">Investigation title</span><input id="investigation-title" type="text" placeholder="Packaging redesign Q4" /></label>
+                <label><span class="field-label">Notes</span><textarea id="investigation-notes" placeholder="Capture comparison goals, supply concerns, and recommendation logic"></textarea></label>
                 <button type="submit">Save investigation</button>
               </form>
               <div id="investigation-list" class="card-list"></div>
@@ -211,22 +213,52 @@
           <article class="panel tab-panel" data-panel="graph">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Relationship explorer</p>
-                <h3>Material, application, supplier, and recycling paths</h3>
+                <p class="eyebrow">Graph explorer</p>
+                <h3>Interactive node paths and local subgraph</h3>
+              </div>
+            </div>
+            <div class="graph-layout">
+              <div>
+                <div class="subsection-heading">Node map</div>
+                <div id="graph-subgraph" class="graph-node-grid"></div>
+              </div>
+              <div class="stack-form">
+                <label><span class="field-label">Path source</span><select id="graph-source"></select></label>
+                <label><span class="field-label">Path target</span><select id="graph-target"></select></label>
+                <button id="graph-path-button" type="button">Find node path</button>
+                <div id="graph-path-results" class="card-list compact-list"></div>
               </div>
             </div>
             <div id="relationship-list" class="card-list compact"></div>
           </article>
 
-          <article class="panel tab-panel" data-panel="timeline">
+          <article class="panel tab-panel" data-panel="analytics">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Timeline and history panel</p>
-                <h3>Quarterly operating changes for the selected material</h3>
+                <p class="eyebrow">Analytics</p>
+                <h3>Cost trends, compliance drift, supplier performance</h3>
               </div>
-              <button id="scenario-button" type="button" class="secondary">Run compostability priority</button>
             </div>
-            <div id="timeline-list" class="card-list timeline-list"></div>
+            <div id="analytics-summary" class="metric-grid"></div>
+            <div class="split-grid">
+              <div id="cost-trends" class="card-list compact-list"></div>
+              <div id="compliance-drift" class="card-list compact-list"></div>
+            </div>
+            <div id="supplier-performance" class="table-card"></div>
+          </article>
+
+          <article class="panel tab-panel" data-panel="benchmarks">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Benchmarks</p>
+                <h3>Latency coverage and query-plan notes</h3>
+              </div>
+            </div>
+            <div id="benchmark-status" class="metric-grid"></div>
+            <div class="split-grid">
+              <div id="benchmark-query-set" class="card-list compact-list"></div>
+              <div id="benchmark-plan-notes" class="card-list compact-list"></div>
+            </div>
           </article>
         </section>
       </main>

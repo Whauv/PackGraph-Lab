@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+data/runtime/session.json
+data/runtime/workspaces.json
+data/runtime/users.json

@@ -40,3 +40,20 @@ class InvestigationCreate(BaseModel):
 
 class InvestigationUpdate(InvestigationCreate):
     status: str = "open"
+
+
+class MaterialCompareRequest(BaseModel):
+    material_ids: list[str] = Field(default_factory=list)
+    weights: dict[str, float] = Field(default_factory=dict)
+
+
+class WorkspaceSaveRequest(BaseModel):
+    name: str
+    filters: dict[str, Any] = Field(default_factory=dict)
+    selected_material_ids: list[str] = Field(default_factory=list)
+    active_tab: str = "materials"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
