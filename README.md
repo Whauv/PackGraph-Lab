@@ -1,6 +1,6 @@
 # PackGraph Lab
 
-PackGraph Lab is a portfolio-safe, fully synthetic industrial knowledge graph demo for sustainable packaging materials intelligence. It models materials, suppliers, regulations, provenance documents, investigations, and quarterly operating changes so you can show how graph reasoning supports material selection and compliance work without relying on employer IP.
+PackGraph Lab is a portfolio-safe, fully synthetic industrial knowledge graph product prototype for sustainable packaging materials intelligence. It models materials, suppliers, regulations, provenance documents, investigations, and quarterly operating changes so you can show how graph reasoning supports material selection and compliance work without relying on employer IP.
 
 ## Why this project exists
 
@@ -19,12 +19,13 @@ PackGraph Lab demonstrates those flows with fresh branding, synthetic data, and 
 - 75 materials, 25 suppliers, 20 applications, 12 regulations, 6 certifications, and 700+ relationships
 - Provenance artifacts including fake datasheets, declarations, and lab reports
 - Quarterly snapshots for price, risk, lead time, certification expiration, and compliance changes
-- FastAPI backend with safe JSON endpoints
+- FastAPI backend with Neo4j-backed graph endpoints
 - Reviewed natural-language query planner instead of unconstrained Cypher generation
 - Scenario simulator for supplier outages, cost jumps, sustainability reprioritization, and future regulation changes
 - Investigation workspace with saved notes and shortlists
 - Polished frontend with chat, material detail, compliance, provenance, graph, and timeline views
-- Neo4j ingestion script with `MERGE`-based repeatable loading
+- Neo4j Community Edition ingestion script with `MERGE`-based repeatable loading
+- Audited Neo4j query execution for graph subgraph, pathfinding, relationship preview, and node context requests
 - Optional Memgraph benchmark scaffold using the same dataset and query set
 
 ## Project structure
@@ -38,17 +39,21 @@ PackGraph Lab demonstrates those flows with fresh branding, synthetic data, and 
 
 ## Local run
 
-### Option 1: direct Python run
+### Option 1: direct Python run with Neo4j Community Edition
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python scripts/generate_data.py
+copy .env.example .env
+python scripts/ingest_graph.py
 uvicorn app.main:app --reload
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
+
+This path assumes you already have Neo4j Community Edition running locally on `bolt://localhost:7687`.
 
 ### Option 2: Docker Compose
 
@@ -56,11 +61,11 @@ Open [http://localhost:8000](http://localhost:8000).
 docker compose up
 ```
 
-This starts Neo4j, the API, and an optional Memgraph service for benchmarking.
+This starts Neo4j Community Edition, ingests the synthetic dataset, starts the API, and also includes an optional Memgraph service for benchmarking.
 
 ## Neo4j usage
 
-Neo4j is the primary graph database target for full ingestion and portfolio demos.
+Neo4j Community Edition is the primary graph database for the app runtime.
 
 1. Start Neo4j with Docker Compose or your own local instance.
 2. Copy `.env.example` to `.env` if you want to override connection settings.
@@ -71,6 +76,15 @@ python scripts/ingest_graph.py
 ```
 
 The script creates constraints, loads nodes with `MERGE`, and then creates relationships from the synthetic dataset.
+
+When `GRAPH_BACKEND=neo4j`, the app uses Neo4j for:
+
+- relationship previews
+- graph subgraph rendering
+- shortest-path tracing
+- node relationship context
+
+Each graph query also writes an audit record to `data/runtime/neo4j_query_audit.jsonl` with the query name, parameters, result count, and execution plan summary.
 
 ## Memgraph benchmarking
 

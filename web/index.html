@@ -82,21 +82,26 @@
               <p class="eyebrow">Page 1</p>
               <h2>Overview</h2>
             </div>
-            <p>This is the decision starting point. Use it to narrow the portfolio, inspect one material, understand compliance pressure, and ask the graph direct questions.</p>
+            <p>Start the decision here: narrow the portfolio, ask a focused question, check risk pressure, and move deeper only when a candidate deserves more investigation.</p>
           </section>
-          <section class="hero">
+          <section class="hero overview-hero">
             <div class="hero-copy">
-              <p class="eyebrow">Decision entry</p>
-              <h2>Find the right packaging material with less noise and clearer decision support.</h2>
-              <p class="hero-text">This page keeps the core journey in one place: filter the portfolio, inspect a candidate, understand compliance pressure, and ask the graph for a recommendation.</p>
+              <p class="eyebrow">Decision flow</p>
+              <h2>Pick a material, ask the graph, then decide whether the risk profile justifies deeper work.</h2>
+              <p class="hero-text">Overview is for fast decision starting, not deep analysis. Keep the first pass simple: select the candidate, review the answer, check compliance pressure, and only then move to Workbench or Intelligence.</p>
             </div>
 
             <div class="hero-rail">
+              <div class="overview-spotlight">
+                <span class="section-label">Current focus</span>
+                <strong id="overview-selected-material">Loading</strong>
+                <p id="overview-selected-material-note">Loading current decision context.</p>
+              </div>
               <div class="hero-actions">
                 <button type="button" id="jump-chat">Ask the graph</button>
                 <button type="button" id="jump-workbench" class="secondary">Open workbench</button>
               </div>
-              <div class="hero-summary" id="hero-summary">
+              <div class="hero-summary overview-summary-strip" id="hero-summary">
                 <div class="summary-card"><span>Recommendations</span><strong id="hero-recommendations">Loading</strong></div>
                 <div class="summary-card"><span>At-risk</span><strong id="hero-risk-count">Loading</strong></div>
                 <div class="summary-card"><span>Regulations</span><strong id="hero-regulations">Loading</strong></div>
@@ -105,32 +110,59 @@
             </div>
           </section>
 
+          <article class="panel overview-filter-panel">
+            <div class="panel-header compact-panel-header">
+              <div>
+                <p class="eyebrow">Filter toolbar</p>
+                <h3>Reduce the portfolio before you ask</h3>
+              </div>
+              <div id="filter-results-summary" class="panel-kicker">Showing full portfolio</div>
+            </div>
+            <form id="filter-form" class="filter-grid overview-filter-grid">
+              <input id="filter-search" type="text" placeholder="Search material or composition" />
+              <input id="filter-family" type="text" placeholder="Material family" />
+              <select id="filter-region"><option value="">All regions</option></select>
+              <select id="filter-category"><option value="">All categories</option></select>
+              <select id="filter-regulation"><option value="">Any regulation</option></select>
+              <select id="filter-claim"><option value="">Any claim type</option><option value="food_contact">Food contact</option><option value="recyclable">Recyclable</option><option value="compostable">Compostable</option><option value="high_barrier">High barrier</option><option value="low_cost">Low cost</option></select>
+              <select id="filter-compliance"><option value="">Any compliance state</option><option value="compliant">Compliant</option><option value="watch">Watch</option><option value="non-compliant">Non-compliant</option></select>
+              <select id="filter-performance-metric"><option value="">Any performance metric</option><option value="oxygen_barrier">Oxygen barrier</option><option value="moisture_barrier">Moisture barrier</option><option value="seal_strength">Seal strength</option><option value="thermal_tolerance">Thermal tolerance</option><option value="recyclability_score">Recyclability</option><option value="sustainability_score">Sustainability</option></select>
+              <input id="filter-performance-score" type="number" min="0" max="100" placeholder="Min metric score" />
+              <input id="filter-supplier-capability" type="text" placeholder="Supplier capability or certification" />
+              <input id="filter-sustainability" type="number" min="0" max="100" placeholder="Min sustainability" />
+              <button type="submit">Apply filters</button>
+            </form>
+          </article>
+
           <section class="panel-grid top-grid">
-            <article class="panel" id="chat-panel">
+            <article class="panel overview-chat" id="chat-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Chat interface</p>
+                  <p class="eyebrow">Primary workspace</p>
                   <h3>Ask focused product questions</h3>
                 </div>
-                <div class="panel-kicker">Reviewed query routing with audit details</div>
+                <div class="panel-kicker">Latest answer should be your main decision input on this page</div>
               </div>
               <div class="prompt-row">
                 <button class="mini-action" data-prompt="Recommend food-safe materials for snack packaging.">Food-safe recommendations</button>
                 <button class="mini-action" data-prompt="Show recyclable substitutes for the selected material.">Substitute screening</button>
                 <button class="mini-action" data-prompt="Trace the evidence for this material.">Evidence trace</button>
               </div>
-              <div class="chat-box" id="chat-log"></div>
-              <form id="ask-form" class="inline-form">
-                <input id="question-input" type="text" placeholder="Ask about substitutes, supplier risk, provenance, or compliance" />
-                <button type="submit">Run query</button>
-              </form>
+              <p class="panel-helper compact-helper">Ask naturally. The demo routes your question through the reviewed planner and returns an answer with traceable audit detail.</p>
+              <div class="chat-region">
+                <div class="chat-box" id="chat-log"></div>
+                <form id="ask-form" class="inline-form query-form">
+                  <input id="question-input" type="text" placeholder="Ask about substitutes, supplier risk, provenance, or compliance" />
+                  <button type="submit">Run query</button>
+                </form>
+              </div>
             </article>
 
-            <article class="panel">
+            <article class="panel overview-compliance">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Compliance snapshot</p>
-                  <h3>What needs attention right now</h3>
+                  <p class="eyebrow">Decision pressure</p>
+                  <h3>Check risk before going deeper</h3>
                 </div>
               </div>
               <div id="compliance-summary" class="metric-grid"></div>
@@ -145,126 +177,270 @@
             </article>
           </section>
 
-          <article class="panel">
+          <article class="panel overview-material-panel">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Material detail</p>
+                <p class="eyebrow">Material summary</p>
                 <h3 id="material-title">Loading material</h3>
               </div>
               <select id="material-select"></select>
             </div>
-            <form id="filter-form" class="filter-grid">
-              <input id="filter-search" type="text" placeholder="Search material or composition" />
-              <select id="filter-region"><option value="">All regions</option></select>
-              <select id="filter-category"><option value="">All categories</option></select>
-              <select id="filter-compliance"><option value="">Any compliance state</option><option value="compliant">Compliant</option><option value="watch">Watch</option><option value="non-compliant">Non-compliant</option></select>
-              <input id="filter-sustainability" type="number" min="0" max="100" placeholder="Min sustainability" />
-              <button type="submit">Apply filters</button>
-            </form>
-            <div id="filter-results-summary" class="subsection-heading">Showing full portfolio</div>
+            <p class="panel-helper">Keep this section compact. It should confirm what you are evaluating, not replace deeper analysis pages.</p>
             <div id="material-detail" class="detail-layout"></div>
+          </article>
+
+          <article class="panel overview-next-panel">
+            <div class="panel-header compact-panel-header">
+              <div>
+                <p class="eyebrow">Next step</p>
+                <h3>Go deeper only when this candidate deserves more work</h3>
+              </div>
+            </div>
+            <div class="overview-next-grid">
+              <div class="row-card">
+                <strong>Open Workbench</strong>
+                <p>Use this when you want weighted ranking, provenance search, saved workspaces, and shortlist validation.</p>
+                <button type="button" class="secondary overview-nav-button" data-jump-page="workbench">Go to Workbench</button>
+              </div>
+              <div class="row-card">
+                <strong>Open Intelligence</strong>
+                <p>Use this when you want graph exploration, node analytics, alerts, and backend benchmark context.</p>
+                <button type="button" class="secondary overview-nav-button" data-jump-page="intelligence">Go to Intelligence</button>
+              </div>
+            </div>
           </article>
         </section>
 
         <section class="page-section" data-page="workbench">
-          <section class="page-banner">
+          <section class="page-banner workbench-banner">
             <div>
               <p class="eyebrow">Page 2</p>
               <h2>Workbench</h2>
             </div>
-            <p>This is the deeper evaluation area. Use it only after you already have a few serious candidate materials and want to validate and document the choice.</p>
+            <p>Use Workbench once you already have real candidates. This page is for comparing shortlisted materials, validating the evidence, recording the rationale, and saving the decision context.</p>
           </section>
           <section class="page-intro panel">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Shortlist evaluation</p>
-                <h3>Shortlist, compare, validate, and capture the decision</h3>
+                <p class="eyebrow">Decision workshop</p>
+                <h3>Compare, validate, capture, and save the decision</h3>
               </div>
             </div>
-            <p class="panel-helper">This page is for deeper working sessions after you already know which materials are worth considering.</p>
+            <p class="panel-helper">The best way to use this page is in sequence: choose a shortlist, set decision weights, review the ranked output, validate supporting evidence, then save the rationale.</p>
           </section>
 
           <section class="panel-grid workbench-grid">
-            <article class="panel">
+            <article class="panel workbench-primary-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Alternative ranking</p>
-                  <h3>Score shortlisted materials against priorities</h3>
+                  <p class="eyebrow">Primary workflow</p>
+                  <h3>Score shortlisted materials against decision priorities</h3>
                 </div>
+                <div class="panel-kicker">Shortlist -> set weights -> run ranking -> review the leader</div>
               </div>
-              <p class="panel-helper">Select a few candidates and rank them by the criteria that matter most for this packaging decision.</p>
-              <div class="compare-layout">
-                <form id="compare-form" class="stack-form">
-                  <select id="compare-materials" multiple size="8"></select>
-                  <div class="weight-grid">
-                    <label><span class="field-label">Sustainability</span><input id="weight-sustainability" type="number" step="0.1" value="1.0" /></label>
-                    <label><span class="field-label">Recyclability</span><input id="weight-recyclability" type="number" step="0.1" value="0.9" /></label>
-                    <label><span class="field-label">Compostability</span><input id="weight-compostability" type="number" step="0.1" value="0.8" /></label>
-                    <label><span class="field-label">Barrier</span><input id="weight-barrier" type="number" step="0.1" value="0.6" /></label>
-                    <label><span class="field-label">Cost efficiency</span><input id="weight-cost" type="number" step="0.1" value="0.7" /></label>
+              <div class="workbench-flow">
+                <section class="workflow-step">
+                  <div class="workflow-step-label">Step 1</div>
+                  <div>
+                    <h4>Choose shortlisted materials</h4>
+                    <p>Pick the candidates that are serious enough to compare directly.</p>
                   </div>
-                  <button type="submit">Run ranking</button>
-                </form>
-                <div id="compare-results" class="card-list"></div>
+                </section>
+                <div id="compare-selection-summary" class="tag-group compare-selection-summary"></div>
+                <div class="row-actions report-actions">
+                  <a id="export-executive-summary-pdf" class="mini-action link-action" href="#" target="_blank">Executive PDF</a>
+                  <a id="export-executive-summary-csv" class="mini-action link-action" href="#" target="_blank">Executive CSV</a>
+                  <a id="export-compliance-pack-csv" class="mini-action link-action" href="#" target="_blank">Compliance CSV</a>
+                  <a id="export-compliance-pack-pdf" class="mini-action link-action" href="#" target="_blank">Compliance PDF</a>
+                  <a id="export-supplier-snapshot-pdf" class="mini-action link-action" href="#" target="_blank">Supplier snapshot PDF</a>
+                  <a id="export-supplier-snapshot-csv" class="mini-action link-action" href="#" target="_blank">Supplier snapshot CSV</a>
+                </div>
+                <div class="compare-layout workbench-compare-layout">
+                  <form id="compare-form" class="stack-form workbench-compare-form">
+                    <select id="compare-materials" multiple size="8"></select>
+                    <section class="workflow-step">
+                      <div class="workflow-step-label">Step 2</div>
+                      <div>
+                        <h4>Set decision weights</h4>
+                        <p>Bias the ranking toward sustainability, performance, or cost depending on the use case.</p>
+                      </div>
+                    </section>
+                    <div class="weight-grid workbench-weight-grid">
+                      <label><span class="field-label">Sustainability</span><input id="weight-sustainability" type="number" step="0.1" value="1.0" /></label>
+                      <label><span class="field-label">Recyclability</span><input id="weight-recyclability" type="number" step="0.1" value="0.9" /></label>
+                      <label><span class="field-label">Compostability</span><input id="weight-compostability" type="number" step="0.1" value="0.8" /></label>
+                      <label><span class="field-label">Barrier</span><input id="weight-barrier" type="number" step="0.1" value="0.6" /></label>
+                      <label><span class="field-label">Cost efficiency</span><input id="weight-cost" type="number" step="0.1" value="0.7" /></label>
+                    </div>
+                    <button type="submit">Run ranking</button>
+                  </form>
+                  <div class="stack-form">
+                    <section class="workflow-step">
+                      <div class="workflow-step-label">Step 3</div>
+                      <div>
+                        <h4>Review ranked output</h4>
+                        <p>Use the ordered results to see which candidate is leading and what tradeoff each material carries.</p>
+                      </div>
+                    </section>
+                    <div id="compare-results" class="card-list compare-results-list"></div>
+                  </div>
+                </div>
               </div>
             </article>
+          </section>
 
-            <article class="panel">
+          <section class="panel-grid workbench-grid">
+            <article class="panel workbench-evidence-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Provenance explorer</p>
-                  <h3>Search evidence before you decide</h3>
+                  <p class="eyebrow">Evidence review</p>
+                  <h3>Validate the recommendation with supporting documents</h3>
                 </div>
+                <div class="panel-kicker">Search evidence, scan the results, then review the source detail</div>
               </div>
+              <form id="document-upload-form" class="upload-form">
+                <select id="document-upload-type" name="document_type">
+                  <option value="spec">Specification</option>
+                  <option value="declaration">Declaration</option>
+                  <option value="lab_report">Lab report</option>
+                  <option value="certification">Certification</option>
+                  <option value="contract">Contract</option>
+                </select>
+                <input id="document-upload-title" name="title" type="text" placeholder="Optional evidence title" />
+                <input id="document-upload-file" name="file" type="file" />
+                <button type="submit">Upload evidence</button>
+              </form>
+              <div id="document-upload-status" class="upload-status"></div>
               <form id="document-search-form" class="inline-form">
-                <input id="document-search-input" type="text" placeholder="Search datasheets, declarations, labs, or migration status" />
+                <input id="document-search-input" type="text" placeholder="Search datasheets, declarations, labs, certifications, or migration status" />
                 <button type="submit">Search</button>
               </form>
-              <div id="document-search-results" class="card-list compact-list"></div>
-              <div id="provenance-panel" class="split-grid"></div>
+              <div class="workbench-evidence-grid">
+                <div>
+                  <div class="subsection-heading">Search results</div>
+                  <div id="document-search-results" class="card-list compact-list"></div>
+                </div>
+                <div>
+                  <div class="subsection-heading">Reference evidence</div>
+                  <div id="provenance-panel" class="split-grid"></div>
+                </div>
+              </div>
             </article>
           </section>
 
           <section class="panel-grid workbench-grid">
-            <article class="panel">
+            <article class="panel workbench-scenario-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Saved workspaces</p>
-                  <h3>Return to an analysis context later</h3>
+                  <p class="eyebrow">Scenario engine</p>
+                  <h3>Simulate pressure before you commit to a path</h3>
+                </div>
+                <div class="panel-kicker">Test outage, regulation, reformulation, and cost scenarios with measurable impact</div>
+              </div>
+              <form id="scenario-form" class="stack-form scenario-form">
+                <div class="scenario-grid">
+                  <label>
+                    <span class="field-label">Scenario type</span>
+                    <select id="scenario-type">
+                      <option value="supplier_outage">Supplier outage</option>
+                      <option value="regulation_activation">Regulation activation</option>
+                      <option value="reformulation_target">Reformulation target</option>
+                      <option value="cost_constraint">Cost constraint</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Scope</span>
+                    <select id="scenario-scope">
+                      <option value="material">Selected material</option>
+                      <option value="portfolio">Portfolio-wide</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Supplier</span>
+                    <select id="scenario-supplier">
+                      <option value="">Auto from selected material</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Regulation</span>
+                    <select id="scenario-regulation">
+                      <option value="">Next pending regulation</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Target metric</span>
+                    <select id="scenario-metric">
+                      <option value="recyclability_score">Recyclability</option>
+                      <option value="compostability_score">Compostability</option>
+                      <option value="sustainability_score">Sustainability</option>
+                      <option value="oxygen_barrier">Oxygen barrier</option>
+                      <option value="moisture_barrier">Moisture barrier</option>
+                      <option value="seal_strength">Seal strength</option>
+                      <option value="thermal_tolerance">Thermal tolerance</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span class="field-label">Target / cap</span>
+                    <input id="scenario-target-value" type="number" value="80" />
+                  </label>
+                  <label>
+                    <span class="field-label">Max cost (USD/kg)</span>
+                    <input id="scenario-max-cost" type="number" step="0.01" value="4.25" />
+                  </label>
+                  <label>
+                    <span class="field-label">Cost increase %</span>
+                    <input id="scenario-percent-increase" type="number" value="0" />
+                  </label>
+                </div>
+                <div class="row-actions">
+                  <button type="submit">Run scenario</button>
+                </div>
+              </form>
+              <div id="scenario-summary" class="panel-helper">Run a scenario to see projected impact, affected materials, and recommended actions.</div>
+              <div id="scenario-metrics" class="metric-grid"></div>
+              <div class="split-grid scenario-results-grid">
+                <div>
+                  <div class="subsection-heading">Recommended actions</div>
+                  <div id="scenario-actions" class="card-list compact-list"></div>
+                </div>
+                <div>
+                  <div class="subsection-heading">Projected impacts</div>
+                  <div id="scenario-impacts" class="card-list compact-list"></div>
                 </div>
               </div>
-              <div id="workspace-list" class="card-list compact-list"></div>
             </article>
           </section>
+
         </section>
 
         <section class="page-section" data-page="intelligence">
-          <section class="page-banner">
+          <section class="page-banner intelligence-banner">
             <div>
               <p class="eyebrow">Page 3</p>
               <h2>Intelligence</h2>
             </div>
-            <p>This is the supporting intelligence layer for deeper graph exploration, trend monitoring, risk review, and technical backend understanding.</p>
+            <p>Use this page to explore the graph around a material, inspect deeper node context, trace relationship paths, and review the monitoring or backend signals supporting the analysis.</p>
           </section>
           <section class="page-intro panel">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Monitoring and depth</p>
-                <h3>Explore relationships, monitoring signals, and technical backend coverage</h3>
+                <p class="eyebrow">Deep intelligence</p>
+                <h3>Explore the graph, inspect selected nodes, and review supporting system signals</h3>
               </div>
             </div>
-            <p class="panel-helper">This page holds the deeper product surfaces that support analysis after the main decision flow is already underway.</p>
+            <p class="panel-helper">This page should feel like a technical but readable exploration layer: use the graph first, review the selected-node context second, then scan monitoring and backend support only when needed.</p>
           </section>
 
-          <section class="panel-grid intelligence-grid">
-            <article class="panel">
+          <section class="panel-grid intelligence-graph-grid">
+            <article class="panel intelligence-graph-panel">
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Graph explorer</p>
-                  <h3>Trace connected nodes and local paths</h3>
+                  <h3>Explore connected nodes and local graph paths</h3>
                 </div>
+                <div class="panel-kicker">Click a node to inspect its context and trace the surrounding system</div>
               </div>
-              <p class="panel-helper">Click any node in the map to update the analytics panel with live context for that material, supplier, regulation, document, or recycling stream.</p>
+              <p class="panel-helper">The graph is the main surface on this page. Select a node to inspect its context, then use the path finder and relationship preview to understand how it connects across the portfolio.</p>
               <div class="graph-layout">
                 <div>
                   <div class="graph-toolbar">
@@ -282,20 +458,33 @@
                     </div>
                   </div>
                 </div>
-                <div class="stack-form">
+                <div class="stack-form intelligence-path-panel">
+                  <section class="workflow-step">
+                    <div class="workflow-step-label">Path</div>
+                    <div>
+                      <h4>Trace a graph path</h4>
+                      <p>Choose a source and target node to reveal the sequence that links them.</p>
+                    </div>
+                  </section>
                   <label><span class="field-label">Path source</span><select id="graph-source"></select></label>
                   <label><span class="field-label">Path target</span><select id="graph-target"></select></label>
                   <button id="graph-path-button" type="button">Find node path</button>
+                  <div class="subsection-heading">Path results</div>
                   <div id="graph-path-results" class="card-list compact-list"></div>
                 </div>
               </div>
-              <div id="relationship-list" class="card-list compact"></div>
+              <div class="subsection">
+                <div class="subsection-heading">Relationship preview</div>
+                <div id="relationship-list" class="card-list compact"></div>
+              </div>
             </article>
+          </section>
 
-            <article class="panel">
+          <section class="panel-grid intelligence-inspector-grid">
+            <article class="panel intelligence-inspector-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Node-driven analytics</p>
+                  <p class="eyebrow">Selected node analysis</p>
                   <h3 id="insight-title">Inspect a node from the graph</h3>
                 </div>
               </div>
@@ -307,7 +496,7 @@
                   <div id="analytics-details" class="card-list compact-list"></div>
                 </div>
                 <div>
-                  <div class="subsection-heading">Relationship mix and recent signals</div>
+                  <div class="subsection-heading">Connections and recent activity</div>
                   <div id="analytics-relationships" class="card-list compact-list"></div>
                 </div>
               </div>
@@ -316,33 +505,19 @@
                 <div id="analytics-related" class="table-card"></div>
               </div>
             </article>
-          </section>
 
-          <section class="panel-grid intelligence-grid">
-            <article class="panel">
+            <article class="panel intelligence-alerts-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Alerts</p>
-                  <h3>Active monitoring signals</h3>
+                  <p class="eyebrow">Monitoring signals</p>
+                  <h3>Scan the active alerts that could affect the decision</h3>
                 </div>
               </div>
+              <p class="panel-helper">Use this as a monitoring rail rather than a primary workspace. Focus on which supplier, regulation, or compliance changes deserve follow-up.</p>
               <div id="alerts-list" class="card-list compact-list"></div>
             </article>
-
-            <article class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Benchmarks</p>
-                  <h3>Neo4j and Memgraph technical coverage</h3>
-                </div>
-              </div>
-              <div id="benchmark-status" class="metric-grid"></div>
-              <div class="split-grid">
-                <div id="benchmark-query-set" class="card-list compact-list"></div>
-                <div id="benchmark-plan-notes" class="card-list compact-list"></div>
-              </div>
-            </article>
           </section>
+
         </section>
       </main>
     </div>

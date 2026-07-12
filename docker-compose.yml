@@ -11,6 +11,12 @@ services:
       NEO4J_AUTH: neo4j/packgraph123
       NEO4J_server_memory_heap_initial__size: 512m
       NEO4J_server_memory_heap_max__size: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p packgraph123 'RETURN 1;' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
     volumes:
       - neo4j_data:/data
 
@@ -27,15 +33,20 @@ services:
     command: >
       sh -c "pip install -r requirements.txt &&
       python scripts/generate_data.py &&
+      python scripts/ingest_graph.py &&
       uvicorn app.main:app --host 0.0.0.0 --port 8000"
     env_file:
       - .env.example
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      MEMGRAPH_URI: bolt://memgraph:7687
     ports:
       - "8000:8000"
     volumes:
       - ./:/workspace
     depends_on:
-      - neo4j
+      neo4j:
+        condition: service_healthy
 
 volumes:
   neo4j_data:

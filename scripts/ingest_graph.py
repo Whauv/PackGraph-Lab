@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 import sys
@@ -25,9 +26,10 @@ CONSTRAINTS = [
 def main() -> None:
     settings = get_settings()
     store = get_data_store().load_bundle()
-    repo = Neo4jAdminRepository(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password)
     started = time.perf_counter()
+    repo = None
     try:
+        repo = connect_with_retry(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password)
         for query in CONSTRAINTS:
             repo.run(query)
 
@@ -50,7 +52,7 @@ def main() -> None:
             MERGE (n:{label} {{{id_key}: row.{id_key}}})
             SET n += row
             """
-            repo.run(query, {"rows": store[key]})
+            repo.run(query, {"rows": [normalize_neo4j_properties(row) for row in store[key]]})
 
         relation_queries = {
             "TARGETS_APPLICATION": """
@@ -103,7 +105,54 @@ def main() -> None:
         elapsed = round(time.perf_counter() - started, 3)
         print({"status": "ok", "elapsed_seconds": elapsed, "counts": store["manifest"]["counts"]})
     finally:
-        repo.close()
+        if repo:
+            repo.close()
+
+
+def connect_with_retry(uri: str, username: str, password: str, attempts: int = 30, delay_seconds: float = 2.0) -> Neo4jAdminRepository:
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            repo = Neo4jAdminRepository(uri, username, password)
+            repo.run("RETURN 1 AS ok")
+            return repo
+        except Exception as exc:  # pragma: no cover - startup retry path
+            last_error = exc
+            print(f"Waiting for Neo4j ({attempt}/{attempts}) at {uri} ...")
+            time.sleep(delay_seconds)
+    raise RuntimeError(f"Neo4j was not ready after {attempts} attempts.") from last_error
+
+
+def normalize_neo4j_properties(row: dict) -> dict:
+    normalized = {}
+    for key, value in row.items():
+        if isinstance(value, dict):
+            for nested_key, nested_value in flatten_nested_dict(value, prefix=key).items():
+                normalized[nested_key] = normalize_scalar_or_list(nested_value)
+        else:
+            normalized[key] = normalize_scalar_or_list(value)
+    return normalized
+
+
+def flatten_nested_dict(value: dict, prefix: str) -> dict:
+    flattened = {}
+    for nested_key, nested_value in value.items():
+        composite_key = f"{prefix}_{nested_key}"
+        if isinstance(nested_value, dict):
+            flattened.update(flatten_nested_dict(nested_value, composite_key))
+        else:
+            flattened[composite_key] = nested_value
+    return flattened
+
+
+def normalize_scalar_or_list(value):
+    if isinstance(value, list):
+        if all(isinstance(item, (str, int, float, bool)) or item is None for item in value):
+            return value
+        return json.dumps(value, sort_keys=True)
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return json.dumps(value, sort_keys=True)
 
 
 if __name__ == "__main__":

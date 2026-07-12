@@ -202,6 +202,16 @@ textarea {
   gap: 10px;
 }
 
+.scenario-grid,
+.scenario-results-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.scenario-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .page-section {
   display: none;
   gap: 12px;
@@ -986,8 +996,13 @@ body[data-theme="light"] .overview-compliance {
 }
 
 .filter-grid {
-  grid-template-columns: 1.5fr 1fr 1fr 1fr 0.9fr auto;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 0.9fr auto;
   margin-bottom: 12px;
+}
+
+.report-actions {
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .compare-layout,
@@ -1002,6 +1017,20 @@ body[data-theme="light"] .overview-compliance {
 .workbench-flow {
   display: grid;
   gap: 14px;
+}
+
+.upload-form {
+  display: grid;
+  grid-template-columns: 180px minmax(220px, 1fr) minmax(220px, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.upload-status {
+  min-height: 18px;
+  margin-bottom: 12px;
+  color: var(--soft);
+  font-size: 0.82rem;
 }
 
 .workflow-step {
