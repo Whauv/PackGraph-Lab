@@ -2,8 +2,12 @@ const state = {
   materials: [],
   filteredMaterials: [],
   selectedMaterialId: null,
+  selectedGraphNodeId: null,
+  graphZoom: 1,
+  graphPan: { x: 0, y: 0 },
   theme: "light",
   currentUser: null,
+  currentPage: "overview",
 };
 
 function applyTheme(theme) {
@@ -53,12 +57,213 @@ function riskClass(score) {
   return "risk-low";
 }
 
-function selectedMaterialsFromCompare() {
-  return Array.from(document.getElementById("compare-materials").selectedOptions).map((option) => option.value);
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
-function currentMaterialPool() {
-  return state.filteredMaterials.length ? state.filteredMaterials : state.materials;
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function applyGraphZoom() {
+  const viewport = document.getElementById("graph-viewport");
+  const zoomLabel = document.getElementById("graph-zoom-level");
+  if (viewport) {
+    viewport.style.transform = `translate(${state.graphPan.x}px, ${state.graphPan.y}px) scale(${state.graphZoom})`;
+  }
+  if (zoomLabel) {
+    zoomLabel.textContent = `${Math.round(state.graphZoom * 100)}%`;
+  }
+}
+
+function relationshipPriority(type) {
+  const order = {
+    SUPPLIED_BY: 1,
+    SUPPLIES: 1,
+    TARGETS_APPLICATION: 2,
+    HAS_DOCUMENT: 3,
+    REVIEWED_UNDER: 4,
+    RECYCLES_INTO: 5,
+    SUBSTITUTES_WITH: 6,
+  };
+  return order[type] || 99;
+}
+
+function relationshipLane(type) {
+  const lanes = {
+    SUPPLIED_BY: "right-top",
+    SUPPLIES: "right-top",
+    TARGETS_APPLICATION: "left-top",
+    HAS_DOCUMENT: "left-bottom",
+    REVIEWED_UNDER: "right-bottom",
+    RECYCLES_INTO: "left-bottom",
+    SUBSTITUTES_WITH: "right-bottom",
+  };
+  return lanes[type] || "right-bottom";
+}
+
+function routeTreePath(source, branch, target) {
+  return [
+    `M ${source.x} ${source.y}`,
+    `L ${branch.x} ${source.y}`,
+    `L ${branch.x} ${branch.y}`,
+    `L ${target.x} ${branch.y}`,
+    `L ${target.x} ${target.y}`,
+  ].join(" ");
+}
+
+function normalizeGraphEdges(graph, selectedNodeId) {
+  const visibleNodeIds = new Set(graph.nodes.map((node) => node.id));
+  const normalized = [];
+  const seen = new Set();
+
+  graph.edges.forEach((edge) => {
+    if (edge.source !== selectedNodeId && edge.target !== selectedNodeId) return;
+    const neighborId = edge.source === selectedNodeId ? edge.target : edge.source;
+    if (!visibleNodeIds.has(neighborId)) return;
+
+    let type = edge.type;
+    if (type === "SUPPLIES") {
+      type = "SUPPLIED_BY";
+    }
+
+    const key = `${type}:${neighborId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    normalized.push({
+      source: selectedNodeId,
+      target: neighborId,
+      type,
+    });
+  });
+
+  return normalized.sort((a, b) => relationshipPriority(a.type) - relationshipPriority(b.type) || a.target.localeCompare(b.target));
+}
+
+function layoutGraphNodes(nodes, edges, selectedNodeId) {
+  const width = 1000;
+  const height = 640;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const selectedNode = nodes.find((node) => node.id === selectedNodeId) || nodes[0];
+  const positions = {};
+  const branches = [];
+
+  if (selectedNode) {
+    positions[selectedNode.id] = { x: centerX, y: centerY };
+  }
+
+  const connectedEdges = edges
+    .filter((edge) => edge.source === selectedNode?.id || edge.target === selectedNode?.id)
+    .sort((a, b) => relationshipPriority(a.type) - relationshipPriority(b.type) || a.type.localeCompare(b.type));
+
+  const grouped = connectedEdges.reduce((acc, edge) => {
+    const type = edge.type;
+    const neighborId = edge.source === selectedNode?.id ? edge.target : edge.source;
+    const node = nodes.find((item) => item.id === neighborId);
+    if (!node) return acc;
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(node);
+    return acc;
+  }, {});
+
+  const laneOffsets = {
+    "left-top": { branchX: 360, nodeX: 165, startY: 132 },
+    "left-bottom": { branchX: 360, nodeX: 165, startY: 372 },
+    "right-top": { branchX: 640, nodeX: 835, startY: 132 },
+    "right-bottom": { branchX: 640, nodeX: 835, startY: 372 },
+  };
+  const laneGap = {
+    "left-top": 92,
+    "left-bottom": 92,
+    "right-top": 92,
+    "right-bottom": 92,
+  };
+  const branchGap = 34;
+  const laneBranchCount = {
+    "left-top": 0,
+    "left-bottom": 0,
+    "right-top": 0,
+    "right-bottom": 0,
+  };
+
+  Object.entries(grouped).forEach(([type, groupNodes]) => {
+    const lane = relationshipLane(type);
+    const laneConfig = laneOffsets[lane];
+    const branchIndex = laneBranchCount[lane];
+    laneBranchCount[lane] += 1;
+    const direction = lane.startsWith("left") ? -1 : 1;
+    const branchY = laneConfig.startY + branchIndex * (groupNodes.length * 68 + branchGap);
+    const labelX = laneConfig.branchX + direction * 14;
+    const labelAnchor = lane.startsWith("left") ? "end" : "start";
+
+    branches.push({
+      type,
+      lane,
+      label: titleCase(type),
+      x: laneConfig.branchX,
+      y: branchY - 18,
+      textX: labelX,
+      textY: branchY - 24,
+      textAnchor: labelAnchor,
+    });
+
+    groupNodes.forEach((node, index) => {
+      positions[node.id] = {
+        x: laneConfig.nodeX,
+        y: clamp(branchY + index * laneGap[lane], 78, height - 78),
+      };
+    });
+  });
+
+  return { positions, branches };
+}
+
+function renderGraphCanvas(graph) {
+  const normalizedEdges = normalizeGraphEdges(graph, state.selectedGraphNodeId);
+  const { positions, branches } = layoutGraphNodes(graph.nodes, normalizedEdges, state.selectedGraphNodeId);
+  const edgesSvg = document.getElementById("graph-edges");
+  const nodesLayer = document.getElementById("graph-nodes-layer");
+  const branchByType = Object.fromEntries(branches.map((branch) => [branch.type, branch]));
+
+  edgesSvg.innerHTML = [
+    ...branches.map((branch) => `<text class="graph-branch-label" x="${branch.textX}" y="${branch.textY}" text-anchor="${branch.textAnchor}">${escapeHtml(branch.label)}</text>`),
+    ...normalizedEdges.map((edge) => {
+    const source = positions[edge.source];
+    const target = positions[edge.target];
+    if (!source || !target) return "";
+    const isActive = edge.source === state.selectedGraphNodeId || edge.target === state.selectedGraphNodeId;
+    const branch = branchByType[edge.type];
+    const path = branch ? routeTreePath(source, { x: branch.x, y: target.y }, target) : `M ${source.x} ${source.y} L ${target.x} ${target.y}`;
+    return `
+      <path class="graph-edge${isActive ? " active" : ""}" d="${path}"></path>`;
+  }),
+  ].join("");
+
+  nodesLayer.innerHTML = graph.nodes.map((node) => {
+    const position = positions[node.id];
+    return `
+      <button
+        type="button"
+        class="graph-node graph-node-${escapeHtml(node.type)}${node.id === state.selectedGraphNodeId ? " active" : ""}${node.id === state.selectedMaterialId ? " center" : ""}"
+        data-node-id="${node.id}"
+        style="left:${position.x}px; top:${position.y}px;"
+      >
+        <span>${escapeHtml(titleCase(node.type))}</span>
+        <strong>${escapeHtml(node.label)}</strong>
+      </button>`;
+  }).join("");
+
+  applyGraphZoom();
+}
+
+function selectedMaterialsFromCompare() {
+  return Array.from(document.getElementById("compare-materials").selectedOptions).map((option) => option.value);
 }
 
 function populateMaterialControls(materials) {
@@ -72,20 +277,24 @@ function populateMaterialControls(materials) {
   select.value = state.selectedMaterialId;
 }
 
-async function loadSession() {
-  state.currentUser = await fetchJson("/auth/session");
-  const card = document.getElementById("user-card");
-  if (!state.currentUser) {
-    card.innerHTML = "<span>No active user</span>";
-    return;
+function setPage(pageName) {
+  state.currentPage = pageName;
+  document.body.setAttribute("data-page", pageName);
+  document.querySelectorAll(".page-link").forEach((button) => button.classList.toggle("active", button.dataset.page === pageName));
+  document.querySelectorAll(".page-section").forEach((section) => section.classList.toggle("active", section.dataset.page === pageName));
+  const pageCard = document.getElementById("page-context-card");
+  if (pageCard) {
+    const descriptions = {
+      overview: "Core decision flow: filters, material detail, chat, compliance.",
+      workbench: "Shortlist workflow: ranking, provenance, investigations, workspaces.",
+      intelligence: "Support layer: graph, alerts, analytics, and benchmarks.",
+    };
+    pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(pageName)}</strong><small>${descriptions[pageName]}</small>`;
   }
-  card.innerHTML = `<span>${state.currentUser.role}</span><strong>${state.currentUser.name}</strong><small>${state.currentUser.email}</small>`;
 }
 
-async function loadRuntime() {
-  const backends = await fetchJson("/runtime/backends");
-  const active = backends.find((item) => item.active) || backends[0];
-  document.getElementById("active-backend").textContent = `${active.backend} / ${active.mode}`;
+async function loadSession() {
+  state.currentUser = await fetchJson("/auth/session");
 }
 
 async function loadMaterials() {
@@ -94,7 +303,7 @@ async function loadMaterials() {
   state.materials = body.data;
   state.filteredMaterials = [...state.materials];
   state.selectedMaterialId = state.materials[0]?.material_id;
-  document.getElementById("dataset-scale").textContent = `${body.meta.materials} materials / ${body.meta.relationships} links`;
+  state.selectedGraphNodeId = state.selectedMaterialId;
   populateMaterialControls(state.materials);
   populateFilterOptions();
   document.getElementById("material-select").addEventListener("change", async (event) => {
@@ -112,11 +321,12 @@ function populateFilterOptions() {
 }
 
 async function refreshMaterialContext() {
-  await Promise.all([loadMaterialDetail(), loadProvenance(), loadGraph(), loadTimeline()]);
+  await Promise.all([loadMaterialDetail(), loadProvenance(), loadGraph()]);
 }
 
 async function loadMaterialDetail() {
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
+  document.getElementById("context-material").textContent = material.name;
   document.getElementById("material-title").textContent = `${material.name} (${material.category})`;
   const supplierNames = material.suppliers.map((item) => item.name);
   const substitutes = material.substitute_material_ids.map((id) => state.materials.find((entry) => entry.material_id === id)?.name || id);
@@ -204,46 +414,56 @@ async function loadCompliance() {
 
 async function loadAlerts() {
   const alerts = await fetchJson("/alerts");
-  document.getElementById("hero-alert-count").textContent = alerts.length;
+  document.getElementById("context-alerts").textContent = alerts.length;
   document.getElementById("alerts-list").innerHTML = alerts.map((item) => `<div class="row-card"><strong>${item.title}</strong><p>${item.detail}</p><small>${titleCase(item.severity)} / ${titleCase(item.category)}</small></div>`).join("");
 }
 
 async function loadInvestigations() {
   const investigations = await fetchJson("/investigations");
-  document.getElementById("investigation-count").textContent = `${investigations.length} active`;
-  document.getElementById("investigation-list").innerHTML = investigations.map((item) => `
-    <div class="row-card">
-      <strong>${item.title}</strong>
-      <p>${item.notes}</p>
-      <small>${item.decision_rationale}</small>
-      <div class="row-actions">
-        <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.csv" target="_blank">CSV</a>
-        <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.pdf" target="_blank">PDF</a>
-      </div>
-    </div>`).join("");
+  document.getElementById("context-investigations").textContent = investigations.length;
+  document.getElementById("hero-investigations").textContent = investigations.length;
+  const investigationList = document.getElementById("investigation-list");
+  if (investigationList) {
+    investigationList.innerHTML = investigations.map((item) => `
+      <div class="row-card">
+        <strong>${item.title}</strong>
+        <p>${item.notes}</p>
+        <small>${item.decision_rationale}</small>
+        <div class="row-actions">
+          <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.csv" target="_blank">CSV</a>
+          <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.pdf" target="_blank">PDF</a>
+        </div>
+      </div>`).join("");
+  }
 }
 
 async function loadWorkspaces() {
   const workspaces = await fetchJson("/workspaces");
-  document.getElementById("workspace-list").innerHTML = workspaces.map((item) => `<div class="row-card"><strong>${item.name}</strong><p>${item.selected_material_ids.length} materials / tab ${titleCase(item.active_tab)}</p></div>`).join("");
+  document.getElementById("workspace-list").innerHTML = workspaces.map((item) => `<div class="row-card"><strong>${item.name}</strong><p>${item.selected_material_ids.length} materials / page ${titleCase(item.active_page || item.active_tab || "overview")}</p></div>`).join("");
 }
 
 async function loadGraph() {
   const graph = await fetchJson(`/graph/subgraph?material_id=${state.selectedMaterialId}`);
-  document.getElementById("graph-subgraph").innerHTML = graph.nodes.map((node) => `<button type="button" class="graph-node" data-node-id="${node.id}"><span>${titleCase(node.type)}</span><strong>${node.label}</strong></button>`).join("");
+  const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
+  if (!graphNodeIds.has(state.selectedGraphNodeId)) {
+    state.selectedGraphNodeId = state.selectedMaterialId;
+  }
+  renderGraphCanvas(graph);
   const selectors = [document.getElementById("graph-source"), document.getElementById("graph-target")];
   selectors.forEach((select) => {
     select.innerHTML = graph.nodes.map((node) => `<option value="${node.id}">${node.label}</option>`).join("");
   });
-  document.getElementById("graph-source").value = state.selectedMaterialId;
-  document.getElementById("graph-target").value = graph.nodes.find((node) => node.id !== state.selectedMaterialId)?.id || state.selectedMaterialId;
+  document.getElementById("graph-source").value = state.selectedGraphNodeId;
+  document.getElementById("graph-target").value = graph.nodes.find((node) => node.id !== state.selectedGraphNodeId)?.id || state.selectedGraphNodeId;
   document.querySelectorAll(".graph-node").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.getElementById("graph-source").value = button.dataset.nodeId;
+    button.classList.toggle("active", button.dataset.nodeId === state.selectedGraphNodeId);
+    button.addEventListener("click", async () => {
+      await selectGraphNode(button.dataset.nodeId);
     });
   });
   const links = await fetchJson(`/graph/relationships?material_id=${state.selectedMaterialId}`);
   document.getElementById("relationship-list").innerHTML = links.slice(0, 14).map((item) => `<div class="row-card relationship-row"><span>${item.from}</span><strong>${titleCase(item.type)}</strong><span>${item.to}</span></div>`).join("");
+  await loadGraphNodeInsight(state.selectedGraphNodeId);
 }
 
 async function loadGraphPath() {
@@ -253,15 +473,6 @@ async function loadGraphPath() {
   document.getElementById("graph-path-results").innerHTML = result.path.length
     ? result.path.map((node, index) => `<div class="row-card"><strong>${index + 1}. ${node.label}</strong><p>${titleCase(node.type)}</p></div>`).join("")
     : `<div class="row-card"><strong>No path found</strong><p>Try another source or target node.</p></div>`;
-}
-
-async function loadTimeline() {
-  const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
-  document.getElementById("timeline-list")?.remove;
-  const existing = document.getElementById("timeline-list");
-  if (existing) {
-    existing.innerHTML = material.snapshots.slice(0, 10).map((item) => `<div class="row-card"><strong>${item.quarter}</strong><p>Cost ${item.price_usd_per_kg} USD/kg / Lead ${item.lead_time_days} days</p><p>Compliance ${titleCase(item.compliance_state)} / Risk ${item.risk_score}</p></div>`).join("");
-  }
 }
 
 async function loadRecommendationsSummary() {
@@ -289,24 +500,71 @@ async function runComparison() {
   document.getElementById("compare-results").innerHTML = results.map((item) => `<div class="row-card"><strong>${item.name}</strong><p>Weighted score ${item.weighted_score}</p><small>Sustainability ${item.scores.sustainability} / Recyclability ${item.scores.recyclability} / Cost efficiency ${item.scores.cost_efficiency}</small></div>`).join("");
 }
 
+async function loadGraphNodeInsight(nodeId) {
+  const insight = await fetchJson(`/graph/node-insight?node_id=${encodeURIComponent(nodeId)}`);
+  renderGraphNodeInsight(insight);
+}
+
+function renderGraphNodeInsight(insight) {
+  document.getElementById("insight-title").textContent = `${insight.node.label} (${titleCase(insight.node.type)})`;
+  document.getElementById("insight-summary").textContent = insight.summary;
+  document.getElementById("analytics-summary").innerHTML = (insight.metrics || [])
+    .map((item) => `<div class="metric"><div class="value">${escapeHtml(item.value)}</div><div>${escapeHtml(item.label)}</div></div>`)
+    .join("");
+
+  document.getElementById("analytics-details").innerHTML = (insight.facts || []).length
+    ? insight.facts.map((item) => `<div class="row-card"><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.value)}</p></div>`).join("")
+    : `<div class="row-card"><strong>No additional details</strong><p>This node does not expose extra structured fields in the demo dataset.</p></div>`;
+
+  const relationshipCards = [];
+  (insight.relationship_counts || []).slice(0, 4).forEach((item) => {
+    relationshipCards.push(`<div class="row-card"><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.value)} connected edges</p></div>`);
+  });
+  (insight.timeline || []).slice(0, 4).forEach((item) => {
+    relationshipCards.push(`<div class="row-card"><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.detail)}</p><small>${escapeHtml(item.meta || "")}</small></div>`);
+  });
+  document.getElementById("analytics-relationships").innerHTML = relationshipCards.length
+    ? relationshipCards.join("")
+    : `<div class="row-card"><strong>No recent signal</strong><p>This node currently has no timeline or relationship mix details.</p></div>`;
+
+  document.getElementById("analytics-related").innerHTML = (insight.related || []).length
+    ? `
+      <table>
+        <thead><tr><th>Connected node</th><th>Type</th><th>Relationship</th></tr></thead>
+        <tbody>
+        ${insight.related.map((item) => `
+          <tr>
+            <td><button type="button" class="table-link-button" data-node-id="${escapeHtml(item.id)}">${escapeHtml(item.label)}</button></td>
+            <td>${escapeHtml(titleCase(item.type))}</td>
+            <td>${escapeHtml(titleCase(item.relationship))}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`
+    : `<table><tbody><tr><td>No connected nodes available for this selection.</td></tr></tbody></table>`;
+
+  document.querySelectorAll("#analytics-related [data-node-id]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await selectGraphNode(button.dataset.nodeId);
+    });
+  });
+}
+
+async function selectGraphNode(nodeId) {
+  state.selectedGraphNodeId = nodeId;
+  const sourceSelect = document.getElementById("graph-source");
+  if (sourceSelect) {
+    sourceSelect.value = nodeId;
+  }
+  document.querySelectorAll(".graph-node").forEach((button) => {
+    button.classList.toggle("active", button.dataset.nodeId === nodeId);
+  });
+  await loadGraphNodeInsight(nodeId);
+}
+
 async function loadAnalytics() {
-  const data = await fetchJson("/analytics/overview");
-  const latestCost = data.cost_trends[data.cost_trends.length - 1];
-  const latestCompliance = data.compliance_drift[data.compliance_drift.length - 1];
-  document.getElementById("analytics-summary").innerHTML = `
-    <div class="metric"><div class="value">${latestCost.average_price_usd_per_kg}</div><div>latest avg price / kg</div></div>
-    <div class="metric"><div class="value">${latestCost.average_lead_time_days}</div><div>latest avg lead time</div></div>
-    <div class="metric"><div class="value">${latestCompliance.watch_count}</div><div>watch states in latest quarter</div></div>
-    <div class="metric"><div class="value">${latestCompliance.non_compliant_count}</div><div>non-compliant states in latest quarter</div></div>`;
-  document.getElementById("cost-trends").innerHTML = data.cost_trends.map((item) => `<div class="row-card"><strong>${item.quarter}</strong><p>${item.average_price_usd_per_kg} USD/kg average price</p><small>${item.average_lead_time_days} day lead-time average</small></div>`).join("");
-  document.getElementById("compliance-drift").innerHTML = data.compliance_drift.map((item) => `<div class="row-card"><strong>${item.quarter}</strong><p>${item.watch_count} watch / ${item.non_compliant_count} non-compliant</p></div>`).join("");
-  document.getElementById("supplier-performance").innerHTML = `
-    <table>
-      <thead><tr><th>Supplier</th><th>ESG</th><th>Risk</th><th>Lead time</th><th>Compliance</th></tr></thead>
-      <tbody>
-      ${data.supplier_performance.map((item) => `<tr><td>${item.name}</td><td>${item.esg_score}</td><td><span class="${riskClass(item.disruption_risk_score)}">${item.disruption_risk_score}</span></td><td>${item.lead_time_days}</td><td>${item.average_compliance_rate ?? "-"}</td></tr>`).join("")}
-      </tbody>
-    </table>`;
+  if (state.selectedGraphNodeId) {
+    await loadGraphNodeInsight(state.selectedGraphNodeId);
+  }
 }
 
 async function loadBenchmarks() {
@@ -340,22 +598,79 @@ async function applyFilters() {
   await refreshMaterialContext();
 }
 
-function setupTabs() {
-  document.querySelectorAll(".tab").forEach((button) => {
-    button.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((tab) => tab.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
-      button.classList.add("active");
-      document.querySelector(`[data-panel="${button.dataset.tab}"]`).classList.add("active");
-    });
+function setupPageNavigation() {
+  document.querySelectorAll(".page-link").forEach((button) => {
+    button.addEventListener("click", () => setPage(button.dataset.page));
   });
 }
 
 function setupNavigation() {
-  document.getElementById("jump-chat").addEventListener("click", () => document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" }));
-  document.getElementById("jump-workspace").addEventListener("click", () => {
-    document.querySelector(`.tab[data-tab="workspace"]`)?.click();
-    document.querySelector(`[data-panel="workspace"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById("jump-chat").addEventListener("click", () => {
+    setPage("overview");
+    document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  document.getElementById("jump-workbench").addEventListener("click", () => {
+    setPage("workbench");
+    document.querySelector('[data-page="workbench"]').scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function setupGraphZoomControls() {
+  const zoomIn = document.getElementById("graph-zoom-in");
+  const zoomOut = document.getElementById("graph-zoom-out");
+  if (zoomIn) {
+    zoomIn.addEventListener("click", () => {
+      state.graphZoom = clamp(Number((state.graphZoom + 0.1).toFixed(2)), 0.7, 1.8);
+      applyGraphZoom();
+    });
+  }
+  if (zoomOut) {
+    zoomOut.addEventListener("click", () => {
+      state.graphZoom = clamp(Number((state.graphZoom - 0.1).toFixed(2)), 0.7, 1.8);
+      applyGraphZoom();
+    });
+  }
+  applyGraphZoom();
+}
+
+function setupGraphPanControls() {
+  const canvas = document.getElementById("graph-subgraph");
+  if (!canvas) return;
+
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  const stopDragging = () => {
+    dragging = false;
+    canvas.classList.remove("dragging");
+  };
+
+  canvas.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return;
+    if (event.target.closest(".graph-node, .graph-zoom-controls button")) return;
+    dragging = true;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    canvas.classList.add("dragging");
+  });
+
+  window.addEventListener("mousemove", (event) => {
+    if (!dragging) return;
+    const deltaX = event.clientX - lastX;
+    const deltaY = event.clientY - lastY;
+    lastX = event.clientX;
+    lastY = event.clientY;
+    state.graphPan.x = clamp(state.graphPan.x + deltaX, -240, 240);
+    state.graphPan.y = clamp(state.graphPan.y + deltaY, -180, 180);
+    applyGraphZoom();
+  });
+
+  window.addEventListener("mouseup", stopDragging);
+  canvas.addEventListener("mouseleave", () => {
+    if (dragging) {
+      canvas.classList.add("dragging");
+    }
   });
 }
 
@@ -380,37 +695,6 @@ function setupForms() {
     });
   });
 
-  document.getElementById("investigation-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const title = document.getElementById("investigation-title").value.trim();
-    const notes = document.getElementById("investigation-notes").value.trim();
-    if (!title) return;
-    await fetchJson("/investigations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        notes,
-        focus_material_id: state.selectedMaterialId,
-        shortlisted_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
-        comparison_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
-        decision_rationale: "Saved from the PackGraph Lab workspace with current comparison and filter context.",
-      }),
-    });
-    document.getElementById("investigation-title").value = "";
-    document.getElementById("investigation-notes").value = "";
-    await loadInvestigations();
-  });
-
-  document.getElementById("scenario-button")?.addEventListener("click", async () => {
-    const scenario = await fetchJson("/query/scenario", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ material_id: state.selectedMaterialId, scenario: "what if compostability becomes the top priority" }),
-    });
-    addMessage("Scenario", scenario.summary, JSON.stringify(scenario.actions, null, 2));
-  });
-
   document.getElementById("filter-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     await applyFilters();
@@ -431,19 +715,6 @@ function setupForms() {
     await loadGraphPath();
   });
 
-  document.getElementById("login-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await fetchJson("/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: document.getElementById("login-email").value.trim(),
-        password: document.getElementById("login-password").value,
-      }),
-    });
-    await Promise.all([loadSession(), loadInvestigations(), loadWorkspaces()]);
-  });
-
   document.getElementById("workspace-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = document.getElementById("workspace-name").value.trim();
@@ -461,7 +732,7 @@ function setupForms() {
           min_sustainability: document.getElementById("filter-sustainability").value,
         },
         selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
-        active_tab: document.querySelector(".tab.active")?.dataset.tab || "materials",
+        active_page: state.currentPage,
       }),
     });
     document.getElementById("workspace-name").value = "";
@@ -471,13 +742,25 @@ function setupForms() {
 
 async function init() {
   setupThemeToggle();
-  setupTabs();
+  setupPageNavigation();
   setupNavigation();
+  setupGraphZoomControls();
+  setupGraphPanControls();
   setupForms();
-  await Promise.all([loadSession(), loadRuntime(), loadMaterials(), loadCompliance(), loadAlerts(), loadInvestigations(), loadWorkspaces(), loadRecommendationsSummary(), loadAnalytics(), loadBenchmarks()]);
+  await Promise.all([
+    loadSession(),
+    loadMaterials(),
+    loadCompliance(),
+    loadAlerts(),
+    loadInvestigations(),
+    loadWorkspaces(),
+    loadRecommendationsSummary(),
+    loadAnalytics(),
+    loadBenchmarks(),
+  ]);
   await runComparison();
   await loadGraphPath();
-  addMessage("PackGraph", "Ready with graph exploration, filtering, comparison, document search, alerts, exports, analytics, and benchmark coverage.");
+  addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
 }
 
 init();
