@@ -80,7 +80,7 @@ textarea {
   border-right: 1px solid var(--line-strong);
   padding: 14px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   align-content: start;
 }
 
@@ -116,6 +116,7 @@ textarea {
   grid-template-columns: minmax(0, 1.3fr) minmax(360px, 0.95fr);
   gap: 18px;
   align-items: start;
+  border-top: 2px solid var(--ink);
 }
 
 .brand-topbar {
@@ -201,6 +202,90 @@ textarea {
   gap: 10px;
 }
 
+.page-section {
+  display: none;
+  gap: 12px;
+}
+
+.page-section.active {
+  display: grid;
+}
+
+.workspace-header {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-top: 2px solid var(--ink);
+}
+
+.workspace-header-copy h3 {
+  margin: 0;
+}
+
+.workspace-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.page-link {
+  min-height: 112px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  text-align: left;
+  background: var(--panel);
+}
+
+.page-link span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--soft);
+}
+
+.page-link strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.page-link small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.page-link.active {
+  background: var(--panel-muted);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.page-banner {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  align-items: start;
+  padding: 18px 0 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.page-banner h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.page-banner p {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
 .status-card,
 .summary-card,
 .metric,
@@ -242,7 +327,6 @@ textarea {
 .pill-list,
 .tags,
 .prompt-row,
-.tabs,
 .row-actions {
   display: flex;
   flex-wrap: wrap;
@@ -339,6 +423,7 @@ button.secondary,
 
 .hero-summary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .summary-card {
@@ -346,10 +431,19 @@ button.secondary,
   grid-template-columns: 1fr auto;
   gap: 12px;
   align-items: center;
+  padding: 8px 10px;
+  background: transparent;
+  border-color: transparent;
 }
 
 .summary-card span {
   margin-bottom: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+}
+
+.summary-card strong {
+  font-size: 0.94rem;
 }
 
 .panel-grid {
@@ -373,6 +467,13 @@ button.secondary,
 
 .panel-kicker {
   font-size: 0.78rem;
+}
+
+.panel-helper {
+  margin: -2px 0 12px;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .prompt-row {
@@ -460,38 +561,9 @@ select:focus {
   border-top: 1px solid var(--line);
 }
 
-.tabs {
-  gap: 0;
-  padding: 0;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  overflow-x: auto;
-}
-
-.tab {
-  border: none;
-  border-right: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.tab:last-child {
-  border-right: none;
-}
-
-.tab.active {
-  background: var(--panel-muted);
-  color: var(--ink);
-}
-
-.tab-panels .tab-panel {
-  display: none;
-}
-
-.tab-panels .tab-panel.active {
-  display: block;
+.page-intro {
+  padding-bottom: 10px;
+  border-left: 3px solid var(--line-strong);
 }
 
 .detail-layout {
@@ -611,6 +683,12 @@ select:focus {
   grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
 }
 
+.workbench-grid,
+.intelligence-grid {
+  display: grid;
+  gap: 12px;
+}
+
 .filter-grid {
   grid-template-columns: 1.5fr 1fr 1fr 1fr 0.9fr auto;
   margin-bottom: 12px;
@@ -627,6 +705,15 @@ select:focus {
 
 .compact-form input,
 .compact-form button {
+  min-height: 38px;
+}
+
+.sidebar-workspace-form {
+  gap: 8px;
+}
+
+.sidebar-workspace-form input,
+.sidebar-workspace-form button {
   min-height: 38px;
 }
 
@@ -650,30 +737,188 @@ select:focus {
   color: var(--soft);
 }
 
-.graph-node-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
+.graph-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.graph-toolbar .subsection-heading {
+  margin-bottom: 0;
+}
+
+.graph-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-zoom-controls .mini-action {
+  min-width: 34px;
+  padding: 6px 0;
+  text-align: center;
+}
+
+.graph-zoom-level {
+  min-width: 52px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  color: var(--soft);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.graph-canvas {
+  position: relative;
+  min-height: 640px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(to right, transparent 0, transparent 39px, rgba(255, 255, 255, 0.035) 40px),
+    linear-gradient(to bottom, transparent 0, transparent 39px, rgba(255, 255, 255, 0.035) 40px);
+  background-size: 40px 40px;
+  background-color: #1b201d;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.graph-canvas.dragging {
+  cursor: grabbing;
+}
+
+.graph-viewport {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  transition: transform 120ms ease;
+}
+
+.graph-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.graph-nodes-layer {
+  position: absolute;
+  inset: 0;
 }
 
 .graph-node {
-  min-height: 84px;
+  position: absolute;
+  min-width: 176px;
+  max-width: 196px;
+  min-height: 76px;
   display: grid;
-  gap: 6px;
+  gap: 3px;
   align-content: start;
   text-align: left;
+  padding: 10px 12px;
+  transform: translate(-50%, -50%);
+  background: rgba(30, 35, 32, 0.98);
+  color: #f1f2ee;
+  border: 1px solid #49514c;
+  box-shadow: none;
+  z-index: 1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.graph-node.active {
+  background: #242a27;
+  border-color: #f1f2ee;
+  box-shadow: inset 0 0 0 1px #f1f2ee;
+}
+
+.graph-node.center {
+  min-width: 200px;
+  max-width: 224px;
+  min-height: 88px;
+  padding: 12px 14px;
+  background: #2b332f;
+  border-color: #cfd6d1;
+  box-shadow: inset 0 0 0 1px rgba(207, 214, 209, 0.35);
 }
 
 .graph-node span {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--soft);
+  letter-spacing: 0.12em;
+  color: #96a199;
 }
 
 .graph-node strong {
   font-size: 0.9rem;
   line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.graph-node.center strong {
+  font-size: 1rem;
+}
+
+.graph-node-material {
+  border-left: 3px solid #d8ddd7;
+}
+
+.graph-node-supplier {
+  border-left: 3px solid #8ea59a;
+}
+
+.graph-node-application {
+  border-left: 3px solid #9da98e;
+}
+
+.graph-node-document {
+  border-left: 3px solid #b59f8d;
+}
+
+.graph-node-regulation {
+  border-left: 3px solid #b98d8d;
+}
+
+.graph-node-recycling_stream {
+  border-left: 3px solid #8ca8b2;
+}
+
+.graph-edge {
+  fill: none;
+  stroke: #57615b;
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.graph-edge.active {
+  stroke: #e4e8e4;
+  stroke-width: 1.9;
+}
+
+.graph-branch-label {
+  fill: #8e9891;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.table-link-button {
+  width: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+
+.table-link-button:hover {
+  background: transparent;
+  color: var(--accent);
 }
 
 .timeline-list .row-card {
@@ -701,18 +946,21 @@ small {
 #benchmark-query-set .row-card,
 #benchmark-plan-notes .row-card,
 #document-search-results .row-card,
-#cost-trends .row-card,
-#compliance-drift .row-card,
+#analytics-details .row-card,
+#analytics-relationships .row-card,
 #graph-path-results .row-card,
 #compare-results .row-card {
   padding: 12px;
 }
 
 @media (max-width: 1280px) {
+  .workspace-nav,
   .hero,
   .top-grid,
   .detail-layout,
   .workspace-grid,
+  .workbench-grid,
+  .intelligence-grid,
   .compare-layout,
   .graph-layout,
   .split-grid {
@@ -721,6 +969,11 @@ small {
 
   .hero-summary {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .page-banner {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 

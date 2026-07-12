@@ -135,6 +135,10 @@ def build_router(state) -> APIRouter:
     def graph_path(source_id: str, target_id: str):
         return {"status": "ok", "data": state.repository.graph_path(source_id, target_id)}
 
+    @router.get("/graph/node-insight")
+    def graph_node_insight(node_id: str):
+        return {"status": "ok", "data": state.repository.graph_node_insight(node_id)}
+
     @router.get("/documents/search")
     def documents_search(query: str, material_id: str | None = None):
         return {"status": "ok", "data": state.repository.search_documents(query, material_id)}

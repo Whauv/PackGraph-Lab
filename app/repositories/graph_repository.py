@@ -203,6 +203,206 @@ class LocalGraphRepository:
                     queue.append((neighbor, path + [neighbor]))
         return {"path": [], "edges": []}
 
+    def graph_node_insight(self, node_id: str) -> dict[str, Any]:
+        node = self._node_descriptor(node_id)
+        relationships = self.relationships_by_node.get(node_id, [])
+        relationship_counts = defaultdict(int)
+        related = []
+        seen_related = set()
+        for relationship in relationships:
+            relationship_counts[relationship["type"]] += 1
+            other_id = relationship["to"] if relationship["from"] == node_id else relationship["from"]
+            if other_id in seen_related:
+                continue
+            seen_related.add(other_id)
+            related_node = self._node_descriptor(other_id)
+            related.append(
+                {
+                    "id": related_node["id"],
+                    "label": related_node["label"],
+                    "type": related_node["type"],
+                    "relationship": relationship["type"],
+                }
+            )
+
+        insight = {
+            "node": node,
+            "summary": f"{node['label']} is connected to {len(related)} nearby nodes across {len(relationship_counts)} relationship types.",
+            "metrics": [],
+            "facts": [],
+            "relationship_counts": [
+                {"label": item_type.replace("_", " ").title(), "value": count}
+                for item_type, count in sorted(relationship_counts.items(), key=lambda item: (-item[1], item[0]))
+            ],
+            "timeline": [],
+            "related": related[:12],
+        }
+
+        if node["type"] == "material":
+            material = self.material_index.get(node_id)
+            if not material:
+                return insight
+            snapshots = self.snapshots_by_material.get(node_id, [])
+            documents = [doc for doc in self.documents if doc["document_id"] in material["source_document_ids"]]
+            reports = [report for report in self.test_reports if report["material_id"] == node_id]
+            insight["summary"] = (
+                f"{material['name']} is a {material['category']} candidate with {len(material['supplier_ids'])} suppliers, "
+                f"{len(material['target_applications'])} target applications, and {material['compliance_state']} compliance status."
+            )
+            insight["metrics"] = [
+                {"label": "Sustainability", "value": material["sustainability_score"]},
+                {"label": "Recyclability", "value": material["recyclability_score"]},
+                {"label": "Qualified suppliers", "value": len(material["supplier_ids"])},
+                {"label": "Documents", "value": len(documents)},
+            ]
+            insight["facts"] = [
+                {"label": "Composition", "value": material["composition"]},
+                {"label": "Compliance state", "value": material["compliance_state"].replace("-", " ").title()},
+                {"label": "Food contact", "value": "Approved" if material["food_contact_safe"] else "Review required"},
+                {
+                    "label": "Cost range",
+                    "value": f"{material['cost_range']['low']} to {material['cost_range']['high']} {material['cost_range']['currency']}",
+                },
+                {"label": "Substitutes", "value": len(material["substitute_material_ids"])},
+                {"label": "Test reports", "value": len(reports)},
+            ]
+            insight["timeline"] = [
+                {
+                    "title": snapshot["quarter"],
+                    "detail": f"{snapshot['price_usd_per_kg']} USD/kg | lead time {snapshot['lead_time_days']} days",
+                    "meta": f"Risk {snapshot['risk_score']} | compliance {snapshot['compliance_state'].replace('-', ' ')}",
+                }
+                for snapshot in snapshots[-4:]
+            ]
+            return insight
+
+        if node["type"] == "supplier":
+            supplier = self.supplier_index.get(node_id)
+            if not supplier:
+                return insight
+            snapshots = self.snapshots_by_supplier.get(node_id, [])
+            latest = snapshots[-1] if snapshots else None
+            insight["summary"] = (
+                f"{supplier['name']} serves {len(set(supplier['regions_served']))} regions and supplies "
+                f"{len(supplier['supplied_material_ids'])} materials."
+            )
+            insight["metrics"] = [
+                {"label": "Supplied materials", "value": len(supplier["supplied_material_ids"])},
+                {"label": "Risk score", "value": supplier["disruption_risk_score"]},
+                {"label": "ESG score", "value": supplier["esg_score"]},
+                {"label": "Lead time", "value": f"{supplier['lead_time_days']} days"},
+            ]
+            insight["facts"] = [
+                {"label": "Country", "value": supplier["country"]},
+                {"label": "Regions served", "value": ", ".join(sorted(set(supplier["regions_served"])))},
+                {"label": "Certifications", "value": ", ".join(supplier["certifications"])},
+                {"label": "Latest watch", "value": latest["regulation_watch"] if latest else "No snapshots"},
+            ]
+            insight["timeline"] = [
+                {
+                    "title": snapshot["quarter"],
+                    "detail": f"Risk {snapshot['risk_score']} | price index {snapshot['price_index']}",
+                    "meta": f"Compliance score {snapshot['compliance_score']} | lead time {snapshot['lead_time_days']} days",
+                }
+                for snapshot in snapshots[-4:]
+            ]
+            return insight
+
+        if node["type"] == "regulation":
+            regulation = self.regulation_index.get(node_id)
+            if not regulation:
+                return insight
+            affected = self.non_compliant_materials(node_id)
+            related_materials = [item for item in related if item["type"] == "material"]
+            insight["summary"] = (
+                f"{regulation['name']} is {'active' if regulation['active'] else 'upcoming'} and currently touches "
+                f"{len(related_materials)} directly linked materials."
+            )
+            insight["metrics"] = [
+                {"label": "Status", "value": "Active" if regulation["active"] else "Upcoming"},
+                {"label": "Effective date", "value": regulation["effective_date"]},
+                {"label": "Linked materials", "value": len(related_materials)},
+                {"label": "Out-of-bounds", "value": len(affected)},
+            ]
+            insight["facts"] = [
+                {"label": "Focus area", "value": regulation["focus"].replace("-", " ").title()},
+                {"label": "Compliance pressure", "value": f"{len(affected)} non-compliant materials"},
+            ]
+            insight["timeline"] = [
+                {
+                    "title": regulation["effective_date"],
+                    "detail": f"{regulation['name']} becomes {'active' if regulation['active'] else 'effective'}",
+                    "meta": f"Focus: {regulation['focus']}",
+                }
+            ]
+            return insight
+
+        if node["type"] == "application":
+            application = self.application_index.get(node_id)
+            if not application:
+                return insight
+            related_materials = [item["id"] for item in related if item["type"] == "material"]
+            linked_materials = [self.material_index[item_id] for item_id in related_materials if item_id in self.material_index]
+            compliant = sum(1 for item in linked_materials if item["compliance_state"] == "compliant")
+            insight["summary"] = (
+                f"{application['name']} is a {application['priority']} priority application with "
+                f"{len(linked_materials)} linked material options."
+            )
+            insight["metrics"] = [
+                {"label": "Linked materials", "value": len(linked_materials)},
+                {"label": "Compliant options", "value": compliant},
+                {"label": "Priority", "value": application["priority"].title()},
+                {"label": "Use case", "value": application["use_case"]},
+            ]
+            insight["facts"] = [
+                {"label": "Use case", "value": application["use_case"]},
+                {"label": "Priority axis", "value": application["priority"].title()},
+                {"label": "Industry", "value": application["industry_id"]},
+            ]
+            return insight
+
+        if node["type"] == "document":
+            document = self.document_index.get(node_id)
+            if not document:
+                return insight
+            supplier = self.supplier_index.get(document["supplier_id"])
+            material = self.material_index.get(document["material_id"])
+            insight["summary"] = (
+                f"{document['title']} is a {document['document_type']} linked to "
+                f"{material['name'] if material else document['material_id']}."
+            )
+            insight["metrics"] = [
+                {"label": "Provenance", "value": document["provenance_score"]},
+                {"label": "Issued", "value": document["issued_on"]},
+                {"label": "Supplier", "value": supplier["name"] if supplier else document["supplier_id"]},
+                {"label": "Material", "value": material["name"] if material else document["material_id"]},
+            ]
+            insight["facts"] = [
+                {"label": "Document type", "value": document["document_type"].title()},
+                {"label": "Checksum", "value": document["checksum"]},
+            ]
+            return insight
+
+        if node["type"] == "recycling_stream":
+            stream = next((item for item in self.recycling_streams if item["stream_id"] == node_id), None)
+            if not stream:
+                return insight
+            linked_materials = [item for item in related if item["type"] == "material"]
+            insight["summary"] = (
+                f"{stream['name']} accepts {', '.join(stream['accepted_categories'])} and is linked "
+                f"to {len(linked_materials)} materials in this dataset."
+            )
+            insight["metrics"] = [
+                {"label": "Accepted categories", "value": len(stream["accepted_categories"])},
+                {"label": "Linked materials", "value": len(linked_materials)},
+            ]
+            insight["facts"] = [
+                {"label": "Accepted categories", "value": ", ".join(stream["accepted_categories"])},
+            ]
+            return insight
+
+        return insight
+
     def compare_materials(self, material_ids: list[str], weights: dict[str, float] | None = None) -> list[dict[str, Any]]:
         weights = weights or {}
         defaults = {
