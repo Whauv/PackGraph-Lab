@@ -25,12 +25,18 @@ class InvestigationService:
         if not self.path.exists():
             self._write(seed_data)
 
-    def list(self) -> list[dict[str, Any]]:
-        return self._read()
-
-    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def list(self, owner_id: str | None = None) -> list[dict[str, Any]]:
         investigations = self._read()
-        record = {"investigation_id": f"INV-{uuid4().hex[:8].upper()}", "status": "open", **payload}
+        if owner_id:
+            return [item for item in investigations if item.get("owner_id") in {None, owner_id}]
+        return investigations
+
+    def get(self, investigation_id: str) -> dict[str, Any] | None:
+        return next((item for item in self._read() if item["investigation_id"] == investigation_id), None)
+
+    def create(self, payload: dict[str, Any], owner_id: str | None = None) -> dict[str, Any]:
+        investigations = self._read()
+        record = {"investigation_id": f"INV-{uuid4().hex[:8].upper()}", "status": "open", "owner_id": owner_id, **payload}
         investigations.append(record)
         self._write(investigations)
         return record
