@@ -3,6 +3,8 @@ const state = {
   filteredMaterials: [],
   selectedMaterialId: null,
   selectedGraphNodeId: null,
+  compareResults: [],
+  workspaces: [],
   graphZoom: 1,
   graphPan: { x: 0, y: 0 },
   theme: "light",
@@ -38,7 +40,8 @@ function formatTags(items, className = "tag") {
 function addMessage(author, text, detail = "") {
   const log = document.getElementById("chat-log");
   const message = document.createElement("div");
-  message.className = "message";
+  const authorSlug = String(author).toLowerCase().replace(/\s+/g, "-");
+  message.className = `message message-${authorSlug}`;
   message.innerHTML = `<strong>${author}</strong><div>${text}</div>${detail ? `<pre>${detail}</pre>` : ""}`;
   log.prepend(message);
 }
@@ -49,6 +52,10 @@ function titleCase(value) {
     .filter(Boolean)
     .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
     .join(" ");
+}
+
+function formatFilterLabel(value) {
+  return value === undefined || value === null || value === "" ? "Any" : titleCase(String(value));
 }
 
 function riskClass(score) {
@@ -96,25 +103,105 @@ function relationshipPriority(type) {
 
 function relationshipLane(type) {
   const lanes = {
-    SUPPLIED_BY: "right-top",
-    SUPPLIES: "right-top",
-    TARGETS_APPLICATION: "left-top",
-    HAS_DOCUMENT: "left-bottom",
-    REVIEWED_UNDER: "right-bottom",
-    RECYCLES_INTO: "left-bottom",
-    SUBSTITUTES_WITH: "right-bottom",
+    TARGETS_APPLICATION: "applications",
+    HAS_DOCUMENT: "documents",
+    RECYCLES_INTO: "recycling",
+    SUPPLIED_BY: "suppliers",
+    SUPPLIES: "suppliers",
+    SUBSTITUTES_WITH: "substitutes",
+    REVIEWED_UNDER: "regulations",
   };
-  return lanes[type] || "right-bottom";
+  return lanes[type] || "related";
 }
 
-function routeTreePath(source, branch, target) {
+function centerNodeAnchorOffset(type) {
+  const offsets = {
+    TARGETS_APPLICATION: -28,
+    HAS_DOCUMENT: -4,
+    RECYCLES_INTO: 24,
+    SUPPLIED_BY: -20,
+    SUBSTITUTES_WITH: 16,
+    REVIEWED_UNDER: 34,
+  };
+  return offsets[type] || 0;
+}
+
+function graphEdgeAnchors(source, target) {
+  const direction = target.x >= source.x ? 1 : -1;
+  const edgeInset = 1;
+
+  return {
+    source: {
+      x: source.x + (source.halfWidth - edgeInset) * direction,
+      y: source.y,
+    },
+    target: {
+      x: target.x - (target.halfWidth - edgeInset) * direction,
+      y: target.y,
+    },
+  };
+}
+
+function measureGraphNodes(positions) {
+  const metrics = {};
+  document.querySelectorAll(".graph-node").forEach((node) => {
+    const nodeId = node.dataset.nodeId;
+    const position = positions[nodeId];
+    if (!position) return;
+    metrics[nodeId] = {
+      x: position.x,
+      y: position.y,
+      halfWidth: node.offsetWidth / 2,
+      halfHeight: node.offsetHeight / 2,
+    };
+  });
+  return metrics;
+}
+
+function centeredStackPositions(count, centerY, gap, minY, maxY) {
+  if (!count) return [];
+  const totalHeight = gap * (count - 1);
+  let startY = centerY - totalHeight / 2;
+  startY = clamp(startY, minY, Math.max(minY, maxY - totalHeight));
+  return Array.from({ length: count }, (_, index) => startY + index * gap);
+}
+
+function distributedPositions(count, start, end) {
+  if (!count) return [];
+  if (count === 1) return [(start + end) / 2];
+  const span = end - start;
+  return Array.from({ length: count }, (_, index) => start + (span * index) / (count - 1));
+}
+
+function graphGroupConfig(group) {
+  const configs = {
+    applications: { axis: "left", nodeX: 162, branchX: 360, startY: 118, endY: 228, label: "Targets application", labelY: 82 },
+    documents: { axis: "left", nodeX: 162, branchX: 344, startY: 316, endY: 404, label: "Has document", labelY: 286 },
+    recycling: { axis: "left", nodeX: 162, branchX: 328, startY: 486, endY: 548, label: "Recycles into", labelY: 458 },
+    suppliers: { axis: "right", nodeX: 838, branchX: 642, startY: 118, endY: 228, label: "Supplied by", labelY: 82 },
+    substitutes: { axis: "right", nodeX: 838, branchX: 666, startY: 332, endY: 560, label: "Substitutes with", labelY: 304 },
+    regulations: { axis: "bottom", nodeY: 560, branchY: 472, centerX: 500, gap: 180, label: "Reviewed under" },
+    related: { axis: "right", nodeX: 838, branchX: 666, startY: 332, endY: 560, label: "Related", labelY: 304 },
+  };
+  return configs[group] || configs.related;
+}
+
+function routeVerticalGroupPaths(sourceAnchor, branchX, targetAnchors) {
+  const topY = Math.min(sourceAnchor.y, ...targetAnchors.map((anchor) => anchor.y));
+  const bottomY = Math.max(sourceAnchor.y, ...targetAnchors.map((anchor) => anchor.y));
   return [
-    `M ${source.x} ${source.y}`,
-    `L ${branch.x} ${source.y}`,
-    `L ${branch.x} ${branch.y}`,
-    `L ${target.x} ${branch.y}`,
-    `L ${target.x} ${target.y}`,
-  ].join(" ");
+    `M ${sourceAnchor.x} ${sourceAnchor.y} L ${branchX} ${sourceAnchor.y} L ${branchX} ${topY} L ${branchX} ${bottomY}`,
+    ...targetAnchors.map((anchor) => `M ${branchX} ${anchor.y} L ${anchor.x} ${anchor.y}`),
+  ];
+}
+
+function routeBottomGroupPaths(sourceAnchor, branchY, targetAnchors) {
+  const leftX = Math.min(sourceAnchor.x, ...targetAnchors.map((anchor) => anchor.x));
+  const rightX = Math.max(sourceAnchor.x, ...targetAnchors.map((anchor) => anchor.x));
+  return [
+    `M ${sourceAnchor.x} ${sourceAnchor.y} L ${sourceAnchor.x} ${branchY} L ${leftX} ${branchY} L ${rightX} ${branchY}`,
+    ...targetAnchors.map((anchor) => `M ${anchor.x} ${branchY} L ${anchor.x} ${anchor.y}`),
+  ];
 }
 
 function normalizeGraphEdges(graph, selectedNodeId) {
@@ -172,51 +259,48 @@ function layoutGraphNodes(nodes, edges, selectedNodeId) {
     return acc;
   }, {});
 
-  const laneOffsets = {
-    "left-top": { branchX: 360, nodeX: 165, startY: 132 },
-    "left-bottom": { branchX: 360, nodeX: 165, startY: 372 },
-    "right-top": { branchX: 640, nodeX: 835, startY: 132 },
-    "right-bottom": { branchX: 640, nodeX: 835, startY: 372 },
-  };
-  const laneGap = {
-    "left-top": 92,
-    "left-bottom": 92,
-    "right-top": 92,
-    "right-bottom": 92,
-  };
-  const branchGap = 34;
-  const laneBranchCount = {
-    "left-top": 0,
-    "left-bottom": 0,
-    "right-top": 0,
-    "right-bottom": 0,
-  };
-
   Object.entries(grouped).forEach(([type, groupNodes]) => {
-    const lane = relationshipLane(type);
-    const laneConfig = laneOffsets[lane];
-    const branchIndex = laneBranchCount[lane];
-    laneBranchCount[lane] += 1;
-    const direction = lane.startsWith("left") ? -1 : 1;
-    const branchY = laneConfig.startY + branchIndex * (groupNodes.length * 68 + branchGap);
-    const labelX = laneConfig.branchX + direction * 14;
-    const labelAnchor = lane.startsWith("left") ? "end" : "start";
+    const group = relationshipLane(type);
+    const config = graphGroupConfig(group);
+    const sortedNodes = [...groupNodes].sort((a, b) => a.label.localeCompare(b.label));
 
+    if (config.axis === "bottom") {
+      const xs = centeredStackPositions(sortedNodes.length, config.centerX, config.gap, 172, width - 172);
+      branches.push({
+        type,
+        group,
+        axis: config.axis,
+        label: config.label,
+        branchY: config.branchY,
+        textX: centerX,
+        textY: config.branchY - 14,
+        textAnchor: "middle",
+      });
+      sortedNodes.forEach((node, index) => {
+        positions[node.id] = {
+          x: xs[index],
+          y: config.nodeY,
+        };
+      });
+      return;
+    }
+
+    const ys = distributedPositions(sortedNodes.length, config.startY, config.endY);
+    const textX = config.axis === "left" ? config.branchX - 20 : config.branchX + 20;
     branches.push({
       type,
-      lane,
-      label: titleCase(type),
-      x: laneConfig.branchX,
-      y: branchY - 18,
-      textX: labelX,
-      textY: branchY - 24,
-      textAnchor: labelAnchor,
+      group,
+      axis: config.axis,
+      label: config.label,
+      branchX: config.branchX,
+      textX,
+      textY: config.labelY ?? ys[0] - 24,
+      textAnchor: config.axis === "left" ? "end" : "start",
     });
-
-    groupNodes.forEach((node, index) => {
+    sortedNodes.forEach((node, index) => {
       positions[node.id] = {
-        x: laneConfig.nodeX,
-        y: clamp(branchY + index * laneGap[lane], 78, height - 78),
+        x: config.nodeX,
+        y: ys[index],
       };
     });
   });
@@ -225,25 +309,11 @@ function layoutGraphNodes(nodes, edges, selectedNodeId) {
 }
 
 function renderGraphCanvas(graph) {
-  const normalizedEdges = normalizeGraphEdges(graph, state.selectedGraphNodeId);
-  const { positions, branches } = layoutGraphNodes(graph.nodes, normalizedEdges, state.selectedGraphNodeId);
+  const graphRootId = state.selectedMaterialId;
+  const normalizedEdges = normalizeGraphEdges(graph, graphRootId);
+  const { positions, branches } = layoutGraphNodes(graph.nodes, normalizedEdges, graphRootId);
   const edgesSvg = document.getElementById("graph-edges");
   const nodesLayer = document.getElementById("graph-nodes-layer");
-  const branchByType = Object.fromEntries(branches.map((branch) => [branch.type, branch]));
-
-  edgesSvg.innerHTML = [
-    ...branches.map((branch) => `<text class="graph-branch-label" x="${branch.textX}" y="${branch.textY}" text-anchor="${branch.textAnchor}">${escapeHtml(branch.label)}</text>`),
-    ...normalizedEdges.map((edge) => {
-    const source = positions[edge.source];
-    const target = positions[edge.target];
-    if (!source || !target) return "";
-    const isActive = edge.source === state.selectedGraphNodeId || edge.target === state.selectedGraphNodeId;
-    const branch = branchByType[edge.type];
-    const path = branch ? routeTreePath(source, { x: branch.x, y: target.y }, target) : `M ${source.x} ${source.y} L ${target.x} ${target.y}`;
-    return `
-      <path class="graph-edge${isActive ? " active" : ""}" d="${path}"></path>`;
-  }),
-  ].join("");
 
   nodesLayer.innerHTML = graph.nodes.map((node) => {
     const position = positions[node.id];
@@ -259,11 +329,70 @@ function renderGraphCanvas(graph) {
       </button>`;
   }).join("");
 
+  const nodeMetrics = measureGraphNodes(positions);
+  const branchByType = Object.fromEntries(branches.map((branch) => [branch.type, branch]));
+  const edgesByType = normalizedEdges.reduce((acc, edge) => {
+    if (!acc[edge.type]) acc[edge.type] = [];
+    acc[edge.type].push(edge);
+    return acc;
+  }, {});
+
+  edgesSvg.innerHTML = [
+    ...branches.map((branch) => `<text class="graph-branch-label" x="${branch.textX}" y="${branch.textY}" text-anchor="${branch.textAnchor}">${escapeHtml(branch.label)}</text>`),
+    ...Object.entries(edgesByType).flatMap(([type, branchEdges]) => {
+      const branch = branchByType[type];
+      if (!branch || !branchEdges.length) return [];
+
+      const source = nodeMetrics[branchEdges[0].source];
+      if (!source) return [];
+
+      const targetAnchors = branchEdges
+        .map((edge) => {
+          const target = nodeMetrics[edge.target];
+          if (!target) return null;
+          return graphEdgeAnchors(source, target).target;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.y - b.y);
+
+      if (!targetAnchors.length) return [];
+
+      const firstTarget = nodeMetrics[branchEdges[0].target];
+      if (!firstTarget) return [];
+      const sourceMetric = {
+        ...source,
+        y: source.y + centerNodeAnchorOffset(type),
+      };
+      const sourceAnchor = graphEdgeAnchors(sourceMetric, firstTarget).source;
+      const isActive = branchEdges.some((edge) => edge.source === state.selectedGraphNodeId || edge.target === state.selectedGraphNodeId);
+
+      const paths = branch.axis === "bottom"
+        ? routeBottomGroupPaths(sourceAnchor, branch.branchY, targetAnchors)
+        : routeVerticalGroupPaths(sourceAnchor, branch.branchX, targetAnchors);
+
+      return paths.map((path) => `<path class="graph-edge${isActive ? " active" : ""}" d="${path}"></path>`);
+    }),
+  ].join("");
+
   applyGraphZoom();
 }
 
 function selectedMaterialsFromCompare() {
   return Array.from(document.getElementById("compare-materials").selectedOptions).map((option) => option.value);
+}
+
+function selectedMaterialRecordsFromCompare() {
+  const ids = selectedMaterialsFromCompare();
+  return ids.map((id) => state.materials.find((item) => item.material_id === id)).filter(Boolean);
+}
+
+function renderCompareSelectionSummary() {
+  const container = document.getElementById("compare-selection-summary");
+  if (!container) return;
+  const selected = selectedMaterialRecordsFromCompare();
+  container.innerHTML = selected.length
+    ? selected.map((item) => `<span class="pill">${escapeHtml(item.name)}</span>`).join("")
+    : `<span class="pill">No shortlist selected yet</span>`;
 }
 
 function populateMaterialControls(materials) {
@@ -275,6 +404,12 @@ function populateMaterialControls(materials) {
     state.selectedMaterialId = materials[0]?.material_id || state.materials[0]?.material_id;
   }
   select.value = state.selectedMaterialId;
+  const currentSelections = selectedMaterialsFromCompare();
+  const fallbackSelections = currentSelections.length ? currentSelections : state.materials.slice(0, 3).map((item) => item.material_id);
+  Array.from(compare.options).forEach((option) => {
+    option.selected = fallbackSelections.includes(option.value);
+  });
+  renderCompareSelectionSummary();
 }
 
 function setPage(pageName) {
@@ -327,14 +462,16 @@ async function refreshMaterialContext() {
 async function loadMaterialDetail() {
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
   document.getElementById("context-material").textContent = material.name;
+  document.getElementById("overview-selected-material").textContent = material.name;
+  document.getElementById("overview-selected-material-note").textContent = `${titleCase(material.category)} material across ${material.regions_available.length} regions with ${material.supplier_ids.length} qualified suppliers in the demo graph.`;
   document.getElementById("material-title").textContent = `${material.name} (${material.category})`;
   const supplierNames = material.suppliers.map((item) => item.name);
   const substitutes = material.substitute_material_ids.map((id) => state.materials.find((entry) => entry.material_id === id)?.name || id);
   document.getElementById("material-detail").innerHTML = `
-    <div class="detail-primary">
+    <div class="detail-primary overview-detail-primary">
       <div class="detail-card">
         <h5>Profile</h5>
-        <h4>Material profile</h4>
+        <h4>Current candidate</h4>
         <p>${material.composition}</p>
         ${formatTags(material.regions_available)}
         <div class="key-facts">
@@ -344,29 +481,21 @@ async function loadMaterialDetail() {
           <div class="fact"><span>Suppliers</span><strong>${material.supplier_ids.length} qualified sources</strong></div>
         </div>
       </div>
-      <div class="detail-card">
-        <h5>Measured performance</h5>
-        <h4>Performance and economics</h4>
-        <div class="score-grid">
-          <div class="detail-card">
-            <div class="score-row"><span>Oxygen barrier</span><strong>${material.oxygen_barrier}</strong></div>
-            <div class="score-row"><span>Moisture barrier</span><strong>${material.moisture_barrier}</strong></div>
-            <div class="score-row"><span>Seal strength</span><strong>${material.seal_strength}</strong></div>
-            <div class="score-row"><span>Thermal tolerance</span><strong>${material.thermal_tolerance}</strong></div>
-          </div>
-          <div class="detail-card">
-            <div class="score-row"><span>Recyclability</span><strong>${material.recyclability_score}</strong></div>
-            <div class="score-row"><span>Compostability</span><strong>${material.compostability_score}</strong></div>
-            <div class="score-row"><span>Sustainability</span><strong>${material.sustainability_score}</strong></div>
-            <div class="score-row"><span>Cost range</span><strong>${material.cost_range.low} to ${material.cost_range.high} ${material.cost_range.currency}</strong></div>
-          </div>
+      <div class="detail-card overview-metric-card">
+        <h5>Key indicators</h5>
+        <h4>Decision snapshot</h4>
+        <div class="overview-metric-grid">
+          <div class="metric"><div class="value">${material.sustainability_score}</div><div>Sustainability</div></div>
+          <div class="metric"><div class="value">${material.recyclability_score}</div><div>Recyclability</div></div>
+          <div class="metric"><div class="value">${material.compostability_score}</div><div>Compostability</div></div>
+          <div class="metric"><div class="value">${material.cost_range.low}-${material.cost_range.high}</div><div>${material.cost_range.currency} / kg</div></div>
         </div>
       </div>
     </div>
-    <div class="detail-secondary">
+    <div class="detail-secondary overview-detail-secondary">
       <div class="detail-card">
         <h5>Compliance view</h5>
-        <h4>Compliance and substitutes</h4>
+        <h4>State and substitutes</h4>
         <p>Current state: <strong>${titleCase(material.compliance_state)}</strong></p>
         ${formatTags((material.compliance_flags.length ? material.compliance_flags : ["compliant profile"]).map(titleCase))}
         <div class="subsection">
@@ -376,7 +505,7 @@ async function loadMaterialDetail() {
       </div>
       <div class="detail-card">
         <h5>Qualified supply</h5>
-        <h4>Qualified suppliers</h4>
+        <h4>Available suppliers</h4>
         ${supplierNames.map((name) => `<div class="score-row"><span>${name}</span><strong>Available</strong></div>`).join("")}
       </div>
     </div>`;
@@ -387,7 +516,7 @@ async function loadProvenance(searchQuery = "") {
   document.getElementById("provenance-panel").innerHTML = `
     <div class="detail-card">
       <h4>Documents</h4>
-      ${material.documents.map((doc) => `<div class="row-card"><strong>${doc.title}</strong><p>${doc.document_type}</p><small>Provenance score ${doc.provenance_score} / issued ${doc.issued_on}</small></div>`).join("")}
+      ${material.documents.map((doc) => `<div class="row-card"><strong>${doc.title}</strong><p>${titleCase(doc.document_type)}</p><small>Provenance score ${doc.provenance_score} / issued ${doc.issued_on}</small></div>`).join("")}
     </div>
     <div class="detail-card">
       <h4>Test reports</h4>
@@ -395,9 +524,15 @@ async function loadProvenance(searchQuery = "") {
     </div>`;
   if (searchQuery) {
     const results = await fetchJson(`/documents/search?query=${encodeURIComponent(searchQuery)}&material_id=${state.selectedMaterialId}`);
-    document.getElementById("document-search-results").innerHTML = results.map((item) => `<div class="row-card"><strong>${item.title || item.report_id}</strong><p>${titleCase(item.type)} / ${item.document_type || item.lab || ""}</p></div>`).join("");
+    document.getElementById("document-search-results").innerHTML = results.length
+      ? results.map((item) => `<div class="row-card"><strong>${item.title || item.report_id}</strong><p>${titleCase(item.type)} / ${item.document_type || item.lab || ""}</p><small>Use this source to validate the current recommendation.</small></div>`).join("")
+      : `<div class="row-card"><strong>No results</strong><p>Try another search phrase or review the reference evidence for the selected material.</p></div>`;
   } else {
-    document.getElementById("document-search-results").innerHTML = "";
+    document.getElementById("document-search-results").innerHTML = `
+      <div class="row-card">
+        <strong>Search evidence to narrow the proof set</strong>
+        <p>Look for datasheets, declarations, lab reports, certifications, or migration references tied to the selected material.</p>
+      </div>`;
   }
 }
 
@@ -407,7 +542,12 @@ async function loadCompliance() {
     <div class="metric"><div class="value">${dashboard.watch_count}</div><div>materials under review</div></div>
     <div class="metric"><div class="value">${dashboard.non_compliant_count}</div><div>materials out of bounds</div></div>`;
   document.getElementById("regulation-list").innerHTML = dashboard.upcoming_regulations.map((item) => `<span class="pill">${item.name}</span>`).join("");
-  document.getElementById("compliance-risk-list").innerHTML = dashboard.at_risk_materials.slice(0, 5).map((item) => `<div class="row-card"><strong>${item.name}</strong><p>Average supplier risk ${item.supplier_risk_score}</p></div>`).join("");
+  document.getElementById("compliance-risk-list").innerHTML = dashboard.at_risk_materials.slice(0, 5).map((item, index) => `
+    <div class="row-card">
+      <small>Exposure ${index + 1}</small>
+      <strong>${item.name}</strong>
+      <p>Average supplier risk ${item.supplier_risk_score}</p>
+    </div>`).join("");
   document.getElementById("hero-risk-count").textContent = dashboard.at_risk_materials.length;
   document.getElementById("hero-regulations").textContent = dashboard.upcoming_regulations.length;
 }
@@ -439,7 +579,7 @@ async function loadInvestigations() {
 
 async function loadWorkspaces() {
   const workspaces = await fetchJson("/workspaces");
-  document.getElementById("workspace-list").innerHTML = workspaces.map((item) => `<div class="row-card"><strong>${item.name}</strong><p>${item.selected_material_ids.length} materials / page ${titleCase(item.active_page || item.active_tab || "overview")}</p></div>`).join("");
+  state.workspaces = workspaces;
 }
 
 async function loadGraph() {
@@ -497,7 +637,21 @@ async function runComparison() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  document.getElementById("compare-results").innerHTML = results.map((item) => `<div class="row-card"><strong>${item.name}</strong><p>Weighted score ${item.weighted_score}</p><small>Sustainability ${item.scores.sustainability} / Recyclability ${item.scores.recyclability} / Cost efficiency ${item.scores.cost_efficiency}</small></div>`).join("");
+  state.compareResults = results;
+  document.getElementById("compare-results").innerHTML = results.length
+    ? results.map((item, index) => `
+      <div class="row-card compare-result-card">
+        <div class="compare-result-rank">Rank ${index + 1}</div>
+        <strong>${item.name}</strong>
+        <p>Weighted score ${item.weighted_score}</p>
+        <small>${index === 0 ? "Current leader based on active weights." : index === 1 ? "Closest alternative with a plausible tradeoff profile." : "Useful fallback if the leading options are blocked."}</small>
+        <div class="tag-group">
+          <span class="pill">Sustainability ${item.scores.sustainability}</span>
+          <span class="pill">Recyclability ${item.scores.recyclability}</span>
+          <span class="pill">Cost ${item.scores.cost_efficiency}</span>
+        </div>
+      </div>`).join("")
+    : `<div class="row-card"><strong>No ranked output</strong><p>Select at least one shortlisted material and run the ranking.</p></div>`;
 }
 
 async function loadGraphNodeInsight(nodeId) {
@@ -613,11 +767,19 @@ function setupNavigation() {
     setPage("workbench");
     document.querySelector('[data-page="workbench"]').scrollIntoView({ behavior: "smooth", block: "start" });
   });
+  document.querySelectorAll("[data-jump-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.jumpPage;
+      setPage(target);
+      document.querySelector(`[data-page="${target}"]`).scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 }
 
 function setupGraphZoomControls() {
   const zoomIn = document.getElementById("graph-zoom-in");
   const zoomOut = document.getElementById("graph-zoom-out");
+  const canvas = document.getElementById("graph-subgraph");
   if (zoomIn) {
     zoomIn.addEventListener("click", () => {
       state.graphZoom = clamp(Number((state.graphZoom + 0.1).toFixed(2)), 0.7, 1.8);
@@ -629,6 +791,18 @@ function setupGraphZoomControls() {
       state.graphZoom = clamp(Number((state.graphZoom - 0.1).toFixed(2)), 0.7, 1.8);
       applyGraphZoom();
     });
+  }
+  if (canvas) {
+    canvas.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        const delta = event.deltaY < 0 ? 0.08 : -0.08;
+        state.graphZoom = clamp(Number((state.graphZoom + delta).toFixed(2)), 0.7, 1.8);
+        applyGraphZoom();
+      },
+      { passive: false }
+    );
   }
   applyGraphZoom();
 }
@@ -705,6 +879,10 @@ function setupForms() {
     await runComparison();
   });
 
+  document.getElementById("compare-materials").addEventListener("change", () => {
+    renderCompareSelectionSummary();
+  });
+
   document.getElementById("document-search-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const query = document.getElementById("document-search-input").value.trim();
@@ -732,12 +910,13 @@ function setupForms() {
           min_sustainability: document.getElementById("filter-sustainability").value,
         },
         selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
-        active_page: state.currentPage,
+        active_tab: state.currentPage,
       }),
     });
     document.getElementById("workspace-name").value = "";
     await loadWorkspaces();
   });
+
 }
 
 async function init() {
@@ -759,6 +938,7 @@ async function init() {
     loadBenchmarks(),
   ]);
   await runComparison();
+  renderCompareSelectionSummary();
   await loadGraphPath();
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
 }
