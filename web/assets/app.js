@@ -1,7 +1,9 @@
 const state = {
   materials: [],
+  regulations: [],
   filteredMaterials: [],
   selectedMaterialId: null,
+  selectedMaterialDetail: null,
   selectedGraphNodeId: null,
   compareResults: [],
   workspaces: [],
@@ -436,6 +438,7 @@ async function loadMaterials() {
   const payload = await fetch("/materials");
   const body = await payload.json();
   state.materials = body.data;
+  state.regulations = await fetchJson("/regulations");
   state.filteredMaterials = [...state.materials];
   state.selectedMaterialId = state.materials[0]?.material_id;
   state.selectedGraphNodeId = state.selectedMaterialId;
@@ -451,8 +454,10 @@ async function loadMaterials() {
 function populateFilterOptions() {
   const regions = [...new Set(state.materials.flatMap((item) => item.regions_available))].sort();
   const categories = [...new Set(state.materials.map((item) => item.category))].sort();
+  const regulations = state.regulations || [];
   document.getElementById("filter-region").innerHTML = `<option value="">All regions</option>${regions.map((item) => `<option value="${item}">${item}</option>`).join("")}`;
   document.getElementById("filter-category").innerHTML = `<option value="">All categories</option>${categories.map((item) => `<option value="${item}">${titleCase(item)}</option>`).join("")}`;
+  document.getElementById("filter-regulation").innerHTML = `<option value="">Any regulation</option>${regulations.map((item) => `<option value="${item.regulation_id}">${item.name}</option>`).join("")}`;
 }
 
 async function refreshMaterialContext() {
@@ -461,6 +466,7 @@ async function refreshMaterialContext() {
 
 async function loadMaterialDetail() {
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
+  state.selectedMaterialDetail = material;
   document.getElementById("context-material").textContent = material.name;
   document.getElementById("overview-selected-material").textContent = material.name;
   document.getElementById("overview-selected-material-note").textContent = `${titleCase(material.category)} material across ${material.regions_available.length} regions with ${material.supplier_ids.length} qualified suppliers in the demo graph.`;
@@ -509,6 +515,8 @@ async function loadMaterialDetail() {
         ${supplierNames.map((name) => `<div class="score-row"><span>${name}</span><strong>Available</strong></div>`).join("")}
       </div>
     </div>`;
+  updateExportLinks(material);
+  populateScenarioControls(material);
 }
 
 async function loadProvenance(searchQuery = "") {
@@ -516,11 +524,11 @@ async function loadProvenance(searchQuery = "") {
   document.getElementById("provenance-panel").innerHTML = `
     <div class="detail-card">
       <h4>Documents</h4>
-      ${material.documents.map((doc) => `<div class="row-card"><strong>${doc.title}</strong><p>${titleCase(doc.document_type)}</p><small>Provenance score ${doc.provenance_score} / issued ${doc.issued_on}</small></div>`).join("")}
+      ${material.documents.map((doc) => `<div class="row-card"><strong>${doc.title}</strong><p>${titleCase(doc.document_type)}</p><small>Provenance score ${doc.provenance_score} / issued ${doc.issued_on}</small>${doc.extraction_summary ? `<p>${escapeHtml(doc.extraction_summary)}</p>` : ""}</div>`).join("")}
     </div>
     <div class="detail-card">
       <h4>Test reports</h4>
-      ${material.test_reports.map((report) => `<div class="row-card"><strong>${report.title}</strong><p>${report.lab}</p><small>Migration ${report.migration_status} / test date ${report.test_date}</small></div>`).join("")}
+      ${material.test_reports.map((report) => `<div class="row-card"><strong>${report.title}</strong><p>${report.lab}</p><small>Migration ${report.migration_status} / test date ${report.test_date}</small>${report.extraction_summary ? `<p>${escapeHtml(report.extraction_summary)}</p>` : ""}</div>`).join("")}
     </div>`;
   if (searchQuery) {
     const results = await fetchJson(`/documents/search?query=${encodeURIComponent(searchQuery)}&material_id=${state.selectedMaterialId}`);
@@ -556,6 +564,36 @@ async function loadAlerts() {
   const alerts = await fetchJson("/alerts");
   document.getElementById("context-alerts").textContent = alerts.length;
   document.getElementById("alerts-list").innerHTML = alerts.map((item) => `<div class="row-card"><strong>${item.title}</strong><p>${item.detail}</p><small>${titleCase(item.severity)} / ${titleCase(item.category)}</small></div>`).join("");
+}
+
+async function uploadDocumentEvidence() {
+  const fileInput = document.getElementById("document-upload-file");
+  const status = document.getElementById("document-upload-status");
+  const file = fileInput.files[0];
+  if (!file) {
+    status.textContent = "Choose a file before uploading evidence.";
+    return;
+  }
+  const formData = new FormData();
+  formData.set("file", file);
+  formData.set("document_type", document.getElementById("document-upload-type").value);
+  formData.set("material_id", state.selectedMaterialId);
+  const title = document.getElementById("document-upload-title").value.trim();
+  if (title) formData.set("title", title);
+
+  const response = await fetch("/documents/upload", {
+    method: "POST",
+    body: formData,
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.status !== "ok") {
+    status.textContent = payload.detail || payload.error || "Upload failed.";
+    return;
+  }
+  status.textContent = `Uploaded ${payload.data.record.title}. Extraction linked to ${state.selectedMaterialId}.`;
+  document.getElementById("document-upload-title").value = "";
+  fileInput.value = "";
+  await Promise.all([loadProvenance(document.getElementById("document-search-input").value.trim()), loadAlerts(), loadGraph()]);
 }
 
 async function loadInvestigations() {
@@ -734,15 +772,27 @@ async function loadBenchmarks() {
 
 async function applyFilters() {
   const search = document.getElementById("filter-search").value.trim();
+  const family = document.getElementById("filter-family").value.trim();
   const region = document.getElementById("filter-region").value;
   const category = document.getElementById("filter-category").value;
+  const regulation = document.getElementById("filter-regulation").value;
+  const claim = document.getElementById("filter-claim").value;
   const compliance = document.getElementById("filter-compliance").value;
+  const performanceMetric = document.getElementById("filter-performance-metric").value;
+  const performanceScore = document.getElementById("filter-performance-score").value;
+  const supplierCapability = document.getElementById("filter-supplier-capability").value.trim();
   const sustainability = document.getElementById("filter-sustainability").value;
   const params = new URLSearchParams();
   if (search) params.set("search", search);
+  if (family) params.set("material_family", family);
   if (region) params.set("region", region);
   if (category) params.set("category", category);
+  if (regulation) params.set("regulation_id", regulation);
+  if (claim) params.set("claim_type", claim);
   if (compliance) params.set("compliance_state", compliance);
+  if (performanceMetric) params.set("performance_metric", performanceMetric);
+  if (performanceScore) params.set("min_performance_score", performanceScore);
+  if (supplierCapability) params.set("supplier_capability", supplierCapability);
   if (sustainability) params.set("min_sustainability", sustainability);
   const results = await fetchJson(`/materials/filter?${params.toString()}`);
   state.filteredMaterials = results;
@@ -750,6 +800,80 @@ async function applyFilters() {
   document.getElementById("filter-results-summary").textContent = results.length ? `Showing ${results.length} filtered materials` : "No materials matched. Reverting to full portfolio.";
   if (!results.length) state.filteredMaterials = [];
   await refreshMaterialContext();
+}
+
+function updateExportLinks(material) {
+  const supplierIds = (material.suppliers || []).map((item) => item.supplier_id).join(",");
+  document.getElementById("export-executive-summary-pdf").href = `/exports/executive-summary.pdf?material_id=${encodeURIComponent(material.material_id)}`;
+  document.getElementById("export-executive-summary-csv").href = `/exports/executive-summary.csv?material_id=${encodeURIComponent(material.material_id)}`;
+  document.getElementById("export-compliance-pack-csv").href = `/exports/compliance-pack.csv?material_id=${encodeURIComponent(material.material_id)}`;
+  document.getElementById("export-compliance-pack-pdf").href = `/exports/compliance-pack.pdf?material_id=${encodeURIComponent(material.material_id)}`;
+  document.getElementById("export-supplier-snapshot-pdf").href = `/exports/supplier-comparison.pdf?supplier_ids=${encodeURIComponent(supplierIds)}`;
+  document.getElementById("export-supplier-snapshot-csv").href = `/exports/supplier-comparison.csv?supplier_ids=${encodeURIComponent(supplierIds)}`;
+}
+
+function populateScenarioControls(material) {
+  const supplierSelect = document.getElementById("scenario-supplier");
+  const regulationSelect = document.getElementById("scenario-regulation");
+  if (!supplierSelect || !regulationSelect) return;
+
+  const suppliers = material?.suppliers || [];
+  supplierSelect.innerHTML = `<option value="">Auto from selected material</option>${suppliers.map((item) => `<option value="${item.supplier_id}">${item.name}</option>`).join("")}`;
+  regulationSelect.innerHTML = `<option value="">Next pending regulation</option>${(state.regulations || []).map((item) => `<option value="${item.regulation_id}">${item.name}</option>`).join("")}`;
+}
+
+function formatScenarioMetricValue(value) {
+  if (value === null || value === undefined || value === "") return "n/a";
+  if (typeof value === "object") return escapeHtml(JSON.stringify(value));
+  return escapeHtml(String(value));
+}
+
+function renderScenarioResult(result) {
+  document.getElementById("scenario-summary").textContent = result.summary || "Scenario completed.";
+  const metrics = result.metrics || {};
+  document.getElementById("scenario-metrics").innerHTML = Object.keys(metrics).length
+    ? Object.entries(metrics).map(([key, value]) => `<div class="metric"><div class="value">${formatScenarioMetricValue(value)}</div><div>${escapeHtml(titleCase(key))}</div></div>`).join("")
+    : `<div class="metric"><div class="value">No metrics</div><div>Projected summary</div></div>`;
+
+  document.getElementById("scenario-actions").innerHTML = (result.actions || []).length
+    ? result.actions.map((item) => `<div class="row-card"><strong>${escapeHtml(item)}</strong></div>`).join("")
+    : `<div class="row-card"><strong>No follow-up actions</strong><p>This scenario returned no recommended operational steps.</p></div>`;
+
+  document.getElementById("scenario-impacts").innerHTML = (result.impacts || []).length
+    ? result.impacts.map((item) => {
+      const rows = Object.entries(item)
+        .filter(([key]) => key !== "recommended_substitutes")
+        .map(([key, value]) => `<div class="score-row"><span>${escapeHtml(titleCase(key))}</span><strong>${formatScenarioMetricValue(value)}</strong></div>`)
+        .join("");
+      const substitutes = Array.isArray(item.recommended_substitutes) && item.recommended_substitutes.length
+        ? `<div class="tag-group">${item.recommended_substitutes.map((entry) => `<span class="pill">${escapeHtml(typeof entry === "string" ? entry : entry.name)}</span>`).join("")}</div>`
+        : "";
+      return `<div class="row-card">${rows}${substitutes}</div>`;
+    }).join("")
+    : `<div class="row-card"><strong>No impacted records</strong><p>This scenario did not change any material status in the current dataset.</p></div>`;
+}
+
+async function runScenario() {
+  const payload = {
+    scenario: document.getElementById("scenario-type").value,
+    material_id: state.selectedMaterialId,
+    supplier_id: document.getElementById("scenario-supplier").value || null,
+    options: {
+      scenario_type: document.getElementById("scenario-type").value,
+      scope: document.getElementById("scenario-scope").value,
+      regulation_id: document.getElementById("scenario-regulation").value || null,
+      metric: document.getElementById("scenario-metric").value,
+      target_value: Number(document.getElementById("scenario-target-value").value || 0),
+      max_cost: Number(document.getElementById("scenario-max-cost").value || 0),
+      percent_increase: Number(document.getElementById("scenario-percent-increase").value || 0),
+    },
+  };
+  const result = await fetchJson("/query/scenario", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  renderScenarioResult(result);
 }
 
 function setupPageNavigation() {
@@ -889,6 +1013,16 @@ function setupForms() {
     await loadProvenance(query);
   });
 
+  document.getElementById("document-upload-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await uploadDocumentEvidence();
+  });
+
+  document.getElementById("scenario-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await runScenario();
+  });
+
   document.getElementById("graph-path-button").addEventListener("click", async () => {
     await loadGraphPath();
   });
@@ -904,9 +1038,15 @@ function setupForms() {
         name,
         filters: {
           search: document.getElementById("filter-search").value.trim(),
+          material_family: document.getElementById("filter-family").value.trim(),
           region: document.getElementById("filter-region").value,
           category: document.getElementById("filter-category").value,
+          regulation_id: document.getElementById("filter-regulation").value,
+          claim_type: document.getElementById("filter-claim").value,
           compliance_state: document.getElementById("filter-compliance").value,
+          performance_metric: document.getElementById("filter-performance-metric").value,
+          min_performance_score: document.getElementById("filter-performance-score").value,
+          supplier_capability: document.getElementById("filter-supplier-capability").value.trim(),
           min_sustainability: document.getElementById("filter-sustainability").value,
         },
         selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
@@ -939,6 +1079,7 @@ async function init() {
   ]);
   await runComparison();
   renderCompareSelectionSummary();
+  await runScenario();
   await loadGraphPath();
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
 }

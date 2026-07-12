@@ -3,3 +3,7 @@ __pycache__/
 data/runtime/session.json
 data/runtime/workspaces.json
 data/runtime/users.json
+data/runtime/neo4j_query_audit.jsonl
+data/runtime/uploaded_artifacts.json
+data/runtime/uploaded_source_documents.json
+data/runtime/uploaded_test_reports.json

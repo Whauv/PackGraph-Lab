@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
 from app.models.schemas import InvestigationCreate, LoginRequest, MaterialCompareRequest, QueryRequest, ScenarioRequest, WorkspaceSaveRequest
@@ -20,10 +20,28 @@ def build_router(state) -> APIRouter:
         compliance_state: str | None = None,
         min_sustainability: int | None = None,
         search: str | None = None,
+        material_family: str | None = None,
+        regulation_id: str | None = None,
+        claim_type: str | None = None,
+        performance_metric: str | None = None,
+        min_performance_score: int | None = None,
+        supplier_capability: str | None = None,
     ):
         return {
             "status": "ok",
-            "data": state.repository.filter_materials(region, category, compliance_state, min_sustainability, search),
+            "data": state.repository.filter_materials(
+                region,
+                category,
+                compliance_state,
+                min_sustainability,
+                search,
+                material_family,
+                regulation_id,
+                claim_type,
+                performance_metric,
+                min_performance_score,
+                supplier_capability,
+            ),
         }
 
     @router.get("/materials/{material_id}")
@@ -40,6 +58,10 @@ def build_router(state) -> APIRouter:
     @router.get("/applications")
     def list_applications():
         return {"status": "ok", "data": state.repository.list_applications()}
+
+    @router.get("/regulations")
+    def list_regulations():
+        return {"status": "ok", "data": state.repository.list_regulations()}
 
     @router.get("/investigations")
     def list_investigations():
@@ -74,6 +96,70 @@ def build_router(state) -> APIRouter:
             content=state.exports.investigation_pdf(investigation),
             media_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{investigation_id}.pdf"'},
+        )
+
+    @router.get("/exports/executive-summary.csv")
+    def export_executive_summary_csv(material_id: str):
+        payload = state.repository.material_export_payload(material_id)
+        if not payload:
+            raise HTTPException(status_code=404, detail="Material not found")
+        return Response(
+            content=state.exports.executive_summary_csv(payload),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{material_id}-executive-summary.csv"'},
+        )
+
+    @router.get("/exports/executive-summary.pdf")
+    def export_executive_summary_pdf(material_id: str):
+        payload = state.repository.material_export_payload(material_id)
+        if not payload:
+            raise HTTPException(status_code=404, detail="Material not found")
+        return Response(
+            content=state.exports.executive_summary_pdf(payload),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{material_id}-executive-summary.pdf"'},
+        )
+
+    @router.get("/exports/compliance-pack.csv")
+    def export_compliance_pack_csv(material_id: str):
+        payload = state.repository.material_export_payload(material_id)
+        if not payload:
+            raise HTTPException(status_code=404, detail="Material not found")
+        return Response(
+            content=state.exports.compliance_pack_csv(payload),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{material_id}-compliance-pack.csv"'},
+        )
+
+    @router.get("/exports/compliance-pack.pdf")
+    def export_compliance_pack_pdf(material_id: str):
+        payload = state.repository.material_export_payload(material_id)
+        if not payload:
+            raise HTTPException(status_code=404, detail="Material not found")
+        return Response(
+            content=state.exports.compliance_pack_pdf(payload),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{material_id}-compliance-pack.pdf"'},
+        )
+
+    @router.get("/exports/supplier-comparison.csv")
+    def export_supplier_comparison_csv(supplier_ids: str):
+        ids = [item.strip() for item in supplier_ids.split(",") if item.strip()]
+        snapshot = state.repository.supplier_snapshot(ids)
+        return Response(
+            content=state.exports.supplier_comparison_csv(snapshot),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="supplier-comparison.csv"'},
+        )
+
+    @router.get("/exports/supplier-comparison.pdf")
+    def export_supplier_comparison_pdf(supplier_ids: str):
+        ids = [item.strip() for item in supplier_ids.split(",") if item.strip()]
+        snapshot = state.repository.supplier_snapshot(ids)
+        return Response(
+            content=state.exports.supplier_comparison_pdf(snapshot),
+            media_type="application/pdf",
+            headers={"Content-Disposition": 'attachment; filename="supplier-comparison.pdf"'},
         )
 
     @router.get("/query/recommendations")
@@ -142,6 +228,27 @@ def build_router(state) -> APIRouter:
     @router.get("/documents/search")
     def documents_search(query: str, material_id: str | None = None):
         return {"status": "ok", "data": state.repository.search_documents(query, material_id)}
+
+    @router.post("/documents/upload")
+    async def documents_upload(
+        file: UploadFile = File(...),
+        document_type: str = Form(...),
+        material_id: str = Form(...),
+        supplier_id: str | None = Form(None),
+        title: str | None = Form(None),
+    ):
+        content = await file.read()
+        current_user = state.auth.current_user()
+        result = state.documents.upload(
+            filename=file.filename or "uploaded-file",
+            content=content,
+            document_type=document_type,
+            material_id=material_id,
+            supplier_id=supplier_id,
+            title=title,
+            owner_id=current_user["user_id"] if current_user else None,
+        )
+        return {"status": "ok", "data": result}
 
     @router.get("/alerts")
     def alerts():

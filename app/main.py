@@ -11,8 +11,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import build_router
 from app.core.config import get_settings
-from app.repositories.graph_repository import LocalGraphRepository
+from app.repositories.graph_repository import build_graph_repository
 from app.services.auth_service import AuthService
+from app.services.document_intelligence_service import DocumentIntelligenceService
 from app.services.export_service import ExportService
 from app.services.investigation_service import InvestigationService
 from app.services.query_engine import QueryEngine
@@ -22,10 +23,12 @@ class AppState:
     def __init__(self):
         settings = get_settings()
         self.settings = settings
-        self.repository = LocalGraphRepository()
+        self.repository = build_graph_repository(settings)
         self.query_engine = QueryEngine(self.repository)
         self.auth = AuthService(settings.packgraph_runtime_dir)
         self.auth.ensure_seed()
+        self.documents = DocumentIntelligenceService(settings.packgraph_runtime_dir, self.repository)
+        self.documents.ensure_seed()
         self.investigations = InvestigationService(settings.packgraph_runtime_dir)
         self.investigations.ensure_seed(self.repository.bundle["investigations"])
         self.exports = ExportService()
@@ -46,7 +49,12 @@ state = AppState()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    yield
+    try:
+        yield
+    finally:
+        close = getattr(state.repository, "close", None)
+        if callable(close):
+            close()
 
 
 app = FastAPI(title="PackGraph Lab API", version="1.0.0", lifespan=lifespan)
