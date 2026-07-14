@@ -1005,6 +1005,61 @@ body[data-theme="light"] .overview-compliance {
   gap: 8px;
 }
 
+.structured-answer-panel,
+.workbench-investigation-panel,
+.intelligence-trends-panel,
+.intelligence-material-timeline-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.structured-answer-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scenario-field-hidden {
+  display: none;
+}
+
+.comparison-matrix-table th:first-child,
+.comparison-matrix-table td:first-child {
+  min-width: 140px;
+  font-weight: 600;
+}
+
+.timeline-chart {
+  display: grid;
+  gap: 8px;
+}
+
+.timeline-chart svg {
+  width: 100%;
+  height: 96px;
+  display: block;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+}
+
+.timeline-chart path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.timeline-chart polyline {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.timeline-chart-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--soft);
+  font-size: 0.76rem;
+}
+
 .compare-layout,
 .graph-layout {
   grid-template-columns: minmax(300px, 0.84fr) minmax(0, 1.16fr);
@@ -1174,6 +1229,23 @@ body[data-theme="light"] .overview-compliance {
 
 .graph-toolbar .subsection-heading {
   margin-bottom: 0;
+}
+
+.graph-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.graph-select {
+  min-width: 160px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
 }
 
 .graph-zoom-controls {
@@ -1354,6 +1426,49 @@ body[data-theme="light"] .overview-compliance {
   grid-template-columns: 120px 1fr 1fr;
   gap: 12px;
   align-items: start;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.table-empty {
+  padding: 18px 14px;
+  color: var(--soft);
+}
+
+.table-badge {
+  display: inline-flex;
+  padding: 2px 7px;
+  border: 1px solid var(--line-strong);
+  color: var(--soft);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.trend-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trend-chip {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+  font-size: 0.82rem;
+}
+
+.status-success {
+  color: #2f6b46;
+}
+
+.status-error {
+  color: #8d3c34;
 }
 
 small {

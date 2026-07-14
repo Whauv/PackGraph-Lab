@@ -78,6 +78,9 @@ class DocumentIntelligenceService:
                 "artifact_id": artifact_id,
                 "extraction_summary": extracted["summary"],
                 "detected_terms": extracted["detected_terms"],
+                "extraction_confidence": extracted["extraction_confidence"],
+                "missing_fields": extracted["missing_fields"],
+                "detected_certification": extracted.get("certification_name"),
             }
             reports = self._read_json(self.reports_path, [])
             reports.append(record)
@@ -98,6 +101,9 @@ class DocumentIntelligenceService:
             "artifact_id": artifact_id,
             "extraction_summary": extracted["summary"],
             "detected_terms": extracted["detected_terms"],
+            "extraction_confidence": extracted["extraction_confidence"],
+            "missing_fields": extracted["missing_fields"],
+            "detected_certification": extracted.get("certification_name"),
         }
         documents = self._read_json(self.documents_path, [])
         documents.append(record)
@@ -179,6 +185,24 @@ class DocumentIntelligenceService:
         if migration_status:
             summary_bits.append(f"migration {migration_status}")
 
+        missing_fields = []
+        if not issued_on:
+            missing_fields.append("issued_on")
+        if document_type == "lab_report" and not lab:
+            missing_fields.append("lab")
+        if not supplier and not supplier_id:
+            missing_fields.append("supplier_id")
+
+        extraction_confidence = 0.82
+        if detected_terms:
+            extraction_confidence += 0.05
+        if issued_on:
+            extraction_confidence += 0.05
+        if cert_name or lab:
+            extraction_confidence += 0.04
+        extraction_confidence -= min(len(missing_fields) * 0.06, 0.18)
+        extraction_confidence = round(max(0.55, min(0.98, extraction_confidence)), 2)
+
         return {
             "title": title,
             "issued_on": issued_on,
@@ -189,6 +213,8 @@ class DocumentIntelligenceService:
             "provenance_score": 93 if detected_terms else 88,
             "detected_terms": detected_terms,
             "summary": " / ".join(summary_bits),
+            "missing_fields": missing_fields,
+            "extraction_confidence": extraction_confidence,
         }
 
     def _read_json(self, path: Path, default: Any) -> Any:

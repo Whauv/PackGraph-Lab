@@ -1,5 +1,6 @@
 const state = {
   materials: [],
+  suppliers: [],
   regulations: [],
   filteredMaterials: [],
   selectedMaterialId: null,
@@ -7,8 +8,16 @@ const state = {
   selectedGraphNodeId: null,
   compareResults: [],
   workspaces: [],
+  investigations: [],
+  scenarioHistory: [],
+  analyticsOverview: null,
+  currentInvestigationId: null,
   graphZoom: 1,
   graphPan: { x: 0, y: 0 },
+  graphFilter: "all",
+  graphPreset: "full",
+  graphIsolateSelection: false,
+  currentGraph: null,
   theme: "light",
   currentUser: null,
   currentPage: "overview",
@@ -48,6 +57,12 @@ function addMessage(author, text, detail = "") {
   log.prepend(message);
 }
 
+function renderStructuredAnswer(panel) {
+  if (window.PackGraphAnswerPanel) {
+    window.PackGraphAnswerPanel.render(panel);
+  }
+}
+
 function titleCase(value) {
   return String(value)
     .split(/[-_ ]+/)
@@ -73,6 +88,40 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function formatEntityLabel(type) {
+  const labels = {
+    material: "Material",
+    supplier: "Supplier",
+    regulation: "Regulation",
+    document: "Document",
+    report: "Report",
+    test_report: "Report",
+  };
+  return labels[type] || titleCase(type);
+}
+
+function renderTableCard(containerId, columns, rows, emptyText = "No records available.") {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!rows.length) {
+    container.innerHTML = `<div class="table-empty">${escapeHtml(emptyText)}</div>`;
+    return;
+  }
+  container.innerHTML = `
+    <table>
+      <thead>
+        <tr>${columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr>
+            ${columns.map((column) => `<td>${column.render(row)}</td>`).join("")}
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
 }
 
 function clamp(value, min, max) {
@@ -210,9 +259,18 @@ function normalizeGraphEdges(graph, selectedNodeId) {
   const visibleNodeIds = new Set(graph.nodes.map((node) => node.id));
   const normalized = [];
   const seen = new Set();
+  const presetTypes = {
+    full: null,
+    supply: new Set(["SUPPLIED_BY", "SUPPLIES", "SUBSTITUTES_WITH"]),
+    evidence: new Set(["HAS_DOCUMENT"]),
+    compliance: new Set(["REVIEWED_UNDER", "SUBSTITUTES_WITH"]),
+  };
+  const allowedByPreset = presetTypes[state.graphPreset] || null;
 
   graph.edges.forEach((edge) => {
     if (edge.source !== selectedNodeId && edge.target !== selectedNodeId) return;
+    if (state.graphFilter !== "all" && edge.type !== state.graphFilter && !(state.graphFilter === "SUPPLIED_BY" && edge.type === "SUPPLIES")) return;
+    if (allowedByPreset && !allowedByPreset.has(edge.type) && !(edge.type === "SUPPLIES" && allowedByPreset.has("SUPPLIED_BY"))) return;
     const neighborId = edge.source === selectedNodeId ? edge.target : edge.source;
     if (!visibleNodeIds.has(neighborId)) return;
 
@@ -311,18 +369,21 @@ function layoutGraphNodes(nodes, edges, selectedNodeId) {
 }
 
 function renderGraphCanvas(graph) {
-  const graphRootId = state.selectedMaterialId;
+  const graphRootId = state.graphIsolateSelection ? state.selectedGraphNodeId : state.selectedMaterialId;
   const normalizedEdges = normalizeGraphEdges(graph, graphRootId);
-  const { positions, branches } = layoutGraphNodes(graph.nodes, normalizedEdges, graphRootId);
+  const visibleIds = new Set([graphRootId, ...normalizedEdges.flatMap((edge) => [edge.source, edge.target])]);
+  const visibleNodes = graph.nodes.filter((node) => visibleIds.has(node.id));
+  const { positions, branches } = layoutGraphNodes(visibleNodes, normalizedEdges, graphRootId);
   const edgesSvg = document.getElementById("graph-edges");
   const nodesLayer = document.getElementById("graph-nodes-layer");
 
-  nodesLayer.innerHTML = graph.nodes.map((node) => {
+  nodesLayer.innerHTML = visibleNodes.map((node) => {
     const position = positions[node.id];
+    if (!position) return "";
     return `
       <button
         type="button"
-        class="graph-node graph-node-${escapeHtml(node.type)}${node.id === state.selectedGraphNodeId ? " active" : ""}${node.id === state.selectedMaterialId ? " center" : ""}"
+        class="graph-node graph-node-${escapeHtml(node.type)}${node.id === state.selectedGraphNodeId ? " active" : ""}${node.id === graphRootId ? " center" : ""}"
         data-node-id="${node.id}"
         style="left:${position.x}px; top:${position.y}px;"
       >
@@ -377,6 +438,88 @@ function renderGraphCanvas(graph) {
   ].join("");
 
   applyGraphZoom();
+}
+
+async function openMaterial(materialId, page = "overview") {
+  if (!materialId) return;
+  state.selectedMaterialId = materialId;
+  const select = document.getElementById("material-select");
+  if (select) select.value = materialId;
+  setPage(page);
+  await refreshMaterialContext();
+}
+
+async function openSupplierProfile(supplierId) {
+  const supplier = await fetchJson(`/suppliers/${encodeURIComponent(supplierId)}`);
+  renderSupplierDetail(supplier);
+  setPage("intelligence");
+}
+
+async function openRegulationDetail(regulationId) {
+  const regulation = await fetchJson(`/regulations/${encodeURIComponent(regulationId)}`);
+  renderRegulationDetail(regulation);
+  setPage("intelligence");
+}
+
+function addMaterialToShortlist(materialId) {
+  const compare = document.getElementById("compare-materials");
+  if (!compare) return;
+  const option = Array.from(compare.options).find((item) => item.value === materialId);
+  if (!option) return;
+  option.selected = true;
+  renderCompareSelectionSummary();
+}
+
+function bindInlineActions() {
+  document.querySelectorAll("[data-select-material]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await openMaterial(button.dataset.selectMaterial, "overview");
+    });
+  });
+  document.querySelectorAll("[data-open-graph]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await openMaterial(button.dataset.openGraph, "intelligence");
+    });
+  });
+  document.querySelectorAll("[data-shortlist-material]").forEach((button) => {
+    button.addEventListener("click", () => {
+      addMaterialToShortlist(button.dataset.shortlistMaterial);
+      setPage("workbench");
+    });
+  });
+  document.querySelectorAll("[data-compare-material]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      addMaterialToShortlist(button.dataset.compareMaterial);
+      setPage("workbench");
+      await runComparison();
+    });
+  });
+  document.querySelectorAll("[data-run-scenario]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      setPage("workbench");
+      document.getElementById("scenario-type").value = button.dataset.runScenario;
+      if (window.PackGraphWorkbenchPanels) {
+        window.PackGraphWorkbenchPanels.applyScenarioVisibility(button.dataset.runScenario);
+      }
+      await runScenario();
+    });
+  });
+  document.querySelectorAll("[data-open-supplier]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await openSupplierProfile(button.dataset.openSupplier);
+    });
+  });
+  document.querySelectorAll("[data-open-regulation]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await openRegulationDetail(button.dataset.openRegulation);
+    });
+  });
+  document.querySelectorAll("[data-export-material]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const materialId = button.dataset.exportMaterial;
+      window.open(`/exports/executive-summary.pdf?material_id=${encodeURIComponent(materialId)}`, "_blank", "noopener");
+    });
+  });
 }
 
 function selectedMaterialsFromCompare() {
@@ -438,6 +581,7 @@ async function loadMaterials() {
   const payload = await fetch("/materials");
   const body = await payload.json();
   state.materials = body.data;
+  state.suppliers = await fetchJson("/suppliers");
   state.regulations = await fetchJson("/regulations");
   state.filteredMaterials = [...state.materials];
   state.selectedMaterialId = state.materials[0]?.material_id;
@@ -461,7 +605,7 @@ function populateFilterOptions() {
 }
 
 async function refreshMaterialContext() {
-  await Promise.all([loadMaterialDetail(), loadProvenance(), loadGraph()]);
+  await Promise.all([loadMaterialDetail(), loadProvenance(), loadGraph(), loadMaterialTimeline()]);
 }
 
 async function loadMaterialDetail() {
@@ -532,15 +676,33 @@ async function loadProvenance(searchQuery = "") {
     </div>`;
   if (searchQuery) {
     const results = await fetchJson(`/documents/search?query=${encodeURIComponent(searchQuery)}&material_id=${state.selectedMaterialId}`);
-    document.getElementById("document-search-results").innerHTML = results.length
-      ? results.map((item) => `<div class="row-card"><strong>${item.title || item.report_id}</strong><p>${titleCase(item.type)} / ${item.document_type || item.lab || ""}</p><small>Use this source to validate the current recommendation.</small></div>`).join("")
-      : `<div class="row-card"><strong>No results</strong><p>Try another search phrase or review the reference evidence for the selected material.</p></div>`;
+    renderTableCard(
+      "document-search-results",
+      [
+        { label: "Evidence", render: (item) => `<strong>${escapeHtml(item.title || item.report_id || "Evidence")}</strong>` },
+        { label: "Type", render: (item) => escapeHtml(titleCase(item.type)) },
+        { label: "Detail", render: (item) => escapeHtml(item.document_type || item.lab || item.migration_status || "") },
+        {
+          label: "Actions",
+          render: (item) => `
+            <div class="action-row">
+              <button type="button" class="mini-action" data-open-graph="${escapeHtml(item.material_id || state.selectedMaterialId)}">Open in graph</button>
+              <button type="button" class="mini-action" data-export-material="${escapeHtml(item.material_id || state.selectedMaterialId)}">Export</button>
+            </div>`,
+        },
+      ],
+      results,
+      "Try another search phrase or review the reference evidence for the selected material."
+    );
+    bindInlineActions();
+    if (window.PackGraphWorkbenchPanels) {
+      window.PackGraphWorkbenchPanels.renderEvidenceExtraction(results);
+    }
   } else {
-    document.getElementById("document-search-results").innerHTML = `
-      <div class="row-card">
-        <strong>Search evidence to narrow the proof set</strong>
-        <p>Look for datasheets, declarations, lab reports, certifications, or migration references tied to the selected material.</p>
-      </div>`;
+    document.getElementById("document-search-results").innerHTML = `<div class="table-empty">Search evidence to narrow the proof set for the selected material.</div>`;
+    if (window.PackGraphWorkbenchPanels) {
+      window.PackGraphWorkbenchPanels.renderEvidenceExtraction([...(material.documents || []), ...(material.test_reports || [])]);
+    }
   }
 }
 
@@ -550,12 +712,24 @@ async function loadCompliance() {
     <div class="metric"><div class="value">${dashboard.watch_count}</div><div>materials under review</div></div>
     <div class="metric"><div class="value">${dashboard.non_compliant_count}</div><div>materials out of bounds</div></div>`;
   document.getElementById("regulation-list").innerHTML = dashboard.upcoming_regulations.map((item) => `<span class="pill">${item.name}</span>`).join("");
-  document.getElementById("compliance-risk-list").innerHTML = dashboard.at_risk_materials.slice(0, 5).map((item, index) => `
-    <div class="row-card">
-      <small>Exposure ${index + 1}</small>
-      <strong>${item.name}</strong>
-      <p>Average supplier risk ${item.supplier_risk_score}</p>
-    </div>`).join("");
+  renderTableCard(
+    "compliance-risk-list",
+    [
+      { label: "Material", render: (item) => `<strong>${escapeHtml(item.name)}</strong>` },
+      { label: "Supplier risk", render: (item) => escapeHtml(String(item.supplier_risk_score)) },
+      {
+        label: "Actions",
+        render: (item) => `
+          <div class="action-row">
+            <button type="button" class="mini-action" data-select-material="${escapeHtml(item.material_id)}">Open</button>
+            <button type="button" class="mini-action" data-run-scenario="supplier_outage">Run scenario</button>
+          </div>`,
+      },
+    ],
+    dashboard.at_risk_materials.slice(0, 5),
+    "No supplier exposure hotspots right now."
+  );
+  bindInlineActions();
   document.getElementById("hero-risk-count").textContent = dashboard.at_risk_materials.length;
   document.getElementById("hero-regulations").textContent = dashboard.upcoming_regulations.length;
 }
@@ -563,7 +737,16 @@ async function loadCompliance() {
 async function loadAlerts() {
   const alerts = await fetchJson("/alerts");
   document.getElementById("context-alerts").textContent = alerts.length;
-  document.getElementById("alerts-list").innerHTML = alerts.map((item) => `<div class="row-card"><strong>${item.title}</strong><p>${item.detail}</p><small>${titleCase(item.severity)} / ${titleCase(item.category)}</small></div>`).join("");
+  renderTableCard(
+    "alerts-list",
+    [
+      { label: "Alert", render: (item) => `<strong>${escapeHtml(item.title)}</strong><br /><small>${escapeHtml(item.detail)}</small>` },
+      { label: "Severity", render: (item) => `<span class="${riskClass(item.severity === "high" ? 80 : item.severity === "medium" ? 58 : 32)}">${escapeHtml(titleCase(item.severity))}</span>` },
+      { label: "Category", render: (item) => `<span class="table-badge">${escapeHtml(titleCase(item.category))}</span>` },
+    ],
+    alerts,
+    "No active alerts."
+  );
 }
 
 async function uploadDocumentEvidence() {
@@ -588,9 +771,11 @@ async function uploadDocumentEvidence() {
   const payload = await response.json();
   if (!response.ok || payload.status !== "ok") {
     status.textContent = payload.detail || payload.error || "Upload failed.";
+    status.className = "upload-status status-error";
     return;
   }
   status.textContent = `Uploaded ${payload.data.record.title}. Extraction linked to ${state.selectedMaterialId}.`;
+  status.className = "upload-status status-success";
   document.getElementById("document-upload-title").value = "";
   fileInput.value = "";
   await Promise.all([loadProvenance(document.getElementById("document-search-input").value.trim()), loadAlerts(), loadGraph()]);
@@ -598,30 +783,48 @@ async function uploadDocumentEvidence() {
 
 async function loadInvestigations() {
   const investigations = await fetchJson("/investigations");
+  state.investigations = investigations;
   document.getElementById("context-investigations").textContent = investigations.length;
   document.getElementById("hero-investigations").textContent = investigations.length;
-  const investigationList = document.getElementById("investigation-list");
-  if (investigationList) {
-    investigationList.innerHTML = investigations.map((item) => `
-      <div class="row-card">
-        <strong>${item.title}</strong>
-        <p>${item.notes}</p>
-        <small>${item.decision_rationale}</small>
-        <div class="row-actions">
-          <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.csv" target="_blank">CSV</a>
-          <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.pdf" target="_blank">PDF</a>
-        </div>
-      </div>`).join("");
+  if (window.PackGraphWorkbenchPanels) {
+    window.PackGraphWorkbenchPanels.renderInvestigations(investigations, resumeInvestigation);
   }
 }
 
 async function loadWorkspaces() {
   const workspaces = await fetchJson("/workspaces");
   state.workspaces = workspaces;
+  if (window.PackGraphWorkbenchPanels) {
+    window.PackGraphWorkbenchPanels.renderWorkspaces(workspaces, resumeWorkspace);
+  }
+}
+
+async function loadScenarioHistory() {
+  const history = await fetchJson("/scenarios/history");
+  state.scenarioHistory = history;
+  renderTableCard(
+    "scenario-history",
+    [
+      { label: "Scenario", render: (item) => `<strong>${escapeHtml(titleCase(item.scenario_type))}</strong>` },
+      {
+        label: "Before",
+        render: (item) => escapeHtml(
+          `${item.before.material_id || "portfolio"} | ${item.before.supplier_id || item.before.options?.regulation_id || "auto"}`
+        ),
+      },
+      {
+        label: "After",
+        render: (item) => `<div><strong>${escapeHtml(item.after.summary || "Completed")}</strong><br /><small>${escapeHtml(JSON.stringify(item.after.metrics || {}))}</small></div>`,
+      },
+    ],
+    history.slice(0, 8),
+    "Run a scenario to build a history of before/after outcomes."
+  );
 }
 
 async function loadGraph() {
   const graph = await fetchJson(`/graph/subgraph?material_id=${state.selectedMaterialId}`);
+  state.currentGraph = graph;
   const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
   if (!graphNodeIds.has(state.selectedGraphNodeId)) {
     state.selectedGraphNodeId = state.selectedMaterialId;
@@ -688,13 +891,35 @@ async function runComparison() {
           <span class="pill">Recyclability ${item.scores.recyclability}</span>
           <span class="pill">Cost ${item.scores.cost_efficiency}</span>
         </div>
+        <div class="action-row">
+          <button type="button" class="mini-action" data-select-material="${escapeHtml(item.material_id)}">Open</button>
+          <button type="button" class="mini-action" data-open-graph="${escapeHtml(item.material_id)}">Open in graph</button>
+          <button type="button" class="mini-action" data-run-scenario="supplier_outage">Run scenario</button>
+          <button type="button" class="mini-action" data-export-material="${escapeHtml(item.material_id)}">Export</button>
+        </div>
       </div>`).join("")
     : `<div class="row-card"><strong>No ranked output</strong><p>Select at least one shortlisted material and run the ranking.</p></div>`;
+  if (window.PackGraphWorkbenchPanels) {
+    window.PackGraphWorkbenchPanels.renderComparisonMatrix(results);
+  }
+  bindInlineActions();
 }
 
 async function loadGraphNodeInsight(nodeId) {
   const insight = await fetchJson(`/graph/node-insight?node_id=${encodeURIComponent(nodeId)}`);
   renderGraphNodeInsight(insight);
+  if (insight.node.type === "supplier") {
+    const supplier = await fetchJson(`/suppliers/${encodeURIComponent(nodeId)}`);
+    renderSupplierDetail(supplier);
+  } else {
+    renderSupplierDetail(null);
+  }
+  if (insight.node.type === "regulation") {
+    const regulation = await fetchJson(`/regulations/${encodeURIComponent(nodeId)}`);
+    renderRegulationDetail(regulation);
+  } else {
+    renderRegulationDetail(null);
+  }
 }
 
 function renderGraphNodeInsight(insight) {
@@ -759,7 +984,58 @@ async function loadAnalytics() {
   }
 }
 
+async function runGlobalSearch() {
+  const input = document.getElementById("global-search-input");
+  const status = document.getElementById("global-search-status");
+  const query = input.value.trim();
+  if (!query) {
+    status.textContent = "Type something to search.";
+    status.className = "upload-status status-error";
+    renderTableCard("global-search-results", [], [], "Search across materials, suppliers, regulations, documents, and reports.");
+    return;
+  }
+  const results = await fetchJson(`/search/global?query=${encodeURIComponent(query)}`);
+  status.textContent = results.length ? `Found ${results.length} matching records.` : "No matches found.";
+  status.className = `upload-status ${results.length ? "status-success" : ""}`;
+  renderTableCard(
+    "global-search-results",
+    [
+      { label: "Type", render: (item) => `<span class="table-badge">${escapeHtml(formatEntityLabel(item.entity_type))}</span>` },
+      { label: "Result", render: (item) => `<strong>${escapeHtml(item.title)}</strong><br /><small>${escapeHtml(item.subtitle)}</small>` },
+      { label: "Context", render: (item) => escapeHtml(item.meta || "") },
+      {
+        label: "Actions",
+        render: (item) => {
+          if (item.entity_type === "material") {
+            return `
+              <div class="action-row">
+                <button type="button" class="mini-action" data-select-material="${escapeHtml(item.entity_id)}">Open</button>
+                <button type="button" class="mini-action" data-compare-material="${escapeHtml(item.entity_id)}">Compare</button>
+                <button type="button" class="mini-action" data-shortlist-material="${escapeHtml(item.entity_id)}">Shortlist</button>
+                <button type="button" class="mini-action" data-open-graph="${escapeHtml(item.entity_id)}">Graph</button>
+              </div>`;
+          }
+          if (item.entity_type === "supplier") {
+            return `<div class="action-row"><button type="button" class="mini-action" data-open-supplier="${escapeHtml(item.entity_id)}">Open supplier</button></div>`;
+          }
+          if (item.entity_type === "regulation") {
+            return `<div class="action-row"><button type="button" class="mini-action" data-open-regulation="${escapeHtml(item.entity_id)}">Open regulation</button></div>`;
+          }
+          const fallbackMaterial = item.entity_type === "report" || item.entity_type === "document" ? state.selectedMaterialId : "";
+          return `<div class="action-row"><button type="button" class="mini-action" data-open-graph="${escapeHtml(fallbackMaterial)}">Open context</button></div>`;
+        },
+      },
+    ],
+    results,
+    "No matches found."
+  );
+  bindInlineActions();
+}
+
 async function loadBenchmarks() {
+  if (!document.getElementById("benchmark-status")) {
+    return;
+  }
   const data = await fetchJson("/benchmarks");
   const neo4jStatus = data.neo4j?.status || data.status || "not-run";
   const memgraphStatus = data.memgraph?.status || "not-run";
@@ -820,6 +1096,9 @@ function populateScenarioControls(material) {
   const suppliers = material?.suppliers || [];
   supplierSelect.innerHTML = `<option value="">Auto from selected material</option>${suppliers.map((item) => `<option value="${item.supplier_id}">${item.name}</option>`).join("")}`;
   regulationSelect.innerHTML = `<option value="">Next pending regulation</option>${(state.regulations || []).map((item) => `<option value="${item.regulation_id}">${item.name}</option>`).join("")}`;
+  if (window.PackGraphWorkbenchPanels) {
+    window.PackGraphWorkbenchPanels.applyScenarioVisibility(document.getElementById("scenario-type")?.value || "supplier_outage");
+  }
 }
 
 function formatScenarioMetricValue(value) {
@@ -853,6 +1132,74 @@ function renderScenarioResult(result) {
     : `<div class="row-card"><strong>No impacted records</strong><p>This scenario did not change any material status in the current dataset.</p></div>`;
 }
 
+function renderSupplierDetail(supplier) {
+  const container = document.getElementById("supplier-detail-panel");
+  if (!container) return;
+  if (!supplier) {
+    container.innerHTML = `<div class="detail-card"><p>Select or search a supplier to open the drilldown.</p></div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="detail-card">
+      <h5>${escapeHtml(supplier.name)}</h5>
+      <h4>${escapeHtml(supplier.country)} supplier profile</h4>
+      <div class="key-facts">
+        <div class="fact"><span>Lead time</span><strong>${escapeHtml(supplier.lead_time_days)} days</strong></div>
+        <div class="fact"><span>Risk</span><strong>${escapeHtml(supplier.disruption_risk_score)}</strong></div>
+        <div class="fact"><span>ESG</span><strong>${escapeHtml(supplier.esg_score)}</strong></div>
+        <div class="fact"><span>Materials</span><strong>${escapeHtml(supplier.supplied_materials.length)}</strong></div>
+      </div>
+      <div class="trend-chip-grid">
+        ${(supplier.certifications_detail || []).map((item) => `<span class="trend-chip">${escapeHtml(item.name)}</span>`).join("")}
+      </div>
+    </div>
+    <div class="detail-card">
+      <h5>Trends</h5>
+      <h4>Risk and lead time</h4>
+      <div class="timeline-chart-footer">
+        <span>${(supplier.risk_trend || []).map((item) => `${item.quarter}: risk ${item.risk_score}`).join(" | ") || "No risk trend available."}</span>
+      </div>
+      <div class="timeline-chart-footer">
+        <span>${(supplier.lead_time_trend || []).map((item) => `${item.quarter}: ${item.lead_time_days}d`).join(" | ") || "No lead-time trend available."}</span>
+      </div>
+      <div class="subsection-heading">Supplied materials</div>
+      <div class="card-list compact-list">
+        ${(supplier.supplied_materials || []).slice(0, 6).map((item) => `<div class="row-card"><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.category)} | ${escapeHtml(item.compliance_state)}</p></div>`).join("")}
+      </div>
+    </div>`;
+}
+
+function renderRegulationDetail(regulation) {
+  const container = document.getElementById("regulation-detail-panel");
+  if (!container) return;
+  if (!regulation) {
+    container.innerHTML = `<div class="detail-card"><p>Select or search a regulation to open the drilldown.</p></div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="detail-card">
+      <h5>${escapeHtml(regulation.name)}</h5>
+      <h4>${regulation.active ? "Active" : "Upcoming"} regulation</h4>
+      <div class="key-facts">
+        <div class="fact"><span>Effective date</span><strong>${escapeHtml(regulation.effective_date)}</strong></div>
+        <div class="fact"><span>Focus</span><strong>${escapeHtml(titleCase(regulation.focus))}</strong></div>
+        <div class="fact"><span>Affected materials</span><strong>${escapeHtml(regulation.affected_materials.length)}</strong></div>
+      </div>
+    </div>
+    <div class="detail-card">
+      <h5>Action context</h5>
+      <h4>Evidence gaps and likely actions</h4>
+      <div class="card-list compact-list">
+        ${(regulation.evidence_gaps || []).length
+          ? regulation.evidence_gaps.map((item) => `<div class="row-card"><strong>Evidence gap</strong><p>${escapeHtml(item)}</p></div>`).join("")
+          : `<div class="row-card"><strong>No immediate gaps</strong><p>Linked material dossiers look reasonably complete in the current dataset.</p></div>`}
+      </div>
+      <div class="card-list compact-list">
+        ${(regulation.likely_actions || []).map((item) => `<div class="row-card"><strong>Likely action</strong><p>${escapeHtml(item)}</p></div>`).join("")}
+      </div>
+    </div>`;
+}
+
 async function runScenario() {
   const payload = {
     scenario: document.getElementById("scenario-type").value,
@@ -874,6 +1221,106 @@ async function runScenario() {
     body: JSON.stringify(payload),
   });
   renderScenarioResult(result);
+  await loadScenarioHistory();
+}
+
+async function loadTrendCharts() {
+  state.analyticsOverview = await fetchJson("/analytics/overview");
+  if (window.PackGraphTrendCharts) {
+    window.PackGraphTrendCharts.renderOverview(state.analyticsOverview);
+  }
+}
+
+async function loadMaterialTimeline() {
+  const timeline = await fetchJson(`/materials/${state.selectedMaterialId}/timeline`);
+  if (window.PackGraphTrendCharts) {
+    window.PackGraphTrendCharts.renderMaterialTimeline(timeline);
+  }
+}
+
+async function saveInvestigation() {
+  const title = document.getElementById("investigation-title").value.trim();
+  if (!title) {
+    document.getElementById("investigation-status").textContent = "Add a title before saving the investigation.";
+    document.getElementById("investigation-status").className = "upload-status status-error";
+    return;
+  }
+  const payload = {
+    title,
+    focus_material_id: state.selectedMaterialId,
+    notes: document.getElementById("investigation-notes").value.trim(),
+    shortlisted_material_ids: selectedMaterialsFromCompare(),
+    comparison_material_ids: state.compareResults.map((item) => item.material_id),
+    decision_rationale: document.getElementById("investigation-rationale").value.trim(),
+    status: "open",
+  };
+  const method = state.currentInvestigationId ? "PATCH" : "POST";
+  const url = state.currentInvestigationId ? `/investigations/${state.currentInvestigationId}` : "/investigations";
+  const result = await fetchJson(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  state.currentInvestigationId = result.investigation_id;
+  document.getElementById("investigation-status").textContent = `Saved ${result.title} with ${result.shortlisted_material_ids.length} shortlisted materials.`;
+  document.getElementById("investigation-status").className = "upload-status status-success";
+  await loadInvestigations();
+}
+
+async function resumeInvestigation(investigationId) {
+  const investigation = await fetchJson(`/investigations/${investigationId}`);
+  state.currentInvestigationId = investigation.investigation_id;
+  document.getElementById("investigation-title").value = investigation.title || "";
+  document.getElementById("investigation-notes").value = investigation.notes || "";
+  document.getElementById("investigation-rationale").value = investigation.decision_rationale || "";
+  if (investigation.focus_material_id) {
+    state.selectedMaterialId = investigation.focus_material_id;
+    document.getElementById("material-select").value = state.selectedMaterialId;
+  }
+  const compare = document.getElementById("compare-materials");
+  Array.from(compare.options).forEach((option) => {
+    option.selected = (investigation.shortlisted_material_ids || []).includes(option.value);
+  });
+  renderCompareSelectionSummary();
+  await refreshMaterialContext();
+  await runComparison();
+  document.getElementById("investigation-status").textContent = `Resumed ${investigation.title}.`;
+  document.getElementById("investigation-status").className = "upload-status status-success";
+}
+
+async function resumeWorkspace(workspaceId) {
+  const workspace = state.workspaces.find((item) => item.workspace_id === workspaceId);
+  if (!workspace) return;
+  state.currentPage = workspace.active_tab || "overview";
+  setPage(state.currentPage);
+  if ((workspace.selected_material_ids || []).length) {
+    state.selectedMaterialId = workspace.selected_material_ids[0];
+  }
+  const filters = workspace.filters || {};
+  const mapping = {
+    "filter-search": filters.search || "",
+    "filter-family": filters.material_family || "",
+    "filter-region": filters.region || "",
+    "filter-category": filters.category || "",
+    "filter-regulation": filters.regulation_id || "",
+    "filter-claim": filters.claim_type || "",
+    "filter-compliance": filters.compliance_state || "",
+    "filter-performance-metric": filters.performance_metric || "",
+    "filter-performance-score": filters.min_performance_score || "",
+    "filter-supplier-capability": filters.supplier_capability || "",
+    "filter-sustainability": filters.min_sustainability || "",
+  };
+  Object.entries(mapping).forEach(([id, value]) => {
+    const element = document.getElementById(id);
+    if (element) element.value = value;
+  });
+  await applyFilters();
+  const compare = document.getElementById("compare-materials");
+  Array.from(compare.options).forEach((option) => {
+    option.selected = (workspace.selected_material_ids || []).includes(option.value);
+  });
+  renderCompareSelectionSummary();
+  await runComparison();
 }
 
 function setupPageNavigation() {
@@ -972,6 +1419,46 @@ function setupGraphPanControls() {
   });
 }
 
+function setupGraphFilters() {
+  const relationshipFilter = document.getElementById("graph-relationship-filter");
+  const preset = document.getElementById("graph-preset");
+  const isolate = document.getElementById("graph-isolate-selection");
+  const reset = document.getElementById("graph-reset-view");
+  if (relationshipFilter) {
+    relationshipFilter.addEventListener("change", () => {
+      state.graphFilter = relationshipFilter.value;
+      if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+    });
+  }
+  if (preset) {
+    preset.addEventListener("change", () => {
+      state.graphPreset = preset.value;
+      if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+    });
+  }
+  if (isolate) {
+    isolate.addEventListener("click", () => {
+      state.graphIsolateSelection = !state.graphIsolateSelection;
+      isolate.textContent = state.graphIsolateSelection ? "Show full graph" : "Isolate branch";
+      if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+    });
+  }
+  if (reset) {
+    reset.addEventListener("click", () => {
+      state.graphPan = { x: 0, y: 0 };
+      state.graphZoom = 1;
+      state.graphFilter = "all";
+      state.graphPreset = "full";
+      state.graphIsolateSelection = false;
+      if (relationshipFilter) relationshipFilter.value = "all";
+      if (preset) preset.value = "full";
+      if (isolate) isolate.textContent = "Isolate branch";
+      if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+      applyGraphZoom();
+    });
+  }
+}
+
 function setupForms() {
   document.getElementById("ask-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -984,6 +1471,7 @@ function setupForms() {
     });
     addMessage("Question", question);
     addMessage("PackGraph", response.message, JSON.stringify(response.plan.audit, null, 2));
+    renderStructuredAnswer(response.panel);
   });
 
   document.querySelectorAll("[data-prompt]").forEach((button) => {
@@ -1023,8 +1511,27 @@ function setupForms() {
     await runScenario();
   });
 
+  document.getElementById("scenario-type").addEventListener("change", (event) => {
+    if (window.PackGraphWorkbenchPanels) {
+      window.PackGraphWorkbenchPanels.applyScenarioVisibility(event.target.value);
+    }
+  });
+
   document.getElementById("graph-path-button").addEventListener("click", async () => {
     await loadGraphPath();
+  });
+
+  document.getElementById("investigation-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await saveInvestigation();
+  });
+
+  document.getElementById("investigation-clear").addEventListener("click", () => {
+    state.currentInvestigationId = null;
+    document.getElementById("investigation-title").value = "";
+    document.getElementById("investigation-notes").value = "";
+    document.getElementById("investigation-rationale").value = "";
+    document.getElementById("investigation-status").textContent = "Cleared the current investigation draft.";
   });
 
   document.getElementById("workspace-form").addEventListener("submit", async (event) => {
@@ -1057,6 +1564,11 @@ function setupForms() {
     await loadWorkspaces();
   });
 
+  document.getElementById("global-search-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await runGlobalSearch();
+  });
+
 }
 
 async function init() {
@@ -1065,6 +1577,7 @@ async function init() {
   setupNavigation();
   setupGraphZoomControls();
   setupGraphPanControls();
+  setupGraphFilters();
   setupForms();
   await Promise.all([
     loadSession(),
@@ -1073,14 +1586,27 @@ async function init() {
     loadAlerts(),
     loadInvestigations(),
     loadWorkspaces(),
+    loadScenarioHistory(),
     loadRecommendationsSummary(),
     loadAnalytics(),
     loadBenchmarks(),
+    loadTrendCharts(),
   ]);
   await runComparison();
   renderCompareSelectionSummary();
   await runScenario();
   await loadGraphPath();
+  await loadMaterialTimeline();
+  renderStructuredAnswer({
+    title: "Decision output",
+    summary: "Run a natural-language question to see structured recommendations, reasons, risk flags, and next steps.",
+    recommendations: [],
+    reasons: [],
+    risk_flags: [],
+    next_steps: [],
+  });
+  renderSupplierDetail(null);
+  renderRegulationDetail(null);
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
 }
 

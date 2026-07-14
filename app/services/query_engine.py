@@ -18,7 +18,7 @@ class QueryEngine:
         plan = self.planner.plan(question, self.repository)
         intent = plan["intent"]
         if intent == "refuse_or_clarify":
-            return {"plan": plan, "result": None, "message": plan["audit"]["reason"]}
+            return {"plan": plan, "result": None, "message": plan["audit"]["reason"], "panel": self._build_answer_panel(intent, None, plan, plan["audit"]["reason"])}
 
         entities = {**plan.get("entities", {}), **options}
         result = None
@@ -71,6 +71,7 @@ class QueryEngine:
             "plan": plan,
             "result": result,
             "message": message,
+            "panel": self._build_answer_panel(intent, result, plan, message),
         }
 
     def run_scenario(self, scenario: str, material_id: str | None = None, supplier_id: str | None = None, options: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -172,3 +173,87 @@ class QueryEngine:
             f"{item['name']} | weighted score {item['weighted_score']} | sustainability {item['scores']['sustainability']} | recyclability {item['scores']['recyclability']}"
             for item in results[:4]
         )
+
+    def _build_answer_panel(self, intent: str, result: Any, plan: dict[str, Any], message: str) -> dict[str, Any]:
+        panel = {
+            "title": plan.get("explanation", "Decision output"),
+            "summary": message,
+            "recommendations": [],
+            "reasons": [],
+            "risk_flags": [],
+            "next_steps": [],
+        }
+
+        if intent in {"recommend_food_packaging", "material_filter", "find_recyclable_substitutes"} and isinstance(result, list):
+            for item in result[:4]:
+                material_id = item.get("material_id")
+                material = self.repository.material_index.get(material_id) if material_id else None
+                if not material:
+                    continue
+                panel["recommendations"].append(
+                    {
+                        "label": material["name"],
+                        "detail": f"{material['category']} | sustainability {material['sustainability_score']} | recyclability {material['recyclability_score']}",
+                    }
+                )
+                panel["reasons"].append(
+                    f"{material['name']} fits with compliance {material['compliance_state']} and {len(material['supplier_ids'])} qualified suppliers."
+                )
+                if material["compliance_state"] != "compliant":
+                    panel["risk_flags"].append(f"{material['name']} is currently {material['compliance_state']}.")
+
+            panel["next_steps"] = [
+                "Add the strongest candidates to the Workbench shortlist.",
+                "Open the evidence workspace to validate declarations and lab reports.",
+                "Run a scenario before moving to a final recommendation.",
+            ]
+
+        elif intent in {"compare_suppliers", "supplier_risk_ranking"} and isinstance(result, list):
+            panel["recommendations"] = [
+                {"label": item["name"], "detail": f"Risk {item['disruption_risk_score']} | ESG {item['esg_score']} | lead time {item['lead_time_days']} days"}
+                for item in result[:4]
+            ]
+            panel["risk_flags"] = [f"{item['name']} has elevated disruption risk." for item in result[:2]]
+            panel["next_steps"] = [
+                "Review supplier snapshots and alternate supply coverage.",
+                "Open graph intelligence to inspect supplier-linked materials.",
+            ]
+
+        elif intent == "evidence_for_material" and isinstance(result, dict):
+            material = result.get("material")
+            documents = result.get("documents", [])
+            reports = result.get("test_reports", [])
+            if material:
+                panel["recommendations"].append(
+                    {"label": material["name"], "detail": f"{len(documents)} documents and {len(reports)} test reports available"}
+                )
+            panel["reasons"] = [item["title"] for item in documents[:3]]
+            panel["risk_flags"] = ["Declaration evidence is missing." if not any(doc.get("document_type") == "declaration" for doc in documents) else ""] if documents is not None else []
+            panel["risk_flags"] = [item for item in panel["risk_flags"] if item]
+            if not reports:
+                panel["risk_flags"].append("No lab report was found for this material.")
+            panel["next_steps"] = [
+                "Inspect extracted evidence fields and missing metadata.",
+                "Upload missing declarations or reports before finalizing the choice.",
+            ]
+
+        elif intent == "compare_materials" and isinstance(result, list):
+            panel["recommendations"] = [
+                {"label": item["name"], "detail": f"Weighted score {item['weighted_score']} | cost {item['cost_range']['high']} {item['cost_range']['currency']}"}
+                for item in result[:4]
+            ]
+            panel["reasons"] = [
+                f"{item['name']} has sustainability {item['scores']['sustainability']} and recyclability {item['scores']['recyclability']}."
+                for item in result[:3]
+            ]
+            panel["next_steps"] = [
+                "Use the side-by-side matrix to inspect detailed tradeoffs.",
+                "Save the shortlist into an investigation with rationale.",
+            ]
+
+        if not panel["next_steps"]:
+            panel["next_steps"] = [
+                "Review the result in context.",
+                "Move the candidate into Workbench if it deserves deeper evaluation.",
+            ]
+        return panel

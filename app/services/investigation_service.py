@@ -40,3 +40,16 @@ class InvestigationService:
         investigations.append(record)
         self._write(investigations)
         return record
+
+    def update(self, investigation_id: str, payload: dict[str, Any], owner_id: str | None = None) -> dict[str, Any] | None:
+        investigations = self._read()
+        for index, record in enumerate(investigations):
+            if record["investigation_id"] != investigation_id:
+                continue
+            if owner_id and record.get("owner_id") not in {None, owner_id}:
+                return None
+            updated = {**record, **payload, "owner_id": record.get("owner_id", owner_id)}
+            investigations[index] = updated
+            self._write(investigations)
+            return updated
+        return None

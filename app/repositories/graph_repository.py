@@ -141,6 +141,181 @@ class LocalGraphRepository:
     def list_regulations(self) -> list[dict[str, Any]]:
         return self.regulations
 
+    def global_search(self, query: str) -> list[dict[str, Any]]:
+        query_lower = query.lower().strip()
+        if not query_lower:
+            return []
+        results = []
+
+        for material in self.materials:
+            haystack = " ".join(
+                [
+                    material["name"],
+                    material["category"],
+                    material["descriptor"],
+                    material["composition"],
+                    " ".join(material["compliance_flags"]),
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "material",
+                        "entity_id": material["material_id"],
+                        "title": material["name"],
+                        "subtitle": f"{material['category']} | {material['compliance_state']}",
+                        "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
+                    }
+                )
+
+        for supplier in self.suppliers:
+            haystack = " ".join(
+                [
+                    supplier["name"],
+                    supplier["country"],
+                    " ".join(supplier["regions_served"]),
+                    " ".join(supplier["certifications"]),
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "supplier",
+                        "entity_id": supplier["supplier_id"],
+                        "title": supplier["name"],
+                        "subtitle": f"{supplier['country']} | lead time {supplier['lead_time_days']} days",
+                        "meta": f"Risk {supplier['disruption_risk_score']} | ESG {supplier['esg_score']}",
+                    }
+                )
+
+        for regulation in self.regulations:
+            haystack = " ".join(
+                [
+                    regulation["name"],
+                    regulation["focus"],
+                    regulation["effective_date"],
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "regulation",
+                        "entity_id": regulation["regulation_id"],
+                        "title": regulation["name"],
+                        "subtitle": f"{'Active' if regulation['active'] else 'Upcoming'} | {regulation['effective_date']}",
+                        "meta": f"Focus {regulation['focus']}",
+                    }
+                )
+
+        for document in self.all_documents():
+            haystack = " ".join(
+                [
+                    document.get("title", ""),
+                    document.get("document_type", ""),
+                    document.get("extraction_summary", ""),
+                    " ".join(document.get("detected_terms", [])),
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "document",
+                        "entity_id": document.get("document_id", ""),
+                        "title": document.get("title", "Document"),
+                        "subtitle": f"{document.get('document_type', 'document')} | {document.get('issued_on', 'unknown')}",
+                        "meta": document.get("extraction_summary", "Evidence source"),
+                    }
+                )
+
+        for report in self.all_test_reports():
+            haystack = " ".join(
+                [
+                    report.get("title", ""),
+                    report.get("lab", ""),
+                    report.get("migration_status", ""),
+                    report.get("extraction_summary", ""),
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "report",
+                        "entity_id": report.get("report_id", ""),
+                        "title": report.get("title", "Report"),
+                        "subtitle": f"{report.get('lab', 'Uploaded source')} | {report.get('test_date', 'unknown')}",
+                        "meta": report.get("migration_status", "Test report"),
+                    }
+                )
+
+        return results[:28]
+
+    def get_supplier(self, supplier_id: str) -> dict[str, Any] | None:
+        supplier = self.supplier_index.get(supplier_id)
+        if not supplier:
+            return None
+        snapshots = sorted(self.snapshots_by_supplier.get(supplier_id, []), key=lambda item: item["quarter"])
+        materials = [self.material_index[item] for item in supplier["supplied_material_ids"] if item in self.material_index]
+        current = snapshots[-1] if snapshots else None
+        return {
+            **deepcopy(supplier),
+            "supplied_materials": materials,
+            "certifications_detail": [
+                {"name": certification, "status": "active", "coverage": supplier["country"]}
+                for certification in supplier.get("certifications", [])
+            ],
+            "risk_trend": [
+                {"quarter": item["quarter"], "risk_score": item["risk_score"], "compliance_score": item["compliance_score"]}
+                for item in snapshots[-6:]
+            ],
+            "lead_time_trend": [
+                {"quarter": item["quarter"], "lead_time_days": item["lead_time_days"], "price_index": item["price_index"]}
+                for item in snapshots[-6:]
+            ],
+            "latest_snapshot": current,
+        }
+
+    def get_regulation(self, regulation_id: str) -> dict[str, Any] | None:
+        regulation = self.regulation_index.get(regulation_id)
+        if not regulation:
+            return None
+        affected_materials = []
+        evidence_gaps = []
+        likely_actions = []
+        for relationship in self.relationships:
+            if relationship["type"] != "REVIEWED_UNDER":
+                continue
+            if regulation_id not in {relationship["from"], relationship["to"]}:
+                continue
+            material_id = relationship["from"] if relationship["from"] != regulation_id else relationship["to"]
+            material = self.material_index.get(material_id)
+            if not material:
+                continue
+            affected_materials.append(
+                {
+                    "material_id": material["material_id"],
+                    "name": material["name"],
+                    "compliance_state": material["compliance_state"],
+                    "supplier_count": len(material["supplier_ids"]),
+                }
+            )
+            evidence = self.evidence_for_material(material["material_id"])
+            if not any(doc.get("document_type") == "declaration" for doc in evidence.get("documents", [])):
+                evidence_gaps.append(f"{material['name']} is missing a declaration.")
+            if not evidence.get("test_reports"):
+                evidence_gaps.append(f"{material['name']} is missing a lab report.")
+            if material["compliance_state"] != "compliant":
+                likely_actions.append(f"Move {material['name']} into immediate compliance review.")
+
+        return {
+            **deepcopy(regulation),
+            "affected_materials": affected_materials[:12],
+            "evidence_gaps": evidence_gaps[:10],
+            "likely_actions": list(dict.fromkeys(likely_actions))[:8] or [
+                "Review linked material dossiers before the effective date.",
+                "Refresh supplier declarations for exposed materials.",
+            ],
+        }
+
     def compare_suppliers(self, supplier_ids: list[str] | None = None) -> list[dict[str, Any]]:
         suppliers = self.suppliers if not supplier_ids else [self.supplier_index[sid] for sid in supplier_ids if sid in self.supplier_index]
         compared = []
@@ -517,6 +692,11 @@ class LocalGraphRepository:
                     "material_id": material_id,
                     "name": material["name"],
                     "category": material["category"],
+                    "descriptor": material["descriptor"],
+                    "composition": material["composition"],
+                    "compliance_state": material["compliance_state"],
+                    "supplier_count": len(material["supplier_ids"]),
+                    "cost_range": material["cost_range"],
                     "weighted_score": round(weighted_score, 2),
                     "scores": {
                         "sustainability": material["sustainability_score"],
@@ -657,6 +837,7 @@ class LocalGraphRepository:
             snapshots_by_quarter[snapshot["quarter"]].append(snapshot)
         cost_trends = []
         compliance_drift = []
+        supplier_risk_trend = []
         for quarter, items in sorted(snapshots_by_quarter.items()):
             cost_trends.append(
                 {
@@ -672,10 +853,17 @@ class LocalGraphRepository:
                     "non_compliant_count": sum(1 for item in items if item["compliance_state"] == "non-compliant"),
                 }
             )
+            supplier_risk_trend.append(
+                {
+                    "quarter": quarter,
+                    "average_risk_score": round(mean(item["risk_score"] for item in items), 1),
+                }
+            )
         supplier_performance = self.compare_suppliers()[:8]
         return {
             "cost_trends": cost_trends,
             "compliance_drift": compliance_drift,
+            "supplier_risk_trend": supplier_risk_trend,
             "supplier_performance": supplier_performance,
         }
 
