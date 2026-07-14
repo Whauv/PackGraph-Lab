@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import InvestigationCreate, LoginRequest, MaterialCompareRequest, QueryRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -51,9 +51,20 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Material not found")
         return {"status": "ok", "data": material}
 
+    @router.get("/materials/{material_id}/timeline")
+    def material_timeline(material_id: str):
+        return {"status": "ok", "data": state.repository.timeline_for_material(material_id)}
+
     @router.get("/suppliers")
     def list_suppliers():
         return {"status": "ok", "data": state.repository.list_suppliers()}
+
+    @router.get("/suppliers/{supplier_id}")
+    def get_supplier(supplier_id: str):
+        supplier = state.repository.get_supplier(supplier_id)
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found")
+        return {"status": "ok", "data": supplier}
 
     @router.get("/applications")
     def list_applications():
@@ -62,6 +73,17 @@ def build_router(state) -> APIRouter:
     @router.get("/regulations")
     def list_regulations():
         return {"status": "ok", "data": state.repository.list_regulations()}
+
+    @router.get("/regulations/{regulation_id}")
+    def get_regulation(regulation_id: str):
+        regulation = state.repository.get_regulation(regulation_id)
+        if not regulation:
+            raise HTTPException(status_code=404, detail="Regulation not found")
+        return {"status": "ok", "data": regulation}
+
+    @router.get("/search/global")
+    def global_search(query: str):
+        return {"status": "ok", "data": state.repository.global_search(query)}
 
     @router.get("/investigations")
     def list_investigations():
@@ -75,6 +97,21 @@ def build_router(state) -> APIRouter:
             "status": "ok",
             "data": state.investigations.create(payload.model_dump(), current_user["user_id"] if current_user else None),
         }
+
+    @router.get("/investigations/{investigation_id}")
+    def get_investigation(investigation_id: str):
+        investigation = state.investigations.get(investigation_id)
+        if not investigation:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+        return {"status": "ok", "data": investigation}
+
+    @router.patch("/investigations/{investigation_id}")
+    def update_investigation(investigation_id: str, payload: InvestigationUpdate):
+        current_user = state.auth.current_user()
+        investigation = state.investigations.update(investigation_id, payload.model_dump(), current_user["user_id"] if current_user else None)
+        if not investigation:
+            raise HTTPException(status_code=404, detail="Investigation not found")
+        return {"status": "ok", "data": investigation}
 
     @router.get("/investigations/{investigation_id}/export.csv")
     def export_investigation_csv(investigation_id: str):
@@ -176,15 +213,30 @@ def build_router(state) -> APIRouter:
 
     @router.post("/query/scenario")
     def scenario(request: ScenarioRequest):
+        current_user = state.auth.current_user()
+        result = state.query_engine.run_scenario(
+            scenario=request.scenario,
+            material_id=request.material_id,
+            supplier_id=request.supplier_id,
+            options=request.options,
+        )
+        state.scenario_history.save(
+            scenario_type=request.scenario,
+            material_id=request.material_id,
+            supplier_id=request.supplier_id,
+            options=request.options,
+            result=result,
+            owner_id=current_user["user_id"] if current_user else None,
+        )
         return {
             "status": "ok",
-            "data": state.query_engine.run_scenario(
-                scenario=request.scenario,
-                material_id=request.material_id,
-                supplier_id=request.supplier_id,
-                options=request.options,
-            ),
+            "data": result,
         }
+
+    @router.get("/scenarios/history")
+    def scenario_history():
+        current_user = state.auth.current_user()
+        return {"status": "ok", "data": state.scenario_history.list(current_user["user_id"] if current_user else None)}
 
     @router.get("/runtime/backends")
     def runtime_backends():

@@ -17,6 +17,7 @@ from app.services.document_intelligence_service import DocumentIntelligenceServi
 from app.services.export_service import ExportService
 from app.services.investigation_service import InvestigationService
 from app.services.query_engine import QueryEngine
+from app.services.scenario_history_service import ScenarioHistoryService
 
 
 class AppState:
@@ -31,6 +32,7 @@ class AppState:
         self.documents.ensure_seed()
         self.investigations = InvestigationService(settings.packgraph_runtime_dir)
         self.investigations.ensure_seed(self.repository.bundle["investigations"])
+        self.scenario_history = ScenarioHistoryService(settings.packgraph_runtime_dir)
         self.exports = ExportService()
 
     def benchmarks(self) -> dict:

@@ -134,6 +134,22 @@
             </form>
           </article>
 
+          <article class="panel overview-search-panel">
+            <div class="panel-header compact-panel-header">
+              <div>
+                <p class="eyebrow">Global search</p>
+                <h3>Search across materials, suppliers, regulations, documents, and reports</h3>
+              </div>
+              <div class="panel-kicker">Use this when you already know the thing you want to jump to</div>
+            </div>
+            <form id="global-search-form" class="inline-form query-form">
+              <input id="global-search-input" type="text" placeholder="Search a material, supplier, regulation, document, or report" />
+              <button type="submit">Search</button>
+            </form>
+            <div id="global-search-status" class="upload-status"></div>
+            <div id="global-search-results" class="table-card"></div>
+          </article>
+
           <section class="panel-grid top-grid">
             <article class="panel overview-chat" id="chat-panel">
               <div class="panel-header">
@@ -156,6 +172,33 @@
                   <button type="submit">Run query</button>
                 </form>
               </div>
+              <div class="subsection structured-answer-panel">
+                <div class="subsection-heading">Structured answer</div>
+                <div class="detail-card">
+                  <h4 id="answer-panel-title">Decision output</h4>
+                  <p id="answer-panel-summary">Run a question to see structured recommendations, reasons, risk flags, and next steps.</p>
+                </div>
+                <div class="split-grid structured-answer-grid">
+                  <div>
+                    <div class="subsection-heading">Recommendations</div>
+                    <div id="answer-panel-recommendations" class="card-list compact-list"></div>
+                  </div>
+                  <div>
+                    <div class="subsection-heading">Reasons</div>
+                    <div id="answer-panel-reasons" class="card-list compact-list"></div>
+                  </div>
+                </div>
+                <div class="split-grid structured-answer-grid">
+                  <div>
+                    <div class="subsection-heading">Risk flags</div>
+                    <div id="answer-panel-risks" class="card-list compact-list"></div>
+                  </div>
+                  <div>
+                    <div class="subsection-heading">Next steps</div>
+                    <div id="answer-panel-next-steps" class="card-list compact-list"></div>
+                  </div>
+                </div>
+              </div>
             </article>
 
             <article class="panel overview-compliance">
@@ -172,7 +215,7 @@
               </div>
               <div class="subsection">
                 <div class="subsection-heading">Highest supplier exposure</div>
-                <div id="compliance-risk-list" class="card-list compact-list"></div>
+                <div id="compliance-risk-list" class="table-card"></div>
               </div>
             </article>
           </section>
@@ -285,6 +328,10 @@
                     <div id="compare-results" class="card-list compare-results-list"></div>
                   </div>
                 </div>
+                <div class="subsection">
+                  <div class="subsection-heading">Side-by-side comparison</div>
+                  <div id="comparison-matrix" class="table-card"></div>
+                </div>
               </div>
             </article>
           </section>
@@ -318,11 +365,49 @@
               <div class="workbench-evidence-grid">
                 <div>
                   <div class="subsection-heading">Search results</div>
-                  <div id="document-search-results" class="card-list compact-list"></div>
+                  <div id="document-search-results" class="table-card"></div>
                 </div>
                 <div>
                   <div class="subsection-heading">Reference evidence</div>
                   <div id="provenance-panel" class="split-grid"></div>
+                </div>
+              </div>
+              <div class="subsection">
+                <div class="subsection-heading">Evidence extraction details</div>
+                <div id="evidence-extraction-panel" class="card-list compact-list"></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="panel-grid workbench-grid">
+            <article class="panel workbench-investigation-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Investigation workflow</p>
+                  <h3>Capture the shortlist, rationale, and resume point</h3>
+                </div>
+                <div class="panel-kicker">Save working context so you can come back to the same decision trail later</div>
+              </div>
+              <div class="workbench-evidence-grid">
+                <form id="investigation-form" class="stack-form">
+                  <input id="investigation-title" type="text" placeholder="Investigation title" />
+                  <textarea id="investigation-notes" rows="4" placeholder="Why are we evaluating this candidate set?"></textarea>
+                  <textarea id="investigation-rationale" rows="4" placeholder="Decision rationale and tradeoffs"></textarea>
+                  <div class="row-actions">
+                    <button type="submit">Save investigation</button>
+                    <button type="button" id="investigation-clear" class="secondary">Clear draft</button>
+                  </div>
+                  <div id="investigation-status" class="upload-status"></div>
+                </form>
+                <div class="stack-form">
+                  <div>
+                    <div class="subsection-heading">Saved investigations</div>
+                    <div id="investigation-list" class="card-list compact-list"></div>
+                  </div>
+                  <div>
+                    <div class="subsection-heading">Saved workspaces</div>
+                    <div id="workspace-list" class="card-list compact-list"></div>
+                  </div>
                 </div>
               </div>
             </article>
@@ -408,6 +493,10 @@
                   <div id="scenario-impacts" class="card-list compact-list"></div>
                 </div>
               </div>
+              <div class="subsection">
+                <div class="subsection-heading">Saved scenario history</div>
+                <div id="scenario-history" class="table-card"></div>
+              </div>
             </article>
           </section>
 
@@ -445,10 +534,29 @@
                 <div>
                   <div class="graph-toolbar">
                     <div class="subsection-heading">Node map</div>
-                    <div class="graph-zoom-controls">
+                    <div class="graph-toolbar-controls">
+                      <select id="graph-preset" class="graph-select">
+                        <option value="full">Full graph</option>
+                        <option value="supply">Supply chain focus</option>
+                        <option value="evidence">Evidence focus</option>
+                        <option value="compliance">Compliance focus</option>
+                      </select>
+                      <select id="graph-relationship-filter" class="graph-select">
+                        <option value="all">All relationships</option>
+                        <option value="SUPPLIED_BY">Supplied by</option>
+                        <option value="SUBSTITUTES_WITH">Substitutes</option>
+                        <option value="TARGETS_APPLICATION">Applications</option>
+                        <option value="HAS_DOCUMENT">Documents</option>
+                        <option value="RECYCLES_INTO">Recycling</option>
+                        <option value="REVIEWED_UNDER">Regulations</option>
+                      </select>
+                      <button type="button" id="graph-isolate-selection" class="mini-action">Isolate branch</button>
+                      <button type="button" id="graph-reset-view" class="mini-action secondary">Reset</button>
+                      <div class="graph-zoom-controls">
                       <button type="button" id="graph-zoom-out" class="mini-action" aria-label="Zoom out">-</button>
                       <div id="graph-zoom-level" class="graph-zoom-level">100%</div>
                       <button type="button" id="graph-zoom-in" class="mini-action" aria-label="Zoom in">+</button>
+                    </div>
                     </div>
                   </div>
                   <div id="graph-subgraph" class="graph-canvas">
@@ -514,13 +622,58 @@
                 </div>
               </div>
               <p class="panel-helper">Use this as a monitoring rail rather than a primary workspace. Focus on which supplier, regulation, or compliance changes deserve follow-up.</p>
-              <div id="alerts-list" class="card-list compact-list"></div>
+              <div id="alerts-list" class="table-card"></div>
+            </article>
+          </section>
+
+          <section class="panel-grid intelligence-inspector-grid">
+            <article class="panel intelligence-supplier-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Supplier drilldown</p>
+                  <h3>Open a supplier profile with trend and supply context</h3>
+                </div>
+              </div>
+              <div id="supplier-detail-panel" class="detail-layout"></div>
+            </article>
+            <article class="panel intelligence-regulation-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Regulation detail</p>
+                  <h3>See affected materials, evidence gaps, and likely actions</h3>
+                </div>
+              </div>
+              <div id="regulation-detail-panel" class="detail-layout"></div>
+            </article>
+          </section>
+
+          <section class="panel-grid intelligence-inspector-grid">
+            <article class="panel intelligence-trends-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Temporal trends</p>
+                  <h3>Track cost, supplier risk, and compliance drift over time</h3>
+                </div>
+              </div>
+              <div id="trend-charts" class="card-list compact-list"></div>
+            </article>
+            <article class="panel intelligence-material-timeline-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Material timeline</p>
+                  <h3>Selected material quarterly view</h3>
+                </div>
+              </div>
+              <div id="material-timeline" class="card-list compact-list"></div>
             </article>
           </section>
 
         </section>
       </main>
     </div>
+    <script src="/assets/modules/answer-panel.js"></script>
+    <script src="/assets/modules/workbench-panels.js"></script>
+    <script src="/assets/modules/trend-charts.js"></script>
     <script src="/assets/app.js"></script>
   </body>
 </html>
