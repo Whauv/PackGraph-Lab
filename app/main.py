@@ -79,6 +79,11 @@ app.mount("/assets", StaticFiles(directory="web/assets"), name="assets")
 
 @app.get("/")
 def home():
+    return FileResponse("web/landing.html")
+
+
+@app.get("/product")
+def product():
     return FileResponse("web/index.html")
 
 

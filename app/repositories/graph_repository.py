@@ -1430,5 +1430,9 @@ class Neo4jGraphRepository(LocalGraphRepository):
 def build_graph_repository(settings=None) -> LocalGraphRepository:
     settings = settings or get_settings()
     if settings.graph_backend == "neo4j":
-        return Neo4jGraphRepository(settings)
+        try:
+            return Neo4jGraphRepository(settings)
+        except Exception:
+            settings.graph_backend = "local"
+            return LocalGraphRepository()
     return LocalGraphRepository()
