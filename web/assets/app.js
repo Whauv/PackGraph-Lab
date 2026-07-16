@@ -61,6 +61,7 @@ function renderStructuredAnswer(panel) {
   if (window.PackGraphAnswerPanel) {
     window.PackGraphAnswerPanel.render(panel);
   }
+  renderRecommendedNextAction(panel);
 }
 
 function titleCase(value) {
@@ -106,7 +107,12 @@ function renderTableCard(containerId, columns, rows, emptyText = "No records ava
   const container = document.getElementById(containerId);
   if (!container) return;
   if (!rows.length) {
-    container.innerHTML = `<div class="table-empty">${escapeHtml(emptyText)}</div>`;
+    container.innerHTML = `
+      <div class="table-empty">
+        <span class="table-empty-illustration" aria-hidden="true"></span>
+        <strong>No records yet</strong>
+        <p>${escapeHtml(emptyText)}</p>
+      </div>`;
     return;
   }
   container.innerHTML = `
@@ -122,6 +128,60 @@ function renderTableCard(containerId, columns, rows, emptyText = "No records ava
         `).join("")}
       </tbody>
     </table>`;
+}
+
+function setStatus(id, message, tone = "info") {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = message;
+  element.className = `upload-status status-${tone}`;
+}
+
+function clearStatus(id) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = "";
+  element.className = "upload-status";
+}
+
+function setupOverviewOnboardingHint() {
+  const panel = document.getElementById("overview-onboarding");
+  const dismissButton = document.getElementById("dismiss-overview-hint");
+  if (!panel || !dismissButton) return;
+
+  const storageKey = "packgraph-overview-hint-dismissed";
+  if (window.localStorage.getItem(storageKey) === "true") {
+    panel.hidden = true;
+  }
+
+  dismissButton.addEventListener("click", () => {
+    panel.hidden = true;
+    window.localStorage.setItem(storageKey, "true");
+  });
+}
+
+function updateGraphContextBar(graph, edges) {
+  const container = document.getElementById("graph-context-bar");
+  if (!container) return;
+  const selectedNode = graph.nodes.find((node) => node.id === state.selectedGraphNodeId) || graph.nodes[0];
+  const relationshipSet = [...new Set(edges.map((edge) => titleCase(edge.type)))];
+  container.innerHTML = `
+    <div class="graph-context-item">
+      <span>Active node</span>
+      <strong>${escapeHtml(selectedNode?.label || "None selected")}</strong>
+    </div>
+    <div class="graph-context-item">
+      <span>Branch set</span>
+      <strong>${escapeHtml(state.graphPreset === "full" ? "Full graph" : titleCase(state.graphPreset))}</strong>
+    </div>
+    <div class="graph-context-item">
+      <span>Relationship filter</span>
+      <strong>${escapeHtml(state.graphFilter === "all" ? "All relationships" : titleCase(state.graphFilter))}</strong>
+    </div>
+    <div class="graph-context-item">
+      <span>Visible relationships</span>
+      <strong>${escapeHtml(relationshipSet.length ? relationshipSet.join(", ") : "None")}</strong>
+    </div>`;
 }
 
 function clamp(value, min, max) {
@@ -438,6 +498,7 @@ function renderGraphCanvas(graph) {
   ].join("");
 
   applyGraphZoom();
+  updateGraphContextBar(graph, normalizedEdges);
 }
 
 async function openMaterial(materialId, page = "overview") {
@@ -531,6 +592,32 @@ function selectedMaterialRecordsFromCompare() {
   return ids.map((id) => state.materials.find((item) => item.material_id === id)).filter(Boolean);
 }
 
+function renderShortlistSummaryRibbon() {
+  const container = document.getElementById("shortlist-summary-ribbon");
+  if (!container) return;
+  const selected = selectedMaterialRecordsFromCompare();
+  if (!selected.length) {
+    container.innerHTML = `
+      <div class="shortlist-summary-copy">
+        <span class="section-label">Shortlist state</span>
+        <strong>No active shortlist yet</strong>
+        <p>Select candidates to keep comparison context visible while you review rankings and evidence.</p>
+      </div>`;
+    return;
+  }
+  const names = selected.map((item) => item.name).join(", ");
+  container.innerHTML = `
+    <div class="shortlist-summary-copy">
+      <span class="section-label">Shortlist state</span>
+      <strong>${selected.length} candidates active</strong>
+      <p>${escapeHtml(names)}</p>
+    </div>
+    <div class="shortlist-summary-meta">
+      <div><span>Primary task</span><strong>Compare and validate</strong></div>
+      <div><span>Best next move</span><strong>Run ranking or inspect evidence</strong></div>
+    </div>`;
+}
+
 function renderCompareSelectionSummary() {
   const container = document.getElementById("compare-selection-summary");
   if (!container) return;
@@ -538,6 +625,38 @@ function renderCompareSelectionSummary() {
   container.innerHTML = selected.length
     ? selected.map((item) => `<span class="pill">${escapeHtml(item.name)}</span>`).join("")
     : `<span class="pill">No shortlist selected yet</span>`;
+  renderShortlistSummaryRibbon();
+}
+
+function renderRecommendedNextAction(panel) {
+  const container = document.getElementById("answer-next-action");
+  if (!container) return;
+  const risks = panel?.risk_flags || [];
+  const recommendations = panel?.recommendations || [];
+  let title = "Move this candidate into comparison.";
+  let body = "The current answer is strong enough to carry into Workbench for side-by-side evaluation.";
+  let action = "Compare in Workbench";
+  let target = "workbench";
+
+  if (risks.length) {
+    title = "Inspect the risk context before deciding.";
+    body = "The answer includes risk pressure, so the best next move is to inspect graph context, supplier exposure, or regulation links.";
+    action = "Inspect in Intelligence";
+    target = "intelligence";
+  } else if (!recommendations.length) {
+    title = "Refine the question or use filters.";
+    body = "The current answer is not specific enough yet, so narrow the portfolio or ask a more targeted question.";
+    action = "Refine on Overview";
+    target = "overview";
+  }
+
+  container.innerHTML = `
+    <span class="section-label">Recommended next action</span>
+    <strong>${escapeHtml(title)}</strong>
+    <p>${escapeHtml(body)}</p>
+    <div class="row-actions">
+      <button type="button" class="secondary overview-nav-button" data-jump-page="${target}">${escapeHtml(action)}</button>
+    </div>`;
 }
 
 function populateMaterialControls(materials) {
@@ -571,6 +690,9 @@ function setPage(pageName) {
     };
     pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(pageName)}</strong><small>${descriptions[pageName]}</small>`;
   }
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set("page", pageName);
+  window.history.replaceState({}, "", currentUrl);
 }
 
 async function loadSession() {
@@ -609,6 +731,7 @@ async function refreshMaterialContext() {
 }
 
 async function loadMaterialDetail() {
+  document.getElementById("material-detail").innerHTML = skeletonBlock("material");
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
   state.selectedMaterialDetail = material;
   document.getElementById("context-material").textContent = material.name;
@@ -754,9 +877,10 @@ async function uploadDocumentEvidence() {
   const status = document.getElementById("document-upload-status");
   const file = fileInput.files[0];
   if (!file) {
-    status.textContent = "Choose a file before uploading evidence.";
+    setStatus("document-upload-status", "Choose a file before uploading evidence.", "error");
     return;
   }
+  setStatus("document-upload-status", "Uploading evidence and extracting fields...", "info");
   const formData = new FormData();
   formData.set("file", file);
   formData.set("document_type", document.getElementById("document-upload-type").value);
@@ -770,12 +894,10 @@ async function uploadDocumentEvidence() {
   });
   const payload = await response.json();
   if (!response.ok || payload.status !== "ok") {
-    status.textContent = payload.detail || payload.error || "Upload failed.";
-    status.className = "upload-status status-error";
+    setStatus("document-upload-status", payload.detail || payload.error || "Upload failed.", "error");
     return;
   }
-  status.textContent = `Uploaded ${payload.data.record.title}. Extraction linked to ${state.selectedMaterialId}.`;
-  status.className = "upload-status status-success";
+  setStatus("document-upload-status", `Uploaded ${payload.data.record.title}. Extraction linked to ${state.selectedMaterialId}.`, "success");
   document.getElementById("document-upload-title").value = "";
   fileInput.value = "";
   await Promise.all([loadProvenance(document.getElementById("document-search-input").value.trim()), loadAlerts(), loadGraph()]);
@@ -823,6 +945,7 @@ async function loadScenarioHistory() {
 }
 
 async function loadGraph() {
+  document.getElementById("graph-nodes-layer").innerHTML = skeletonBlock("graph");
   const graph = await fetchJson(`/graph/subgraph?material_id=${state.selectedMaterialId}`);
   state.currentGraph = graph;
   const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
@@ -881,8 +1004,8 @@ async function runComparison() {
   state.compareResults = results;
   document.getElementById("compare-results").innerHTML = results.length
     ? results.map((item, index) => `
-      <div class="row-card compare-result-card">
-        <div class="compare-result-rank">Rank ${index + 1}</div>
+      <div class="row-card compare-result-card compare-result-card-${index === 0 ? "leader" : index === 1 ? "challenger" : "fallback"}">
+        <div class="compare-result-rank">${index === 0 ? "Leading option" : index === 1 ? "Strong alternative" : "Fallback option"}</div>
         <strong>${item.name}</strong>
         <p>Weighted score ${item.weighted_score}</p>
         <small>${index === 0 ? "Current leader based on active weights." : index === 1 ? "Closest alternative with a plausible tradeoff profile." : "Useful fallback if the leading options are blocked."}</small>
@@ -986,17 +1109,15 @@ async function loadAnalytics() {
 
 async function runGlobalSearch() {
   const input = document.getElementById("global-search-input");
-  const status = document.getElementById("global-search-status");
   const query = input.value.trim();
   if (!query) {
-    status.textContent = "Type something to search.";
-    status.className = "upload-status status-error";
+    setStatus("global-search-status", "Type something to search.", "error");
     renderTableCard("global-search-results", [], [], "Search across materials, suppliers, regulations, documents, and reports.");
     return;
   }
+  setStatus("global-search-status", "Searching the portfolio...", "info");
   const results = await fetchJson(`/search/global?query=${encodeURIComponent(query)}`);
-  status.textContent = results.length ? `Found ${results.length} matching records.` : "No matches found.";
-  status.className = `upload-status ${results.length ? "status-success" : ""}`;
+  setStatus("global-search-status", results.length ? `Found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
   renderTableCard(
     "global-search-results",
     [
@@ -1027,9 +1148,27 @@ async function runGlobalSearch() {
       },
     ],
     results,
-    "No matches found."
+    "Try a material family, supplier name, regulation title, or evidence keyword."
   );
   bindInlineActions();
+}
+
+function skeletonBlock(type) {
+  if (type === "graph") {
+    return `
+      <div class="graph-skeleton-grid">
+        <div class="skeleton skeleton-node"></div>
+        <div class="skeleton skeleton-node"></div>
+        <div class="skeleton skeleton-node"></div>
+      </div>`;
+  }
+  return `
+    <div class="skeleton-stack">
+      <div class="skeleton skeleton-title"></div>
+      <div class="skeleton skeleton-line"></div>
+      <div class="skeleton skeleton-line short"></div>
+      <div class="skeleton skeleton-card"></div>
+    </div>`;
 }
 
 async function loadBenchmarks() {
@@ -1086,6 +1225,10 @@ function updateExportLinks(material) {
   document.getElementById("export-compliance-pack-pdf").href = `/exports/compliance-pack.pdf?material_id=${encodeURIComponent(material.material_id)}`;
   document.getElementById("export-supplier-snapshot-pdf").href = `/exports/supplier-comparison.pdf?supplier_ids=${encodeURIComponent(supplierIds)}`;
   document.getElementById("export-supplier-snapshot-csv").href = `/exports/supplier-comparison.csv?supplier_ids=${encodeURIComponent(supplierIds)}`;
+  document.querySelectorAll(".export-link").forEach((link) => {
+    link.dataset.materialId = material.material_id;
+    link.dataset.materialName = material.name || material.material_id;
+  });
 }
 
 function populateScenarioControls(material) {
@@ -1136,13 +1279,14 @@ function renderSupplierDetail(supplier) {
   const container = document.getElementById("supplier-detail-panel");
   if (!container) return;
   if (!supplier) {
-    container.innerHTML = `<div class="detail-card"><p>Select or search a supplier to open the drilldown.</p></div>`;
+    container.innerHTML = skeletonBlock("detail");
     return;
   }
   container.innerHTML = `
     <div class="detail-card">
       <h5>${escapeHtml(supplier.name)}</h5>
       <h4>${escapeHtml(supplier.country)} supplier profile</h4>
+      <p class="panel-helper compact-helper">Use this view to understand whether the supplier is stable enough to support the current material path.</p>
       <div class="key-facts">
         <div class="fact"><span>Lead time</span><strong>${escapeHtml(supplier.lead_time_days)} days</strong></div>
         <div class="fact"><span>Risk</span><strong>${escapeHtml(supplier.disruption_risk_score)}</strong></div>
@@ -1154,13 +1298,18 @@ function renderSupplierDetail(supplier) {
       </div>
     </div>
     <div class="detail-card">
-      <h5>Trends</h5>
-      <h4>Risk and lead time</h4>
+      <h5>Trend signal</h5>
+      <h4>Risk and lead-time movement</h4>
       <div class="timeline-chart-footer">
         <span>${(supplier.risk_trend || []).map((item) => `${item.quarter}: risk ${item.risk_score}`).join(" | ") || "No risk trend available."}</span>
       </div>
       <div class="timeline-chart-footer">
         <span>${(supplier.lead_time_trend || []).map((item) => `${item.quarter}: ${item.lead_time_days}d`).join(" | ") || "No lead-time trend available."}</span>
+      </div>
+      <div class="subsection-heading">Action summary</div>
+      <div class="card-list compact-list">
+        <div class="row-card"><strong>Use when</strong><p>Supply remains qualified but risk needs monitoring against regulation timing or cost pressure.</p></div>
+        <div class="row-card"><strong>Watch for</strong><p>Lead-time expansion, certification expiry, or supplier concentration across shortlisted materials.</p></div>
       </div>
       <div class="subsection-heading">Supplied materials</div>
       <div class="card-list compact-list">
@@ -1173,13 +1322,14 @@ function renderRegulationDetail(regulation) {
   const container = document.getElementById("regulation-detail-panel");
   if (!container) return;
   if (!regulation) {
-    container.innerHTML = `<div class="detail-card"><p>Select or search a regulation to open the drilldown.</p></div>`;
+    container.innerHTML = skeletonBlock("detail");
     return;
   }
   container.innerHTML = `
     <div class="detail-card">
       <h5>${escapeHtml(regulation.name)}</h5>
       <h4>${regulation.active ? "Active" : "Upcoming"} regulation</h4>
+      <p class="panel-helper compact-helper">Use this panel to understand which materials are exposed, what evidence is missing, and what action should happen next.</p>
       <div class="key-facts">
         <div class="fact"><span>Effective date</span><strong>${escapeHtml(regulation.effective_date)}</strong></div>
         <div class="fact"><span>Focus</span><strong>${escapeHtml(titleCase(regulation.focus))}</strong></div>
@@ -1188,7 +1338,7 @@ function renderRegulationDetail(regulation) {
     </div>
     <div class="detail-card">
       <h5>Action context</h5>
-      <h4>Evidence gaps and likely actions</h4>
+      <h4>Evidence gaps and next actions</h4>
       <div class="card-list compact-list">
         ${(regulation.evidence_gaps || []).length
           ? regulation.evidence_gaps.map((item) => `<div class="row-card"><strong>Evidence gap</strong><p>${escapeHtml(item)}</p></div>`).join("")
@@ -1201,6 +1351,7 @@ function renderRegulationDetail(regulation) {
 }
 
 async function runScenario() {
+  document.getElementById("scenario-summary").textContent = "Running scenario and calculating impacts...";
   const payload = {
     scenario: document.getElementById("scenario-type").value,
     material_id: state.selectedMaterialId,
@@ -1241,10 +1392,10 @@ async function loadMaterialTimeline() {
 async function saveInvestigation() {
   const title = document.getElementById("investigation-title").value.trim();
   if (!title) {
-    document.getElementById("investigation-status").textContent = "Add a title before saving the investigation.";
-    document.getElementById("investigation-status").className = "upload-status status-error";
+    setStatus("investigation-status", "Add a title before saving the investigation.", "error");
     return;
   }
+  setStatus("investigation-status", "Saving investigation context...", "info");
   const payload = {
     title,
     focus_material_id: state.selectedMaterialId,
@@ -1262,8 +1413,7 @@ async function saveInvestigation() {
     body: JSON.stringify(payload),
   });
   state.currentInvestigationId = result.investigation_id;
-  document.getElementById("investigation-status").textContent = `Saved ${result.title} with ${result.shortlisted_material_ids.length} shortlisted materials.`;
-  document.getElementById("investigation-status").className = "upload-status status-success";
+  setStatus("investigation-status", `Saved ${result.title} with ${result.shortlisted_material_ids.length} shortlisted materials.`, "success");
   await loadInvestigations();
 }
 
@@ -1284,8 +1434,7 @@ async function resumeInvestigation(investigationId) {
   renderCompareSelectionSummary();
   await refreshMaterialContext();
   await runComparison();
-  document.getElementById("investigation-status").textContent = `Resumed ${investigation.title}.`;
-  document.getElementById("investigation-status").className = "upload-status status-success";
+  setStatus("investigation-status", `Resumed ${investigation.title}.`, "success");
 }
 
 async function resumeWorkspace(workspaceId) {
@@ -1457,6 +1606,15 @@ function setupGraphFilters() {
       applyGraphZoom();
     });
   }
+  document.querySelectorAll("[data-graph-chip]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.graphFilter = button.dataset.graphChip;
+      const select = document.getElementById("graph-relationship-filter");
+      if (select) select.value = state.graphFilter;
+      document.querySelectorAll("[data-graph-chip]").forEach((chip) => chip.classList.toggle("active", chip === button));
+      if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+    });
+  });
 }
 
 function setupForms() {
@@ -1531,13 +1689,17 @@ function setupForms() {
     document.getElementById("investigation-title").value = "";
     document.getElementById("investigation-notes").value = "";
     document.getElementById("investigation-rationale").value = "";
-    document.getElementById("investigation-status").textContent = "Cleared the current investigation draft.";
+    setStatus("investigation-status", "Cleared the current investigation draft.", "info");
   });
 
   document.getElementById("workspace-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const name = document.getElementById("workspace-name").value.trim();
-    if (!name) return;
+    if (!name) {
+      setStatus("workspace-status", "Add a workspace name before saving.", "error");
+      return;
+    }
+    setStatus("workspace-status", "Saving workspace context...", "info");
     await fetchJson("/workspaces", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1562,11 +1724,27 @@ function setupForms() {
     });
     document.getElementById("workspace-name").value = "";
     await loadWorkspaces();
+    setStatus("workspace-status", `Saved workspace ${name}.`, "success");
   });
 
   document.getElementById("global-search-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     await runGlobalSearch();
+  });
+
+  document.getElementById("toggle-advanced-filters").addEventListener("click", () => {
+    const container = document.getElementById("advanced-filters");
+    const button = document.getElementById("toggle-advanced-filters");
+    const isCollapsed = container.classList.toggle("is-collapsed");
+    button.textContent = isCollapsed ? "Show advanced filters" : "Hide advanced filters";
+  });
+
+  document.querySelectorAll(".export-link").forEach((link) => {
+    link.addEventListener("click", () => {
+      const format = link.textContent.trim();
+      const materialName = link.dataset.materialName || "selected material";
+      setStatus("export-studio-status", `Preparing ${format} for ${materialName}.`, "success");
+    });
   });
 
 }
@@ -1579,6 +1757,7 @@ async function init() {
   setupGraphPanControls();
   setupGraphFilters();
   setupForms();
+  setupOverviewOnboardingHint();
   await Promise.all([
     loadSession(),
     loadMaterials(),
@@ -1608,6 +1787,10 @@ async function init() {
   renderSupplierDetail(null);
   renderRegulationDetail(null);
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
+  const requestedPage = new URLSearchParams(window.location.search).get("page");
+  if (["overview", "workbench", "intelligence"].includes(requestedPage)) {
+    setPage(requestedPage);
+  }
 }
 
 init();

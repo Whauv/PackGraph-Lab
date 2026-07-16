@@ -28,11 +28,24 @@ window.PackGraphTrendCharts = {
 
   renderChartCard(title, points, suffix) {
     if (!points.length) {
-      return `<div class="row-card"><strong>${this.escape(title)}</strong><p>No data available.</p></div>`;
+      return `
+        <div class="row-card timeline-chart timeline-chart-empty">
+          <strong>${this.escape(title)}</strong>
+          <div class="table-empty compact-empty">
+            <span class="table-empty-illustration" aria-hidden="true"></span>
+            <strong>No trend data yet</strong>
+            <p>Load more quarterly data to surface movement here.</p>
+          </div>
+        </div>`;
     }
     const values = points.map((item) => Number(item.value));
     const min = Math.min(...values);
     const max = Math.max(...values);
+    const firstValue = values[0];
+    const lastValue = values[values.length - 1];
+    const delta = Number((lastValue - firstValue).toFixed(2));
+    const deltaLabel = `${delta > 0 ? "+" : ""}${delta} ${suffix}`;
+    const trendTone = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
     const width = 320;
     const height = 96;
     const polyline = points.map((item, index) => {
@@ -44,11 +57,18 @@ window.PackGraphTrendCharts = {
     }).join(" ");
     return `
       <div class="row-card timeline-chart">
-        <strong>${this.escape(title)}</strong>
+        <div class="timeline-chart-header">
+          <strong>${this.escape(title)}</strong>
+          <span class="timeline-chart-delta timeline-chart-delta-${trendTone}">${this.escape(deltaLabel)}</span>
+        </div>
         <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
           <polyline points="12,12 12,84 308,84"></polyline>
           <path d="M ${polyline.replaceAll(" ", " L ")}"></path>
         </svg>
+        <div class="timeline-chart-statline">
+          <span>Range ${this.escape(String(min))} to ${this.escape(String(max))} ${this.escape(suffix)}</span>
+          <span>${this.escape(points.length)} snapshots</span>
+        </div>
         <div class="timeline-chart-footer">
           <span>${this.escape(points[0].label)}</span>
           <span>${this.escape(points[points.length - 1].value)} ${this.escape(suffix)}</span>
