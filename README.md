@@ -17,13 +17,14 @@ PackGraph Lab demonstrates those flows with fresh branding, synthetic data, and 
 
 - Synthetic data generator with correlated packaging-specific properties
 - 75 materials, 25 suppliers, 20 applications, 12 regulations, 6 certifications, and 700+ relationships
+- Landing page entry experience with product overview, workflow narrative, setup guidance, and repo/product links
 - Provenance artifacts including fake datasheets, declarations, and lab reports
 - Quarterly snapshots for price, risk, lead time, certification expiration, and compliance changes
 - FastAPI backend with Neo4j-backed graph endpoints
 - Reviewed natural-language query planner instead of unconstrained Cypher generation
 - Scenario simulator for supplier outages, cost jumps, sustainability reprioritization, and future regulation changes
 - Investigation workspace with saved notes and shortlists
-- Polished frontend with chat, material detail, compliance, provenance, graph, and timeline views
+- Polished frontend with landing page, chat, material detail, compliance, provenance, graph, and timeline views
 - Neo4j Community Edition ingestion script with `MERGE`-based repeatable loading
 - Audited Neo4j query execution for graph subgraph, pathfinding, relationship preview, and node context requests
 - Optional Memgraph benchmark scaffold using the same dataset and query set
@@ -48,12 +49,17 @@ pip install -r requirements.txt
 python scripts/generate_data.py
 copy .env.example .env
 python scripts/ingest_graph.py
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
-Open [http://localhost:8000](http://localhost:8000).
+Open:
+
+- landing page: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- product workspace: [http://127.0.0.1:8000/product](http://127.0.0.1:8000/product)
 
 This path assumes you already have Neo4j Community Edition running locally on `bolt://localhost:7687`.
+
+If Neo4j is not running, the app now falls back to the local JSON-backed repository so you can still review the landing page and product UI without a live graph database.
 
 ### Option 2: Docker Compose
 
@@ -136,12 +142,17 @@ Scenario endpoints simulate:
 - `GET /materials`
 - `GET /materials/{id}`
 - `GET /suppliers`
+- `GET /suppliers/{id}`
 - `GET /applications`
+- `GET /regulations`
+- `GET /regulations/{id}`
 - `GET /investigations`
 - `POST /investigations`
+- `GET /search/global`
 - `GET /query/recommendations`
 - `POST /query/ask`
 - `POST /query/scenario`
+- `GET /scenarios/history`
 - `GET /runtime/backends`
 - `GET /benchmarks`
 - `GET /compliance/dashboard`
@@ -151,20 +162,24 @@ Scenario endpoints simulate:
 
 ```mermaid
 flowchart LR
-    A["Synthetic data generator"] --> B["JSON datasets"]
-    B --> C["FastAPI local graph repository"]
+    A["Synthetic data generator"] --> B["JSON dataset bundle"]
+    B --> C["Local graph repository"]
     B --> D["Neo4j ingestion script"]
-    D --> E["Neo4j graph database"]
+    D --> E["Neo4j Community Edition"]
     C --> F["Reviewed query planner"]
     C --> G["Scenario engine"]
-    C --> H["Investigation workspace"]
-    F --> I["Recommendations and evidence queries"]
-    G --> J["Cost, risk, and compliance simulations"]
-    H --> K["Saved notes, shortlists, and rationale"]
-    I --> L["Frontend dashboard"]
-    J --> L
-    K --> L
-    E --> M["Benchmark and Cypher analysis"]
+    C --> H["Document intelligence"]
+    C --> I["Workspace and investigation services"]
+    F --> J["Structured answer panel"]
+    G --> K["Scenario history and impact outputs"]
+    H --> L["Evidence search and extracted fields"]
+    I --> M["Saved shortlist and rationale state"]
+    J --> N["PackGraph product workspace"]
+    K --> N
+    L --> N
+    M --> N
+    O["Landing page entry"] --> N
+    E --> P["Graph traversal, pathfinding, and benchmark analysis"]
 ```
 
 ## Example Cypher queries
