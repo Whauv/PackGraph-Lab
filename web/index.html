@@ -48,6 +48,7 @@
             <input id="workspace-name" type="text" placeholder="Name this workspace" />
             <button type="submit">Save workspace</button>
           </form>
+          <div id="workspace-status" class="upload-status"></div>
         </section>
       </aside>
 
@@ -84,11 +85,19 @@
             </div>
             <p>Start the decision here: narrow the portfolio, ask a focused question, check risk pressure, and move deeper only when a candidate deserves more investigation.</p>
           </section>
+          <section id="overview-onboarding" class="panel onboarding-hint-panel">
+            <div class="onboarding-hint-copy">
+              <span class="section-label">First-time guidance</span>
+              <strong>Start with search, then use the answer panel to choose the next workspace.</strong>
+              <p>Search or filter first, ask one focused question, then move into comparison, evidence review, or graph inspection only if the candidate deserves it.</p>
+            </div>
+            <button type="button" id="dismiss-overview-hint" class="secondary">Hide hint</button>
+          </section>
           <section class="hero overview-hero">
             <div class="hero-copy">
               <p class="eyebrow">Decision flow</p>
-              <h2>Pick a material, ask the graph, then decide whether the risk profile justifies deeper work.</h2>
-              <p class="hero-text">Overview is for fast decision starting, not deep analysis. Keep the first pass simple: select the candidate, review the answer, check compliance pressure, and only then move to Workbench or Intelligence.</p>
+              <h2>Start with one question, one candidate, and one clear next step.</h2>
+              <p class="hero-text">Overview should move like a guided decision lane: pick the active material, ask the graph, review the decision output, then decide whether the candidate deserves comparison, evidence review, or scenario testing.</p>
             </div>
 
             <div class="hero-rail">
@@ -98,7 +107,7 @@
                 <p id="overview-selected-material-note">Loading current decision context.</p>
               </div>
               <div class="hero-actions">
-                <button type="button" id="jump-chat">Ask the graph</button>
+                <button type="button" id="jump-chat">Start with search</button>
                 <button type="button" id="jump-workbench" class="secondary">Open workbench</button>
               </div>
               <div class="hero-summary overview-summary-strip" id="hero-summary">
@@ -110,37 +119,13 @@
             </div>
           </section>
 
-          <article class="panel overview-filter-panel">
+          <article class="panel overview-search-panel overview-search-primary">
             <div class="panel-header compact-panel-header">
               <div>
-                <p class="eyebrow">Filter toolbar</p>
-                <h3>Reduce the portfolio before you ask</h3>
+                <p class="eyebrow">Primary action</p>
+                <h3>Search the portfolio, then move into one focused decision</h3>
               </div>
-              <div id="filter-results-summary" class="panel-kicker">Showing full portfolio</div>
-            </div>
-            <form id="filter-form" class="filter-grid overview-filter-grid">
-              <input id="filter-search" type="text" placeholder="Search material or composition" />
-              <input id="filter-family" type="text" placeholder="Material family" />
-              <select id="filter-region"><option value="">All regions</option></select>
-              <select id="filter-category"><option value="">All categories</option></select>
-              <select id="filter-regulation"><option value="">Any regulation</option></select>
-              <select id="filter-claim"><option value="">Any claim type</option><option value="food_contact">Food contact</option><option value="recyclable">Recyclable</option><option value="compostable">Compostable</option><option value="high_barrier">High barrier</option><option value="low_cost">Low cost</option></select>
-              <select id="filter-compliance"><option value="">Any compliance state</option><option value="compliant">Compliant</option><option value="watch">Watch</option><option value="non-compliant">Non-compliant</option></select>
-              <select id="filter-performance-metric"><option value="">Any performance metric</option><option value="oxygen_barrier">Oxygen barrier</option><option value="moisture_barrier">Moisture barrier</option><option value="seal_strength">Seal strength</option><option value="thermal_tolerance">Thermal tolerance</option><option value="recyclability_score">Recyclability</option><option value="sustainability_score">Sustainability</option></select>
-              <input id="filter-performance-score" type="number" min="0" max="100" placeholder="Min metric score" />
-              <input id="filter-supplier-capability" type="text" placeholder="Supplier capability or certification" />
-              <input id="filter-sustainability" type="number" min="0" max="100" placeholder="Min sustainability" />
-              <button type="submit">Apply filters</button>
-            </form>
-          </article>
-
-          <article class="panel overview-search-panel">
-            <div class="panel-header compact-panel-header">
-              <div>
-                <p class="eyebrow">Global search</p>
-                <h3>Search across materials, suppliers, regulations, documents, and reports</h3>
-              </div>
-              <div class="panel-kicker">Use this when you already know the thing you want to jump to</div>
+              <div id="global-search-summary" class="panel-kicker">Search materials, suppliers, regulations, documents, and reports.</div>
             </div>
             <form id="global-search-form" class="inline-form query-form">
               <input id="global-search-input" type="text" placeholder="Search a material, supplier, regulation, document, or report" />
@@ -148,6 +133,37 @@
             </form>
             <div id="global-search-status" class="upload-status"></div>
             <div id="global-search-results" class="table-card"></div>
+          </article>
+
+          <article class="panel overview-filter-panel">
+            <div class="panel-header compact-panel-header">
+              <div>
+                <p class="eyebrow">Portfolio narrowing</p>
+                <h3>Use filters only when the search needs more structure</h3>
+              </div>
+              <div class="overview-filter-actions">
+                <div id="filter-results-summary" class="panel-kicker">Showing full portfolio</div>
+                <button type="button" id="toggle-advanced-filters" class="secondary">Show advanced filters</button>
+              </div>
+            </div>
+            <form id="filter-form" class="stack-form">
+              <div class="filter-grid overview-filter-grid-basic">
+                <input id="filter-search" type="text" placeholder="Search material or composition" />
+                <select id="filter-region"><option value="">All regions</option></select>
+                <select id="filter-category"><option value="">All categories</option></select>
+                <select id="filter-compliance"><option value="">Any compliance state</option><option value="compliant">Compliant</option><option value="watch">Watch</option><option value="non-compliant">Non-compliant</option></select>
+                <button type="submit">Apply filters</button>
+              </div>
+              <div id="advanced-filters" class="filter-grid overview-filter-grid overview-filter-grid-advanced is-collapsed">
+                <input id="filter-family" type="text" placeholder="Material family" />
+                <select id="filter-regulation"><option value="">Any regulation</option></select>
+                <select id="filter-claim"><option value="">Any claim type</option><option value="food_contact">Food contact</option><option value="recyclable">Recyclable</option><option value="compostable">Compostable</option><option value="high_barrier">High barrier</option><option value="low_cost">Low cost</option></select>
+                <select id="filter-performance-metric"><option value="">Any performance metric</option><option value="oxygen_barrier">Oxygen barrier</option><option value="moisture_barrier">Moisture barrier</option><option value="seal_strength">Seal strength</option><option value="thermal_tolerance">Thermal tolerance</option><option value="recyclability_score">Recyclability</option><option value="sustainability_score">Sustainability</option></select>
+                <input id="filter-performance-score" type="number" min="0" max="100" placeholder="Min metric score" />
+                <input id="filter-supplier-capability" type="text" placeholder="Supplier capability or certification" />
+                <input id="filter-sustainability" type="number" min="0" max="100" placeholder="Min sustainability" />
+              </div>
+            </form>
           </article>
 
           <section class="panel-grid top-grid">
@@ -174,9 +190,20 @@
               </div>
               <div class="subsection structured-answer-panel">
                 <div class="subsection-heading">Structured answer</div>
-                <div class="detail-card">
+                <div class="detail-card structured-answer-summary-card">
                   <h4 id="answer-panel-title">Decision output</h4>
                   <p id="answer-panel-summary">Run a question to see structured recommendations, reasons, risk flags, and next steps.</p>
+                </div>
+                <div class="structured-answer-priority">
+                  <div>
+                    <span class="section-label">Decision guidance</span>
+                    <strong>The answer panel is the main output on this page.</strong>
+                    <p>Use the result here to decide whether to move into comparison, evidence review, or scenario testing.</p>
+                  </div>
+                  <div class="row-actions">
+                    <button type="button" class="secondary overview-nav-button" data-jump-page="workbench">Compare in Workbench</button>
+                    <button type="button" class="secondary overview-nav-button" data-jump-page="intelligence">Inspect in Intelligence</button>
+                  </div>
                 </div>
                 <div class="split-grid structured-answer-grid">
                   <div>
@@ -197,6 +224,11 @@
                     <div class="subsection-heading">Next steps</div>
                     <div id="answer-panel-next-steps" class="card-list compact-list"></div>
                   </div>
+                </div>
+                <div id="answer-next-action" class="structured-next-action">
+                  <span class="section-label">Recommended next action</span>
+                  <strong>Ask a focused question to reveal the best next move.</strong>
+                  <p>After the answer lands, PackGraph will guide you toward compare, evidence review, graph inspection, or scenario testing.</p>
                 </div>
               </div>
             </article>
@@ -290,13 +322,22 @@
                   </div>
                 </section>
                 <div id="compare-selection-summary" class="tag-group compare-selection-summary"></div>
-                <div class="row-actions report-actions">
-                  <a id="export-executive-summary-pdf" class="mini-action link-action" href="#" target="_blank">Executive PDF</a>
-                  <a id="export-executive-summary-csv" class="mini-action link-action" href="#" target="_blank">Executive CSV</a>
-                  <a id="export-compliance-pack-csv" class="mini-action link-action" href="#" target="_blank">Compliance CSV</a>
-                  <a id="export-compliance-pack-pdf" class="mini-action link-action" href="#" target="_blank">Compliance PDF</a>
-                  <a id="export-supplier-snapshot-pdf" class="mini-action link-action" href="#" target="_blank">Supplier snapshot PDF</a>
-                  <a id="export-supplier-snapshot-csv" class="mini-action link-action" href="#" target="_blank">Supplier snapshot CSV</a>
+                <div id="shortlist-summary-ribbon" class="shortlist-summary-ribbon"></div>
+                <div class="export-studio">
+                  <div class="export-studio-copy">
+                    <span class="section-label">Export studio</span>
+                    <strong>Package the current shortlist into decision-ready outputs.</strong>
+                    <p>Choose the format that matches the review moment: executive summary, compliance pack, or supplier snapshot.</p>
+                  </div>
+                  <div class="row-actions report-actions">
+                    <a id="export-executive-summary-pdf" class="mini-action link-action export-link executive" href="#" target="_blank">Executive PDF</a>
+                    <a id="export-executive-summary-csv" class="mini-action link-action export-link executive" href="#" target="_blank">Executive CSV</a>
+                    <a id="export-compliance-pack-csv" class="mini-action link-action export-link compliance" href="#" target="_blank">Compliance CSV</a>
+                    <a id="export-compliance-pack-pdf" class="mini-action link-action export-link compliance" href="#" target="_blank">Compliance PDF</a>
+                    <a id="export-supplier-snapshot-pdf" class="mini-action link-action export-link supplier" href="#" target="_blank">Supplier snapshot PDF</a>
+                    <a id="export-supplier-snapshot-csv" class="mini-action link-action export-link supplier" href="#" target="_blank">Supplier snapshot CSV</a>
+                  </div>
+                  <div id="export-studio-status" class="upload-status"></div>
                 </div>
                 <div class="compare-layout workbench-compare-layout">
                   <form id="compare-form" class="stack-form workbench-compare-form">
@@ -559,6 +600,14 @@
                     </div>
                     </div>
                   </div>
+                  <div id="graph-branch-chips" class="graph-branch-chips">
+                    <button type="button" class="mini-action graph-branch-chip active" data-graph-chip="all">All</button>
+                    <button type="button" class="mini-action graph-branch-chip" data-graph-chip="SUPPLIED_BY">Suppliers</button>
+                    <button type="button" class="mini-action graph-branch-chip" data-graph-chip="REVIEWED_UNDER">Regulations</button>
+                    <button type="button" class="mini-action graph-branch-chip" data-graph-chip="HAS_DOCUMENT">Documents</button>
+                    <button type="button" class="mini-action graph-branch-chip" data-graph-chip="SUBSTITUTES_WITH">Substitutes</button>
+                  </div>
+                  <div id="graph-context-bar" class="graph-context-bar"></div>
                   <div id="graph-subgraph" class="graph-canvas">
                     <div id="graph-viewport" class="graph-viewport">
                       <svg id="graph-edges" class="graph-edges" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true"></svg>

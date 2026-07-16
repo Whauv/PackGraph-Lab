@@ -15,6 +15,25 @@ const capabilityRows = [
   },
 ];
 
+const audienceRows = [
+  {
+    title: "Packaging teams",
+    detail: "Understand which materials are viable for a packaging use case before the project turns into a full investigation.",
+  },
+  {
+    title: "Compliance leads",
+    detail: "Trace linked regulations, evidence gaps, and likely follow-up actions without losing the material context.",
+  },
+  {
+    title: "Procurement and sourcing",
+    detail: "Inspect supplier exposure, lead-time movement, and supply concentration before locking in the shortlist.",
+  },
+  {
+    title: "R&D and materials teams",
+    detail: "Compare alternatives, test reformulation pressure, and carry the decision rationale into downstream review.",
+  },
+];
+
 const workflowSteps = [
   {
     step: "01",
@@ -97,6 +116,20 @@ function renderCapabilityRows() {
     .map(
       (item) => `
         <article class="landing-capability-row">
+          <strong>${item.title}</strong>
+          <p>${item.detail}</p>
+        </article>`
+    )
+    .join("");
+}
+
+function renderAudienceRows() {
+  const container = document.getElementById("landing-audience-grid");
+  if (!container) return;
+  container.innerHTML = audienceRows
+    .map(
+      (item) => `
+        <article class="landing-audience-row">
           <strong>${item.title}</strong>
           <p>${item.detail}</p>
         </article>`
@@ -188,6 +221,7 @@ function setupReveal() {
 }
 
 renderTrustStrip();
+renderAudienceRows();
 renderCapabilityRows();
 renderWorkflow();
 renderAreas();

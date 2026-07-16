@@ -30,6 +30,16 @@
           </div>
         </div>
       </header>
+      <nav class="landing-subnav" aria-label="Section navigation">
+        <div class="landing-shell landing-subnav-inner">
+          <a href="#audiences">Who it is for</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#areas">Product areas</a>
+          <a href="#product-views">Product views</a>
+          <a href="#setup">Developer setup</a>
+        </div>
+      </nav>
 
       <main class="landing-main">
         <section class="landing-section landing-hero-section section-reveal">
@@ -57,10 +67,16 @@
                 </div>
                 <div class="landing-proof-window">
                   <div class="landing-proof-column">
-                    <div class="landing-proof-node landing-proof-node-material">
-                      <span>Material</span>
-                      <strong>Film A11</strong>
-                      <small>Food-contact watch / 2 suppliers / 3 evidence sources</small>
+                    <div class="landing-proof-stage">
+                      <div class="landing-proof-stage-header">
+                        <strong>Overview</strong>
+                        <span>Current candidate</span>
+                      </div>
+                      <div class="landing-proof-node landing-proof-node-material">
+                        <span>Material</span>
+                        <strong>Film A11</strong>
+                        <small>Food-contact watch / 2 suppliers / 3 evidence sources</small>
+                      </div>
                     </div>
                     <div class="landing-proof-connector"></div>
                     <div class="landing-proof-row">
@@ -78,22 +94,30 @@
                   </div>
                   <div class="landing-proof-sidebar">
                     <div class="landing-proof-panel-block">
-                      <span class="landing-proof-micro-label">Evidence trace</span>
-                      <ul>
-                        <li>Synthetic datasheet linked</li>
-                        <li>Migration report available</li>
-                        <li>Declaration missing for one supplier</li>
-                      </ul>
+                      <span class="landing-proof-micro-label">Workbench</span>
+                      <div class="landing-proof-result-card">
+                        <strong>Shortlist ranking</strong>
+                        <div class="landing-proof-result-row"><span>Leader</span><strong>Film A11</strong></div>
+                        <div class="landing-proof-result-row"><span>Alternative</span><strong>Film A46</strong></div>
+                        <div class="landing-proof-result-row"><span>Fallback</span><strong>Film C18</strong></div>
+                      </div>
                     </div>
                     <div class="landing-proof-panel-block">
-                      <span class="landing-proof-micro-label">Scenario delta</span>
-                      <div class="landing-proof-delta-row">
-                        <span>Supplier outage</span>
-                        <strong>3 backup substitutes</strong>
-                      </div>
-                      <div class="landing-proof-delta-row">
-                        <span>Cost cap</span>
-                        <strong>1 viable alternative</strong>
+                      <span class="landing-proof-micro-label">Intelligence</span>
+                      <div class="landing-proof-result-card">
+                        <strong>Decision pressure</strong>
+                        <div class="landing-proof-delta-row">
+                          <span>Supplier outage</span>
+                          <strong>3 backup substitutes</strong>
+                        </div>
+                        <div class="landing-proof-delta-row">
+                          <span>Evidence gap</span>
+                          <strong>Declaration missing</strong>
+                        </div>
+                        <div class="landing-proof-delta-row">
+                          <span>Regulation timing</span>
+                          <strong>Q4 activation</strong>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -104,6 +128,16 @@
         </section>
 
         <section id="capabilities" class="landing-section section-reveal">
+          <div class="landing-shell">
+            <div id="audiences" class="landing-section-heading landing-section-heading-slim">
+              <p class="eyebrow">Who this is for</p>
+              <h2>Built for cross-functional packaging decisions, not a single-role dashboard.</h2>
+            </div>
+            <div id="landing-audience-grid" class="landing-audience-grid"></div>
+          </div>
+        </section>
+
+        <section class="landing-section section-reveal">
           <div class="landing-shell">
             <div class="landing-section-heading">
               <p class="eyebrow">What PackGraph does</p>
@@ -142,6 +176,36 @@
               <p>Each area supports a different stage of the decision path, so teams can start light and move deeper only when the question deserves it.</p>
             </div>
             <div id="landing-areas-grid" class="landing-areas-grid"></div>
+          </div>
+        </section>
+
+        <section id="product-views" class="landing-section section-reveal">
+          <div class="landing-shell">
+            <div class="landing-section-heading">
+              <p class="eyebrow">Inside the product</p>
+              <h2>See the real PackGraph surfaces, not abstract marketing placeholders.</h2>
+              <p>These previews are live embeds of the actual product experience, showing how the product presents decision flow and graph context.</p>
+            </div>
+            <div class="landing-product-preview-grid">
+              <article class="landing-product-preview-card">
+                <div class="landing-product-preview-header">
+                  <strong>Overview workspace</strong>
+                  <span>Search, answer, and decide</span>
+                </div>
+                <div class="landing-product-preview-frame">
+                  <iframe src="/product?page=overview" title="PackGraph Overview preview" loading="lazy"></iframe>
+                </div>
+              </article>
+              <article class="landing-product-preview-card">
+                <div class="landing-product-preview-header">
+                  <strong>Intelligence workspace</strong>
+                  <span>Graph, drilldowns, and monitoring</span>
+                </div>
+                <div class="landing-product-preview-frame">
+                  <iframe src="/product?page=intelligence" title="PackGraph Intelligence preview" loading="lazy"></iframe>
+                </div>
+              </article>
+            </div>
           </div>
         </section>
 
