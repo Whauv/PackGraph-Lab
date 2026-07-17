@@ -1,7 +1,19 @@
 const state = {
   materials: [],
   suppliers: [],
+  applications: [],
   regulations: [],
+  exploreTab: "materials",
+  currentSection: "dashboard",
+  exploreResults: [],
+  selectedExploreDetail: null,
+  contributionRoles: [],
+  selectedContributionRoleId: "fellow",
+  contributionData: { submissions: [], status_summary: [] },
+  communityChannels: [],
+  selectedCommunityChannelId: "polymers",
+  communityPosts: [],
+  selectedCommunityPostId: null,
   filteredMaterials: [],
   selectedMaterialId: null,
   selectedMaterialDetail: null,
@@ -628,6 +640,26 @@ function renderCompareSelectionSummary() {
   renderShortlistSummaryRibbon();
 }
 
+function updatePageContextCard() {
+  const pageCard = document.getElementById("page-context-card");
+  if (!pageCard) return;
+  if (state.currentSection !== "dashboard") {
+    const shellDescriptions = {
+      explore: "Browse-first research: materials, applications, suppliers, and source-driven updates.",
+      contribute: "Role-based onboarding and contribution workflow for insights, evidence, and links.",
+      community: "Topic channels, post feed, and discussion detail around materials intelligence.",
+    };
+    pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(state.currentSection)}</strong><small>${shellDescriptions[state.currentSection]}</small>`;
+    return;
+  }
+  const descriptions = {
+    overview: "Core decision flow: filters, material detail, chat, compliance.",
+    workbench: "Shortlist workflow: ranking, provenance, investigations, workspaces.",
+    intelligence: "Support layer: graph, alerts, analytics, and benchmarks.",
+  };
+  pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(state.currentPage)}</strong><small>${descriptions[state.currentPage]}</small>`;
+}
+
 function renderRecommendedNextAction(panel) {
   const container = document.getElementById("answer-next-action");
   if (!container) return;
@@ -677,21 +709,30 @@ function populateMaterialControls(materials) {
 }
 
 function setPage(pageName) {
+  state.currentSection = "dashboard";
   state.currentPage = pageName;
   document.body.setAttribute("data-page", pageName);
   document.querySelectorAll(".page-link").forEach((button) => button.classList.toggle("active", button.dataset.page === pageName));
   document.querySelectorAll(".page-section").forEach((section) => section.classList.toggle("active", section.dataset.page === pageName));
-  const pageCard = document.getElementById("page-context-card");
-  if (pageCard) {
-    const descriptions = {
-      overview: "Core decision flow: filters, material detail, chat, compliance.",
-      workbench: "Shortlist workflow: ranking, provenance, investigations, workspaces.",
-      intelligence: "Support layer: graph, alerts, analytics, and benchmarks.",
-    };
-    pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(pageName)}</strong><small>${descriptions[pageName]}</small>`;
-  }
+  document.querySelectorAll(".product-section").forEach((section) => section.classList.toggle("active", section.dataset.section === "dashboard"));
+  document.querySelectorAll(".shell-link").forEach((button) => button.classList.toggle("active", button.dataset.section === "dashboard"));
+  updatePageContextCard();
   const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set("section", "dashboard");
   currentUrl.searchParams.set("page", pageName);
+  window.history.replaceState({}, "", currentUrl);
+}
+
+function setSection(sectionName) {
+  state.currentSection = sectionName;
+  document.querySelectorAll(".shell-link").forEach((button) => button.classList.toggle("active", button.dataset.section === sectionName));
+  document.querySelectorAll(".product-section").forEach((section) => section.classList.toggle("active", section.dataset.section === sectionName));
+  updatePageContextCard();
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set("section", sectionName);
+  if (sectionName !== "dashboard") {
+    currentUrl.searchParams.delete("page");
+  }
   window.history.replaceState({}, "", currentUrl);
 }
 
@@ -704,12 +745,16 @@ async function loadMaterials() {
   const body = await payload.json();
   state.materials = body.data;
   state.suppliers = await fetchJson("/suppliers");
+  state.applications = await fetchJson("/applications");
   state.regulations = await fetchJson("/regulations");
   state.filteredMaterials = [...state.materials];
   state.selectedMaterialId = state.materials[0]?.material_id;
   state.selectedGraphNodeId = state.selectedMaterialId;
   populateMaterialControls(state.materials);
   populateFilterOptions();
+  populateExploreOptions();
+  populateContributionEntityOptions();
+  populateCommunityMaterialOptions();
   document.getElementById("material-select").addEventListener("change", async (event) => {
     state.selectedMaterialId = event.target.value;
     await refreshMaterialContext();
@@ -724,6 +769,31 @@ function populateFilterOptions() {
   document.getElementById("filter-region").innerHTML = `<option value="">All regions</option>${regions.map((item) => `<option value="${item}">${item}</option>`).join("")}`;
   document.getElementById("filter-category").innerHTML = `<option value="">All categories</option>${categories.map((item) => `<option value="${item}">${titleCase(item)}</option>`).join("")}`;
   document.getElementById("filter-regulation").innerHTML = `<option value="">Any regulation</option>${regulations.map((item) => `<option value="${item.regulation_id}">${item.name}</option>`).join("")}`;
+}
+
+function populateExploreOptions() {
+  const categories = [...new Set(state.materials.map((item) => item.category))].sort();
+  document.getElementById("explore-category").innerHTML = `<option value="">All categories</option>${categories.map((item) => `<option value="${item}">${titleCase(item)}</option>`).join("")}`;
+  document.getElementById("explore-supplier").innerHTML = `<option value="">All suppliers</option>${state.suppliers.map((item) => `<option value="${item.supplier_id}">${item.name}</option>`).join("")}`;
+  document.getElementById("explore-application").innerHTML = `<option value="">All applications</option>${state.applications.map((item) => `<option value="${item.application_id}">${item.name}</option>`).join("")}`;
+}
+
+function populateContributionEntityOptions() {
+  const select = document.getElementById("contribution-entity-id");
+  if (!select) return;
+  const entityType = document.getElementById("contribution-entity-type")?.value || "material";
+  let options = [];
+  if (entityType === "material") options = state.materials.map((item) => [item.material_id, item.name]);
+  if (entityType === "application") options = state.applications.map((item) => [item.application_id, item.name]);
+  if (entityType === "supplier") options = state.suppliers.map((item) => [item.supplier_id, item.name]);
+  if (entityType === "news") options = [["NEWS-001", "News update"], ["NEWS-002", "News update"], ["NEWS-003", "News update"]];
+  select.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+}
+
+function populateCommunityMaterialOptions() {
+  const select = document.getElementById("community-related-material");
+  if (!select) return;
+  select.innerHTML = `<option value="">No linked material</option>${state.materials.map((item) => `<option value="${item.material_id}">${item.name}</option>`).join("")}`;
 }
 
 async function refreshMaterialContext() {
@@ -919,6 +989,186 @@ async function loadWorkspaces() {
   if (window.PackGraphWorkbenchPanels) {
     window.PackGraphWorkbenchPanels.renderWorkspaces(workspaces, resumeWorkspace);
   }
+}
+
+async function loadExploreEntities() {
+  const params = new URLSearchParams({ tab: state.exploreTab });
+  const search = document.getElementById("explore-search")?.value.trim();
+  const category = document.getElementById("explore-category")?.value;
+  const supplierId = document.getElementById("explore-supplier")?.value;
+  const applicationId = document.getElementById("explore-application")?.value;
+  const complianceState = document.getElementById("explore-compliance")?.value;
+  const minSustainability = document.getElementById("explore-sustainability")?.value;
+  if (search) params.set("search", search);
+  if (category) params.set("category", category);
+  if (supplierId) params.set("supplier_id", supplierId);
+  if (applicationId) params.set("application_id", applicationId);
+  if (complianceState) params.set("compliance_state", complianceState);
+  if (minSustainability) params.set("min_sustainability", minSustainability);
+  setStatus("explore-status", "Loading browse results...", "info");
+  state.exploreResults = await fetchJson(`/explore/entities?${params.toString()}`);
+  document.getElementById("explore-results-title").textContent = `${titleCase(state.exploreTab)} browse results`;
+  document.getElementById("explore-results-summary").textContent = `${state.exploreResults.length} records in ${titleCase(state.exploreTab)}`;
+  if (window.PackGraphExplorePage) {
+    window.PackGraphExplorePage.renderTabs(state.exploreTab, async (tab) => {
+      state.exploreTab = tab;
+      state.selectedExploreDetail = null;
+      await loadExploreEntities();
+      window.PackGraphExplorePage.renderDetail(null, jumpExploreToDashboard);
+    });
+    window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, state.selectedExploreDetail?.entity_id);
+  }
+  clearStatus("explore-status");
+}
+
+async function openExploreDetail(entityType, entityId) {
+  state.selectedExploreDetail = await fetchJson(`/explore/detail?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`);
+  if (window.PackGraphExplorePage) {
+    window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, entityId);
+    window.PackGraphExplorePage.renderDetail(state.selectedExploreDetail, jumpExploreToDashboard);
+  }
+}
+
+async function jumpExploreToDashboard(detail) {
+  if (detail?.focus_material_id) {
+    await openMaterial(detail.focus_material_id, "overview");
+  } else {
+    setPage("overview");
+  }
+  setSection("dashboard");
+  const input = document.getElementById("question-input");
+  if (input) {
+    input.value = detail?.dashboard_prompt || "What should I inspect next in the graph?";
+  }
+  document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function loadContributionData() {
+  state.contributionRoles = await fetchJson("/contributions/roles");
+  state.contributionData = await fetchJson("/contributions");
+  const roleSelect = document.getElementById("contribution-role");
+  if (roleSelect) {
+    roleSelect.innerHTML = state.contributionRoles.map((role) => `<option value="${role.role_id}">${role.title}</option>`).join("");
+    roleSelect.value = state.selectedContributionRoleId;
+  }
+  if (window.PackGraphContributePage) {
+    window.PackGraphContributePage.renderRoles(state.contributionRoles, state.selectedContributionRoleId, (roleId) => {
+      state.selectedContributionRoleId = roleId;
+      const select = document.getElementById("contribution-role");
+      if (select) select.value = roleId;
+      renderContributionRoleDetail();
+      window.PackGraphContributePage.renderRoles(state.contributionRoles, state.selectedContributionRoleId, (nextRoleId) => {
+        state.selectedContributionRoleId = nextRoleId;
+        const nextSelect = document.getElementById("contribution-role");
+        if (nextSelect) nextSelect.value = nextRoleId;
+        renderContributionRoleDetail();
+      });
+    });
+    renderContributionRoleDetail();
+    window.PackGraphContributePage.renderSubmissions(state.contributionData);
+  }
+}
+
+function renderContributionRoleDetail() {
+  if (!window.PackGraphContributePage) return;
+  const role = state.contributionRoles.find((item) => item.role_id === state.selectedContributionRoleId);
+  window.PackGraphContributePage.renderRoleDetail(role);
+}
+
+async function submitContribution() {
+  const payload = {
+    role_id: document.getElementById("contribution-role").value,
+    submission_type: document.getElementById("contribution-type").value,
+    title: document.getElementById("contribution-title").value.trim(),
+    summary: document.getElementById("contribution-summary").value.trim(),
+    related_entity_type: document.getElementById("contribution-entity-type").value,
+    related_entity_id: document.getElementById("contribution-entity-id").value,
+    evidence_note: document.getElementById("contribution-evidence-note").value.trim(),
+    edit_request: document.getElementById("contribution-edit-request").value.trim(),
+    proposed_links: document.getElementById("contribution-proposed-links").value.trim(),
+  };
+  if (!payload.title) {
+    setStatus("contribution-status", "Add a contribution title before submitting.", "error");
+    return;
+  }
+  setStatus("contribution-status", "Submitting contribution for review...", "info");
+  await fetchJson("/contributions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  document.getElementById("contribution-form").reset();
+  populateContributionEntityOptions();
+  await loadContributionData();
+  setStatus("contribution-status", `Submitted ${payload.title}.`, "success");
+}
+
+async function loadCommunityData() {
+  state.communityChannels = await fetchJson("/community/channels");
+  document.getElementById("community-channel-select").innerHTML = state.communityChannels.map((channel) => `<option value="${channel.channel_id}">${channel.name}</option>`).join("");
+  document.getElementById("community-channel-select").value = state.selectedCommunityChannelId;
+  if (window.PackGraphCommunityPage) {
+    window.PackGraphCommunityPage.renderChannels(state.communityChannels, state.selectedCommunityChannelId, async (channelId) => {
+      state.selectedCommunityChannelId = channelId;
+      document.getElementById("community-channel-select").value = channelId;
+      await loadCommunityPosts();
+    });
+  }
+  await loadCommunityPosts();
+}
+
+async function loadCommunityPosts() {
+  state.communityPosts = await fetchJson(`/community/posts?channel_id=${encodeURIComponent(state.selectedCommunityChannelId)}`);
+  if (!state.selectedCommunityPostId && state.communityPosts.length) {
+    state.selectedCommunityPostId = state.communityPosts[0].post_id;
+  }
+  if (window.PackGraphCommunityPage) {
+    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost);
+  }
+  if (state.selectedCommunityPostId) {
+    await openCommunityPost(state.selectedCommunityPostId);
+  } else if (window.PackGraphCommunityPage) {
+    window.PackGraphCommunityPage.renderDetail(null);
+  }
+}
+
+async function openCommunityPost(postId) {
+  state.selectedCommunityPostId = postId;
+  const post = await fetchJson(`/community/posts/${encodeURIComponent(postId)}`);
+  if (window.PackGraphCommunityPage) {
+    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost);
+    window.PackGraphCommunityPage.renderDetail(post);
+  }
+}
+
+async function upvoteCommunityPost(postId) {
+  await fetchJson(`/community/posts/${encodeURIComponent(postId)}/upvote`, { method: "POST" });
+  await loadCommunityPosts();
+}
+
+async function submitCommunityPost() {
+  const payload = {
+    channel_id: document.getElementById("community-channel-select").value,
+    title: document.getElementById("community-post-title").value.trim(),
+    body: document.getElementById("community-post-body").value.trim(),
+    related_material_id: document.getElementById("community-related-material").value || null,
+    source_reference: document.getElementById("community-source-reference").value.trim(),
+  };
+  if (!payload.title || !payload.body) {
+    setStatus("community-status", "Add a title and discussion body before posting.", "error");
+    return;
+  }
+  setStatus("community-status", "Publishing demo post...", "info");
+  await fetchJson("/community/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  document.getElementById("community-post-form").reset();
+  state.selectedCommunityChannelId = payload.channel_id;
+  state.selectedCommunityPostId = null;
+  await loadCommunityData();
+  setStatus("community-status", `Created post ${payload.title}.`, "success");
 }
 
 async function loadScenarioHistory() {
@@ -1478,6 +1728,22 @@ function setupPageNavigation() {
   });
 }
 
+function setupShellNavigation() {
+  document.querySelectorAll(".shell-link").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const target = button.dataset.section;
+      setSection(target);
+      if (target === "explore") {
+        await loadExploreEntities();
+      } else if (target === "contribute") {
+        await loadContributionData();
+      } else if (target === "community") {
+        await loadCommunityData();
+      }
+    });
+  });
+}
+
 function setupNavigation() {
   document.getElementById("jump-chat").addEventListener("click", () => {
     setPage("overview");
@@ -1732,6 +1998,48 @@ function setupForms() {
     await runGlobalSearch();
   });
 
+  document.getElementById("explore-filter-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await loadExploreEntities();
+  });
+
+  document.getElementById("explore-reset").addEventListener("click", async () => {
+    document.getElementById("explore-filter-form").reset();
+    await loadExploreEntities();
+  });
+
+  document.getElementById("contribution-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitContribution();
+  });
+
+  document.getElementById("contribution-role").addEventListener("change", (event) => {
+    state.selectedContributionRoleId = event.target.value;
+    renderContributionRoleDetail();
+    if (window.PackGraphContributePage) {
+      window.PackGraphContributePage.renderRoles(state.contributionRoles, state.selectedContributionRoleId, (roleId) => {
+        state.selectedContributionRoleId = roleId;
+        document.getElementById("contribution-role").value = roleId;
+        renderContributionRoleDetail();
+      });
+    }
+  });
+
+  document.getElementById("contribution-entity-type").addEventListener("change", () => {
+    populateContributionEntityOptions();
+  });
+
+  document.getElementById("community-post-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitCommunityPost();
+  });
+
+  document.getElementById("community-channel-select").addEventListener("change", async (event) => {
+    state.selectedCommunityChannelId = event.target.value;
+    state.selectedCommunityPostId = null;
+    await loadCommunityPosts();
+  });
+
   document.getElementById("toggle-advanced-filters").addEventListener("click", () => {
     const container = document.getElementById("advanced-filters");
     const button = document.getElementById("toggle-advanced-filters");
@@ -1751,6 +2059,7 @@ function setupForms() {
 
 async function init() {
   setupThemeToggle();
+  setupShellNavigation();
   setupPageNavigation();
   setupNavigation();
   setupGraphZoomControls();
@@ -1770,12 +2079,16 @@ async function init() {
     loadAnalytics(),
     loadBenchmarks(),
     loadTrendCharts(),
+    loadContributionData(),
+    loadCommunityData(),
   ]);
   await runComparison();
   renderCompareSelectionSummary();
   await runScenario();
   await loadGraphPath();
   await loadMaterialTimeline();
+  await loadExploreEntities();
+  updatePageContextCard();
   renderStructuredAnswer({
     title: "Decision output",
     summary: "Run a natural-language question to see structured recommendations, reasons, risk flags, and next steps.",
@@ -1786,8 +2099,18 @@ async function init() {
   });
   renderSupplierDetail(null);
   renderRegulationDetail(null);
+  if (window.PackGraphExplorePage) {
+    window.PackGraphExplorePage.renderDetail(null, jumpExploreToDashboard);
+  }
+  if (window.PackGraphCommunityPage) {
+    window.PackGraphCommunityPage.renderDetail(null);
+  }
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
+  const requestedSection = new URLSearchParams(window.location.search).get("section");
   const requestedPage = new URLSearchParams(window.location.search).get("page");
+  if (["dashboard", "explore", "contribute", "community"].includes(requestedSection) && requestedSection !== "dashboard") {
+    setSection(requestedSection);
+  }
   if (["overview", "workbench", "intelligence"].includes(requestedPage)) {
     setPage(requestedPage);
   }

@@ -13,6 +13,8 @@ from app.api.routes import build_router
 from app.core.config import get_settings
 from app.repositories.graph_repository import build_graph_repository
 from app.services.auth_service import AuthService
+from app.services.community_service import CommunityService
+from app.services.contribution_service import ContributionService
 from app.services.document_intelligence_service import DocumentIntelligenceService
 from app.services.export_service import ExportService
 from app.services.investigation_service import InvestigationService
@@ -30,6 +32,10 @@ class AppState:
         self.auth.ensure_seed()
         self.documents = DocumentIntelligenceService(settings.packgraph_runtime_dir, self.repository)
         self.documents.ensure_seed()
+        self.contributions = ContributionService(settings.packgraph_runtime_dir)
+        self.contributions.ensure_seed()
+        self.community = CommunityService(settings.packgraph_runtime_dir)
+        self.community.ensure_seed()
         self.investigations = InvestigationService(settings.packgraph_runtime_dir)
         self.investigations.ensure_seed(self.repository.bundle["investigations"])
         self.scenario_history = ScenarioHistoryService(settings.packgraph_runtime_dir)

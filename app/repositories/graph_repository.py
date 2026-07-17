@@ -20,6 +20,7 @@ class LocalGraphRepository:
         self.materials = bundle["materials"]
         self.suppliers = bundle["suppliers"]
         self.applications = bundle["applications"]
+        self.material_news = bundle["material_news"]
         self.regulations = bundle["regulations"]
         self.certifications = bundle["certifications"]
         self.recycling_streams = bundle["recycling_streams"]
@@ -34,6 +35,7 @@ class LocalGraphRepository:
         self.supplier_index = {item["supplier_id"]: item for item in self.suppliers}
         self.application_index = {item["application_id"]: item for item in self.applications}
         self.regulation_index = {item["regulation_id"]: item for item in self.regulations}
+        self.news_index = {item["news_id"]: item for item in self.material_news}
         self.document_index = {item["document_id"]: item for item in self.documents}
         self.snapshots_by_supplier = defaultdict(list)
         self.snapshots_by_material = defaultdict(list)
@@ -137,6 +139,241 @@ class LocalGraphRepository:
 
     def list_applications(self) -> list[dict[str, Any]]:
         return self.applications
+
+    def list_news(self) -> list[dict[str, Any]]:
+        return self.material_news
+
+    def explore_entities(
+        self,
+        tab: str = "materials",
+        search: str | None = None,
+        category: str | None = None,
+        supplier_id: str | None = None,
+        application_id: str | None = None,
+        compliance_state: str | None = None,
+        min_sustainability: int | None = None,
+    ) -> list[dict[str, Any]]:
+        search_lower = search.lower().strip() if search else ""
+        if tab == "applications":
+            results = []
+            for application in self.applications:
+                linked_materials = self._materials_for_application(application["application_id"])
+                if not linked_materials:
+                    continue
+                if category and not any(item["category"].lower() == category.lower() for item in linked_materials):
+                    continue
+                if supplier_id and not any(supplier_id in item["supplier_ids"] for item in linked_materials):
+                    continue
+                if compliance_state and not any(item["compliance_state"].lower() == compliance_state.lower() for item in linked_materials):
+                    continue
+                if min_sustainability is not None and max(item["sustainability_score"] for item in linked_materials) < min_sustainability:
+                    continue
+                haystack = " ".join([application["name"], application["use_case"], application["priority"]]).lower()
+                if search_lower and search_lower not in haystack and not any(search_lower in item["name"].lower() for item in linked_materials):
+                    continue
+                linked_suppliers = self._suppliers_for_materials(linked_materials)
+                results.append(
+                    {
+                        "entity_type": "application",
+                        "entity_id": application["application_id"],
+                        "title": application["name"],
+                        "subtitle": f"{application['use_case']} | priority {application['priority']}",
+                        "meta": f"{len(linked_materials)} materials | {len(linked_suppliers)} suppliers",
+                        "tags": list(dict.fromkeys(item["category"] for item in linked_materials))[:3],
+                        "focus_material_id": linked_materials[0]["material_id"],
+                        "dashboard_prompt": f"What materials look best for the application {application['name']} and why?",
+                    }
+                )
+            return results[:36]
+
+        if tab == "suppliers":
+            results = []
+            for supplier in self.suppliers:
+                supplied_materials = [self.material_index[item] for item in supplier["supplied_material_ids"] if item in self.material_index]
+                if category and not any(item["category"].lower() == category.lower() for item in supplied_materials):
+                    continue
+                if application_id and not any(application_id in item["target_applications"] for item in supplied_materials):
+                    continue
+                if compliance_state and not any(item["compliance_state"].lower() == compliance_state.lower() for item in supplied_materials):
+                    continue
+                if min_sustainability is not None and max((item["sustainability_score"] for item in supplied_materials), default=0) < min_sustainability:
+                    continue
+                haystack = " ".join([supplier["name"], supplier["country"], " ".join(supplier["regions_served"])]).lower()
+                if search_lower and search_lower not in haystack:
+                    continue
+                results.append(
+                    {
+                        "entity_type": "supplier",
+                        "entity_id": supplier["supplier_id"],
+                        "title": supplier["name"],
+                        "subtitle": f"{supplier['country']} | lead time {supplier['lead_time_days']} days",
+                        "meta": f"Risk {supplier['disruption_risk_score']} | {len(supplied_materials)} materials",
+                        "tags": supplier["certifications"][:3],
+                        "focus_material_id": supplied_materials[0]["material_id"] if supplied_materials else None,
+                        "dashboard_prompt": f"Which risks and substitution options should I inspect for supplier {supplier['name']}?",
+                    }
+                )
+            return results[:36]
+
+        if tab == "news":
+            results = []
+            for item in self.material_news:
+                linked_materials = [self.material_index[mid] for mid in item["related_material_ids"] if mid in self.material_index]
+                if category and not any(material["category"].lower() == category.lower() for material in linked_materials):
+                    continue
+                if supplier_id and supplier_id not in item["related_supplier_ids"]:
+                    continue
+                if application_id and application_id not in item["related_application_ids"]:
+                    continue
+                if compliance_state and item["compliance_state"].lower() != compliance_state.lower():
+                    continue
+                if min_sustainability is not None and item["sustainability_score"] < min_sustainability:
+                    continue
+                haystack = " ".join([item["title"], item["summary"], item["topic"], item["source"]]).lower()
+                if search_lower and search_lower not in haystack:
+                    continue
+                results.append(
+                    {
+                        "entity_type": "news",
+                        "entity_id": item["news_id"],
+                        "title": item["title"],
+                        "subtitle": f"{item['source']} | {item['published_on']}",
+                        "meta": f"{item['topic']} | sustainability {item['sustainability_score']}",
+                        "tags": [item["topic"], item["source_type"], item["compliance_state"]],
+                        "focus_material_id": item["related_material_ids"][0] if item["related_material_ids"] else None,
+                        "dashboard_prompt": f"Explain the graph impact of this update: {item['title']}",
+                    }
+                )
+            return results[:36]
+
+        results = []
+        for material in self.filter_materials(
+            category=category,
+            compliance_state=compliance_state,
+            min_sustainability=min_sustainability,
+            search=search,
+        ):
+            if supplier_id and supplier_id not in material["supplier_ids"]:
+                continue
+            if application_id and application_id not in material["target_applications"]:
+                continue
+            results.append(
+                {
+                    "entity_type": "material",
+                    "entity_id": material["material_id"],
+                    "title": material["name"],
+                    "subtitle": f"{material['category']} | {material['compliance_state']}",
+                    "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
+                    "tags": [material["descriptor"], *material["regions_available"][:2]],
+                    "focus_material_id": material["material_id"],
+                    "dashboard_prompt": f"Map the strongest evidence, risks, and substitutes for {material['name']}.",
+                }
+            )
+        return results[:36]
+
+    def explore_detail(self, entity_type: str, entity_id: str) -> dict[str, Any] | None:
+        if entity_type == "material":
+            material = self.get_material(entity_id)
+            if not material:
+                return None
+            applications = [self.application_index[item] for item in material["target_applications"] if item in self.application_index]
+            return {
+                "entity_type": "material",
+                "entity_id": material["material_id"],
+                "title": material["name"],
+                "summary": f"{material['descriptor']} {material['category']} used across {len(applications)} target applications.",
+                "facts": [
+                    {"label": "Composition", "value": material["composition"]},
+                    {"label": "Compliance", "value": material["compliance_state"]},
+                    {"label": "Sustainability", "value": material["sustainability_score"]},
+                    {"label": "Food contact", "value": "Approved" if material["food_contact_safe"] else "Review required"},
+                ],
+                "related": {
+                    "suppliers": [item["name"] for item in material["suppliers"][:4]],
+                    "applications": [item["name"] for item in applications[:4]],
+                    "documents": [item["title"] for item in material["documents"][:3]],
+                },
+                "focus_material_id": material["material_id"],
+                "dashboard_prompt": f"Trace the graph evidence, supplier risk, and substitute logic for {material['name']}.",
+            }
+
+        if entity_type == "application":
+            application = self.application_index.get(entity_id)
+            if not application:
+                return None
+            linked_materials = self._materials_for_application(entity_id)
+            linked_suppliers = self._suppliers_for_materials(linked_materials)
+            return {
+                "entity_type": "application",
+                "entity_id": application["application_id"],
+                "title": application["name"],
+                "summary": f"{application['use_case']} workflow with {len(linked_materials)} linked material options and {len(linked_suppliers)} suppliers.",
+                "facts": [
+                    {"label": "Use case", "value": application["use_case"]},
+                    {"label": "Priority", "value": application["priority"]},
+                    {"label": "Material options", "value": len(linked_materials)},
+                    {"label": "Supplier options", "value": len(linked_suppliers)},
+                ],
+                "related": {
+                    "materials": [item["name"] for item in linked_materials[:4]],
+                    "suppliers": [item["name"] for item in linked_suppliers[:4]],
+                    "signals": [f"Average sustainability {round(mean(item['sustainability_score'] for item in linked_materials), 1)}"] if linked_materials else [],
+                },
+                "focus_material_id": linked_materials[0]["material_id"] if linked_materials else None,
+                "dashboard_prompt": f"Recommend the best material paths for application {application['name']} and explain the tradeoffs.",
+            }
+
+        if entity_type == "supplier":
+            supplier = self.get_supplier(entity_id)
+            if not supplier:
+                return None
+            return {
+                "entity_type": "supplier",
+                "entity_id": supplier["supplier_id"],
+                "title": supplier["name"],
+                "summary": f"{supplier['country']} supplier supporting {len(supplier['supplied_materials'])} linked materials in the demo graph.",
+                "facts": [
+                    {"label": "Lead time", "value": f"{supplier['lead_time_days']} days"},
+                    {"label": "Risk", "value": supplier["disruption_risk_score"]},
+                    {"label": "ESG", "value": supplier["esg_score"]},
+                    {"label": "Certifications", "value": len(supplier["certifications"])},
+                ],
+                "related": {
+                    "materials": [item["name"] for item in supplier["supplied_materials"][:4]],
+                    "certifications": supplier["certifications"][:4],
+                    "regions": supplier["regions_served"][:4],
+                },
+                "focus_material_id": supplier["supplied_materials"][0]["material_id"] if supplier["supplied_materials"] else None,
+                "dashboard_prompt": f"Inspect the sourcing risk, evidence coverage, and substitute options around supplier {supplier['name']}.",
+            }
+
+        if entity_type == "news":
+            item = self.news_index.get(entity_id)
+            if not item:
+                return None
+            related_materials = [self.material_index[mid]["name"] for mid in item["related_material_ids"] if mid in self.material_index]
+            related_suppliers = [self.supplier_index[sid]["name"] for sid in item["related_supplier_ids"] if sid in self.supplier_index]
+            related_applications = [self.application_index[aid]["name"] for aid in item["related_application_ids"] if aid in self.application_index]
+            return {
+                "entity_type": "news",
+                "entity_id": item["news_id"],
+                "title": item["title"],
+                "summary": item["summary"],
+                "facts": [
+                    {"label": "Source", "value": item["source"]},
+                    {"label": "Published", "value": item["published_on"]},
+                    {"label": "Topic", "value": item["topic"]},
+                    {"label": "Compliance state", "value": item["compliance_state"]},
+                ],
+                "related": {
+                    "materials": related_materials[:4],
+                    "suppliers": related_suppliers[:4],
+                    "applications": related_applications[:4],
+                },
+                "focus_material_id": item["related_material_ids"][0] if item["related_material_ids"] else None,
+                "dashboard_prompt": f"Summarize the graph impact of the update titled '{item['title']}'.",
+            }
+        return None
 
     def list_regulations(self) -> list[dict[str, Any]]:
         return self.regulations
@@ -330,6 +567,16 @@ class LocalGraphRepository:
                 }
             )
         return sorted(compared, key=lambda item: (-item["esg_score"], item["disruption_risk_score"], item["lead_time_days"]))
+
+    def _materials_for_application(self, application_id: str) -> list[dict[str, Any]]:
+        return [item for item in self.materials if application_id in item["target_applications"]]
+
+    def _suppliers_for_materials(self, materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        supplier_ids = []
+        for material in materials:
+            supplier_ids.extend(material["supplier_ids"])
+        unique = list(dict.fromkeys(supplier_ids))
+        return [self.supplier_index[item] for item in unique if item in self.supplier_index]
 
     def recommend_food_packaging(self, prioritize_sustainability: bool = False) -> list[dict[str, Any]]:
         candidates = []

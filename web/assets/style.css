@@ -225,6 +225,15 @@ textarea {
   display: grid;
 }
 
+.product-section {
+  display: none;
+  gap: 12px;
+}
+
+.product-section.active {
+  display: grid;
+}
+
 .landing-site {
   min-height: 100vh;
   background:
@@ -935,6 +944,31 @@ textarea {
   border-top: 2px solid var(--ink);
 }
 
+.product-shell-nav {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border-top: 2px solid var(--ink);
+}
+
+.product-top-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.shell-link {
+  min-height: 52px;
+  background: transparent;
+  color: var(--button-text);
+}
+
+.shell-link.active {
+  background: var(--panel-muted);
+  border-color: var(--line-strong);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
 .workspace-header-copy h3 {
   margin: 0;
   max-width: 18ch;
@@ -1016,6 +1050,74 @@ textarea {
   color: var(--muted);
   font-size: 1rem;
   line-height: 1.55;
+}
+
+.explore-shell-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.explore-layout,
+.community-layout,
+.contribute-role-grid,
+.contribute-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.explore-layout {
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  align-items: start;
+}
+
+.community-layout {
+  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  align-items: start;
+}
+
+.contribute-role-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.contribute-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.explore-detail-layout,
+.contribute-detail-layout,
+.community-detail-layout {
+  grid-template-columns: 1fr;
+}
+
+.explore-result-card,
+.contribute-role-card,
+.community-post-card,
+.community-channel-card {
+  text-align: left;
+}
+
+.explore-result-card.active,
+.contribute-role-card.active,
+.community-post-card.active,
+.community-channel-card.active {
+  border-color: var(--line-strong);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.explore-result-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.explore-tab.active {
+  background: var(--panel);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .workbench-banner {
@@ -2630,6 +2732,7 @@ small {
 
 @media (max-width: 1280px) {
   .workspace-nav,
+  .product-top-nav,
   .hero,
   .top-grid,
   .detail-layout,
@@ -2644,6 +2747,9 @@ small {
   .compare-layout,
   .graph-layout,
   .split-grid,
+  .explore-layout,
+  .community-layout,
+  .contribute-grid,
   .landing-hero-layout,
   .landing-capability-layout,
   .landing-differentiator-layout,
@@ -2698,6 +2804,7 @@ small {
   }
 
   .inline-form,
+  .product-top-nav,
   .metric-grid,
   .score-grid,
   .key-facts,
@@ -2706,6 +2813,7 @@ small {
   .overview-metric-grid,
   .workbench-weight-grid,
   .weight-grid,
+  .contribute-role-grid,
   .hero-summary,
   .landing-workflow-grid,
   .landing-areas-grid,

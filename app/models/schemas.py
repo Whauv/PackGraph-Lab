@@ -57,3 +57,23 @@ class WorkspaceSaveRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class ContributionCreate(BaseModel):
+    role_id: str
+    submission_type: str
+    title: str
+    summary: str = ""
+    related_entity_type: str | None = None
+    related_entity_id: str | None = None
+    evidence_note: str = ""
+    edit_request: str = ""
+    proposed_links: str = ""
+
+
+class CommunityPostCreate(BaseModel):
+    channel_id: str
+    title: str
+    body: str
+    related_material_id: str | None = None
+    source_reference: str = ""
