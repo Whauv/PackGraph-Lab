@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import CommunityPostCreate, ContributionCreate, InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -69,6 +69,36 @@ def build_router(state) -> APIRouter:
     @router.get("/applications")
     def list_applications():
         return {"status": "ok", "data": state.repository.list_applications()}
+
+    @router.get("/explore/entities")
+    def explore_entities(
+        tab: str = "materials",
+        search: str | None = None,
+        category: str | None = None,
+        supplier_id: str | None = None,
+        application_id: str | None = None,
+        compliance_state: str | None = None,
+        min_sustainability: int | None = None,
+    ):
+        return {
+            "status": "ok",
+            "data": state.repository.explore_entities(
+                tab=tab,
+                search=search,
+                category=category,
+                supplier_id=supplier_id,
+                application_id=application_id,
+                compliance_state=compliance_state,
+                min_sustainability=min_sustainability,
+            ),
+        }
+
+    @router.get("/explore/detail")
+    def explore_detail(entity_type: str, entity_id: str):
+        detail = state.repository.explore_detail(entity_type, entity_id)
+        if not detail:
+            raise HTTPException(status_code=404, detail="Explore entity not found")
+        return {"status": "ok", "data": detail}
 
     @router.get("/regulations")
     def list_regulations():
@@ -332,5 +362,53 @@ def build_router(state) -> APIRouter:
         if not user:
             raise HTTPException(status_code=401, detail="No active user session")
         return {"status": "ok", "data": state.auth.save_workspace(user["user_id"], payload.model_dump())}
+
+    @router.get("/contributions/roles")
+    def contribution_roles():
+        return {"status": "ok", "data": state.contributions.list_roles()}
+
+    @router.get("/contributions")
+    def list_contributions():
+        return {
+            "status": "ok",
+            "data": {
+                "submissions": state.contributions.list_submissions(),
+                "status_summary": state.contributions.status_summary(),
+            },
+        }
+
+    @router.post("/contributions")
+    def create_contribution(payload: ContributionCreate):
+        current_user = state.auth.current_user()
+        submitted_by = current_user["name"] if current_user else "Demo Contributor"
+        return {"status": "ok", "data": state.contributions.create(payload.model_dump(), submitted_by)}
+
+    @router.get("/community/channels")
+    def community_channels():
+        return {"status": "ok", "data": state.community.list_channels()}
+
+    @router.get("/community/posts")
+    def community_posts(channel_id: str | None = None):
+        return {"status": "ok", "data": state.community.list_posts(channel_id)}
+
+    @router.get("/community/posts/{post_id}")
+    def community_post_detail(post_id: str):
+        post = state.community.get_post(post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Community post not found")
+        return {"status": "ok", "data": post}
+
+    @router.post("/community/posts")
+    def create_community_post(payload: CommunityPostCreate):
+        current_user = state.auth.current_user()
+        author_name = current_user["name"] if current_user else "Demo Contributor"
+        return {"status": "ok", "data": state.community.create_post(payload.model_dump(), author_name)}
+
+    @router.post("/community/posts/{post_id}/upvote")
+    def upvote_community_post(post_id: str):
+        post = state.community.upvote(post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Community post not found")
+        return {"status": "ok", "data": post}
 
     return router

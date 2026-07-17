@@ -23,6 +23,7 @@ class DataStore:
             "materials": self._load_json("materials"),
             "suppliers": self._load_json("suppliers"),
             "applications": self._load_json("applications"),
+            "material_news": self._load_json("material_news"),
             "regulations": self._load_json("regulations"),
             "certifications": self._load_json("certifications"),
             "recycling_streams": self._load_json("recycling_streams"),

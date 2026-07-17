@@ -53,6 +53,20 @@
       </aside>
 
       <main class="main">
+        <section class="product-shell-nav panel">
+          <div class="workspace-header-copy">
+            <p class="eyebrow">Product shell</p>
+            <h3>One graph-backed decision product with four distinct working modes</h3>
+          </div>
+          <nav class="product-top-nav">
+            <button type="button" class="shell-link active" data-section="dashboard">Dashboard</button>
+            <button type="button" class="shell-link" data-section="explore">Explore</button>
+            <button type="button" class="shell-link" data-section="contribute">Contribute</button>
+            <button type="button" class="shell-link" data-section="community">Community</button>
+          </nav>
+        </section>
+
+        <section class="product-section active" data-section="dashboard">
         <section class="workspace-header panel">
           <div class="workspace-header-copy">
             <p class="eyebrow">Product map</p>
@@ -718,9 +732,217 @@
           </section>
 
         </section>
+        </section>
+
+        <section class="product-section" data-section="explore">
+          <section class="page-banner">
+            <div>
+              <p class="eyebrow">Explore</p>
+              <h2>Browse the materials graph without starting from a query</h2>
+            </div>
+            <p>Use Explore as the research workspace: browse materials, applications, suppliers, and source-driven updates, inspect the detail panel, then jump into Dashboard with a graph question already prepared.</p>
+          </section>
+          <section class="panel explore-shell-panel">
+            <div class="panel-header compact-panel-header">
+              <div>
+                <p class="eyebrow">Research workspace</p>
+                <h3>Browse first, inspect context second, then move into graph-backed reasoning</h3>
+              </div>
+              <div class="panel-kicker">Materials, applications, suppliers, and news in one local-first browse layer</div>
+            </div>
+            <div class="explore-shell-top">
+              <div id="explore-tabs" class="prompt-row"></div>
+              <button type="button" id="explore-reset" class="secondary">Reset filters</button>
+            </div>
+            <div class="explore-layout">
+              <aside class="panel explore-filter-rail">
+                <div class="subsection-heading">Filters</div>
+                <form id="explore-filter-form" class="stack-form">
+                  <input id="explore-search" type="text" placeholder="Search terms" />
+                  <select id="explore-category"><option value="">All categories</option></select>
+                  <select id="explore-supplier"><option value="">All suppliers</option></select>
+                  <select id="explore-application"><option value="">All applications</option></select>
+                  <select id="explore-compliance"><option value="">Any compliance state</option><option value="compliant">Compliant</option><option value="watch">Watch</option><option value="non-compliant">Non-compliant</option></select>
+                  <input id="explore-sustainability" type="number" min="0" max="100" placeholder="Min sustainability" />
+                  <div class="row-actions">
+                    <button type="submit">Apply</button>
+                  </div>
+                </form>
+                <div id="explore-status" class="upload-status"></div>
+              </aside>
+              <div class="panel explore-results-pane">
+                <div class="panel-header compact-panel-header">
+                  <div>
+                    <p class="eyebrow">Results</p>
+                    <h3 id="explore-results-title">Browse results</h3>
+                  </div>
+                  <div id="explore-results-summary" class="panel-kicker">Loading research records</div>
+                </div>
+                <div id="explore-results" class="card-list compact-list"></div>
+              </div>
+              <aside class="panel explore-detail-pane">
+                <div class="panel-header compact-panel-header">
+                  <div>
+                    <p class="eyebrow">Detail panel</p>
+                    <h3>Selected entity</h3>
+                  </div>
+                </div>
+                <div id="explore-detail" class="detail-layout explore-detail-layout"></div>
+              </aside>
+            </div>
+          </section>
+        </section>
+
+        <section class="product-section" data-section="contribute">
+          <section class="page-banner">
+            <div>
+              <p class="eyebrow">Contribute</p>
+              <h2>Turn domain knowledge into structured material intelligence</h2>
+            </div>
+            <p>Contribute is part onboarding and part workflow. Choose a role, understand what you can contribute, submit material insight or source evidence, and track contribution status with verification context.</p>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Role-based contribution</p>
+                <h3>Choose the contributor persona that matches how you add value</h3>
+              </div>
+            </div>
+            <div id="contribute-role-cards" class="contribute-role-grid"></div>
+          </section>
+          <section class="panel-grid contribute-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Role detail</p>
+                  <h3>Permissions, badges, and verification expectations</h3>
+                </div>
+              </div>
+              <div id="contribute-role-detail" class="detail-layout contribute-detail-layout"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Contribution workflow</p>
+                  <h3>Submit material insight, evidence placeholders, edits, or graph links</h3>
+                </div>
+              </div>
+              <form id="contribution-form" class="stack-form">
+                <select id="contribution-role"></select>
+                <select id="contribution-type">
+                  <option value="material_insight">Submit material insight</option>
+                  <option value="source_upload">Upload source / evidence placeholder</option>
+                  <option value="profile_edit">Suggest material profile edits</option>
+                  <option value="supplier_link">Propose supplier or application links</option>
+                </select>
+                <input id="contribution-title" type="text" placeholder="Contribution title" />
+                <textarea id="contribution-summary" rows="4" placeholder="What should the product learn from this contribution?"></textarea>
+                <div class="split-grid">
+                  <select id="contribution-entity-type">
+                    <option value="material">Material</option>
+                    <option value="application">Application</option>
+                    <option value="supplier">Supplier</option>
+                    <option value="news">News / source update</option>
+                  </select>
+                  <select id="contribution-entity-id"></select>
+                </div>
+                <textarea id="contribution-evidence-note" rows="3" placeholder="Evidence or source placeholder flow"></textarea>
+                <textarea id="contribution-edit-request" rows="3" placeholder="Suggested profile edits or clarification notes"></textarea>
+                <textarea id="contribution-proposed-links" rows="3" placeholder="Proposed supplier, application, or related material links"></textarea>
+                <div class="row-actions">
+                  <button type="submit">Submit contribution</button>
+                </div>
+              </form>
+              <div id="contribution-status" class="upload-status"></div>
+            </article>
+          </section>
+          <section class="panel-grid contribute-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Status tracking</p>
+                  <h3>Queued, under review, and accepted submissions</h3>
+                </div>
+              </div>
+              <div id="contribution-status-board" class="metric-grid"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Recent submissions</p>
+                  <h3>Latest role-based contributions in the demo workflow</h3>
+                </div>
+              </div>
+              <div id="contribution-recent-list" class="card-list compact-list"></div>
+            </article>
+          </section>
+        </section>
+
+        <section class="product-section" data-section="community">
+          <section class="page-banner">
+            <div>
+              <p class="eyebrow">Community</p>
+              <h2>Discuss materials, sourcing, compliance, and trend signals in context</h2>
+            </div>
+            <p>Community is the discussion layer around the intelligence product: browse channels, scan the post feed, open thread detail, and create lightweight demo posts tied to materials or source references.</p>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Share a finding</p>
+                <h3>Create a lightweight demo post with references and material context</h3>
+              </div>
+            </div>
+            <form id="community-post-form" class="stack-form">
+              <div class="split-grid">
+                <select id="community-channel-select"></select>
+                <select id="community-related-material"><option value="">No linked material</option></select>
+              </div>
+              <input id="community-post-title" type="text" placeholder="Post title" />
+              <textarea id="community-post-body" rows="4" placeholder="Share a materials, supplier, sustainability, or compliance finding"></textarea>
+              <input id="community-source-reference" type="text" placeholder="Attachment or source-doc reference" />
+              <div class="row-actions">
+                <button type="submit">Create post</button>
+              </div>
+            </form>
+            <div id="community-status" class="upload-status"></div>
+          </section>
+          <section class="community-layout">
+            <aside class="panel community-channel-rail">
+              <div class="panel-header compact-panel-header">
+                <div>
+                  <p class="eyebrow">Topic channels</p>
+                  <h3>Browse by discussion domain</h3>
+                </div>
+              </div>
+              <div id="community-channels" class="card-list compact-list"></div>
+            </aside>
+            <section class="panel community-feed-pane">
+              <div class="panel-header compact-panel-header">
+                <div>
+                  <p class="eyebrow">Post feed</p>
+                  <h3>Discussion feed</h3>
+                </div>
+              </div>
+              <div id="community-feed" class="card-list compact-list"></div>
+            </section>
+            <aside class="panel community-detail-pane">
+              <div class="panel-header compact-panel-header">
+                <div>
+                  <p class="eyebrow">Discussion detail</p>
+                  <h3>Thread detail</h3>
+                </div>
+              </div>
+              <div id="community-detail" class="detail-layout community-detail-layout"></div>
+            </aside>
+          </section>
+        </section>
       </main>
     </div>
     <script src="/assets/modules/answer-panel.js"></script>
+    <script src="/assets/modules/explore-page.js"></script>
+    <script src="/assets/modules/contribute-page.js"></script>
+    <script src="/assets/modules/community-page.js"></script>
     <script src="/assets/modules/workbench-panels.js"></script>
     <script src="/assets/modules/trend-charts.js"></script>
     <script src="/assets/app.js"></script>
