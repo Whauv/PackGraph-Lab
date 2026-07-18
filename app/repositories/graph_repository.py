@@ -486,6 +486,94 @@ class LocalGraphRepository:
 
         return results[:28]
 
+    def resolve_entity_reference(self, entity_type: str | None, entity_id: str | None) -> dict[str, Any] | None:
+        if not entity_type or not entity_id:
+            return None
+        normalized_type = entity_type.lower()
+        if normalized_type == "material" and entity_id in self.material_index:
+            return {"type": "material", "id": entity_id, "label": self.material_index[entity_id]["name"]}
+        if normalized_type == "supplier" and entity_id in self.supplier_index:
+            return {"type": "supplier", "id": entity_id, "label": self.supplier_index[entity_id]["name"]}
+        if normalized_type == "application" and entity_id in self.application_index:
+            return {"type": "application", "id": entity_id, "label": self.application_index[entity_id]["name"]}
+        if normalized_type == "regulation" and entity_id in self.regulation_index:
+            return {"type": "regulation", "id": entity_id, "label": self.regulation_index[entity_id]["name"]}
+        if normalized_type == "news" and entity_id in self.news_index:
+            return {"type": "news", "id": entity_id, "label": self.news_index[entity_id]["title"]}
+        if normalized_type == "document":
+            document = next((item for item in self.all_documents() if item.get("document_id") == entity_id), None)
+            if document:
+                return {"type": "document", "id": entity_id, "label": document.get("title", entity_id)}
+        if normalized_type in {"report", "test_report"}:
+            report = next((item for item in self.all_test_reports() if item.get("report_id") == entity_id), None)
+            if report:
+                return {"type": "report", "id": entity_id, "label": report.get("title", entity_id)}
+        return None
+
+    def validate_entity_reference(self, entity_type: str | None, entity_id: str | None) -> dict[str, Any]:
+        resolved = self.resolve_entity_reference(entity_type, entity_id)
+        return {
+            "valid": resolved is not None,
+            "entity": resolved,
+            "message": "Reference resolved." if resolved else "Unknown or missing entity reference.",
+        }
+
+    def integrity_report(self) -> dict[str, Any]:
+        missing_suppliers = [
+            material["material_id"]
+            for material in self.materials
+            if any(supplier_id not in self.supplier_index for supplier_id in material.get("supplier_ids", []))
+        ]
+        missing_applications = [
+            material["material_id"]
+            for material in self.materials
+            if any(application_id not in self.application_index for application_id in material.get("target_applications", []))
+        ]
+        dangling_relationships = [
+            relationship
+            for relationship in self.relationships
+            if not self.resolve_entity_reference(self._type_from_node_id(relationship["from"]), relationship["from"])
+            or not self.resolve_entity_reference(self._type_from_node_id(relationship["to"]), relationship["to"])
+        ]
+        return {
+            "valid": not missing_suppliers and not missing_applications and not dangling_relationships,
+            "checks": [
+                {"label": "Material -> supplier links", "issues": len(missing_suppliers)},
+                {"label": "Material -> application links", "issues": len(missing_applications)},
+                {"label": "Graph relationship endpoints", "issues": len(dangling_relationships)},
+            ],
+            "samples": {
+                "materials_missing_suppliers": missing_suppliers[:5],
+                "materials_missing_applications": missing_applications[:5],
+                "dangling_relationships": dangling_relationships[:5],
+            },
+        }
+
+    def document_detail(self, document_id: str) -> dict[str, Any] | None:
+        document = next((item for item in self.all_documents() if item.get("document_id") == document_id), None)
+        if document:
+            return {
+                **document,
+                "preview_text": document.get("extraction_summary") or "Synthetic document preview for the selected source.",
+                "extracted_fields": [
+                    {"label": "Document type", "value": document.get("document_type", "Unknown")},
+                    {"label": "Issued on", "value": document.get("issued_on", "Unknown")},
+                    {"label": "Provenance score", "value": document.get("provenance_score", "n/a")},
+                ],
+            }
+        report = next((item for item in self.all_test_reports() if item.get("report_id") == document_id), None)
+        if report:
+            return {
+                **report,
+                "preview_text": report.get("extraction_summary") or "Synthetic test report preview for the selected evidence.",
+                "extracted_fields": [
+                    {"label": "Lab", "value": report.get("lab", "Unknown")},
+                    {"label": "Migration", "value": report.get("migration_status", "Unknown")},
+                    {"label": "Test date", "value": report.get("test_date", "Unknown")},
+                ],
+            }
+        return None
+
     def get_supplier(self, supplier_id: str) -> dict[str, Any] | None:
         supplier = self.supplier_index.get(supplier_id)
         if not supplier:
@@ -1085,6 +1173,7 @@ class LocalGraphRepository:
         cost_trends = []
         compliance_drift = []
         supplier_risk_trend = []
+        material_adoption = []
         for quarter, items in sorted(snapshots_by_quarter.items()):
             cost_trends.append(
                 {
@@ -1106,11 +1195,30 @@ class LocalGraphRepository:
                     "average_risk_score": round(mean(item["risk_score"] for item in items), 1),
                 }
             )
+            material_adoption.append(
+                {
+                    "quarter": quarter,
+                    "adoption_count": sum(1 for item in items if item["compliance_state"] == "compliant"),
+                }
+            )
         supplier_performance = self.compare_suppliers()[:8]
+        regulation_counts: dict[str, int] = defaultdict(int)
+        for relationship in self.relationships:
+            if relationship["type"] == "REVIEWED_UNDER":
+                regulation_id = relationship["to"] if relationship["to"].startswith("REG") else relationship["from"]
+                regulation_counts[regulation_id] += 1
         return {
             "cost_trends": cost_trends,
             "compliance_drift": compliance_drift,
             "supplier_risk_trend": supplier_risk_trend,
+            "material_adoption": material_adoption,
+            "regulation_exposure": [
+                {
+                    "regulation": self.regulation_index.get(regulation_id, {}).get("name", regulation_id),
+                    "affected_materials": count,
+                }
+                for regulation_id, count in sorted(regulation_counts.items(), key=lambda item: item[1], reverse=True)[:8]
+            ],
             "supplier_performance": supplier_performance,
         }
 
@@ -1152,6 +1260,20 @@ class LocalGraphRepository:
             ],
             "query_set": query_notes,
         }
+
+    def _type_from_node_id(self, node_id: str) -> str:
+        prefix_map = {
+            "MAT": "material",
+            "SUP": "supplier",
+            "APP": "application",
+            "REG": "regulation",
+            "DOC": "document",
+            "REP": "report",
+            "NEWS": "news",
+            "REC": "recycling_stream",
+        }
+        prefix = str(node_id).split("-")[0]
+        return prefix_map.get(prefix, "unknown")
 
     def materials_at_risk(self) -> list[dict[str, Any]]:
         risky = []

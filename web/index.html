@@ -20,6 +20,21 @@
         </div>
 
         <section class="sidebar-section">
+          <div class="section-label">User access</div>
+          <div id="user-card" class="status-card auth-user-card"></div>
+          <form id="auth-form" class="stack-form sidebar-auth-form">
+            <input id="auth-email" type="email" placeholder="Email" />
+            <input id="auth-password" type="password" placeholder="Password" />
+            <div class="row-actions">
+              <button type="submit">Sign in</button>
+              <button type="button" id="auth-register" class="secondary">Quick register</button>
+              <button type="button" id="auth-logout" class="secondary">Logout</button>
+            </div>
+          </form>
+          <div id="auth-status" class="upload-status"></div>
+        </section>
+
+        <section class="sidebar-section">
           <div class="section-label">Current context</div>
           <div class="status-stack">
             <div class="status-card">
@@ -50,6 +65,11 @@
           </form>
           <div id="workspace-status" class="upload-status"></div>
         </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">Notifications</div>
+          <div id="notification-list" class="card-list compact-list"></div>
+        </section>
       </aside>
 
       <main class="main">
@@ -58,12 +78,27 @@
             <p class="eyebrow">Product shell</p>
             <h3>One graph-backed decision product with four distinct working modes</h3>
           </div>
-          <nav class="product-top-nav">
-            <button type="button" class="shell-link active" data-section="dashboard">Dashboard</button>
-            <button type="button" class="shell-link" data-section="explore">Explore</button>
-            <button type="button" class="shell-link" data-section="contribute">Contribute</button>
-            <button type="button" class="shell-link" data-section="community">Community</button>
-          </nav>
+          <div class="shell-nav-row">
+            <nav class="product-top-nav">
+              <button type="button" class="shell-link active" data-section="dashboard">Dashboard</button>
+              <button type="button" class="shell-link" data-section="explore">Explore</button>
+              <button type="button" class="shell-link" data-section="contribute">Contribute</button>
+              <button type="button" class="shell-link" data-section="community">Community</button>
+            </nav>
+            <div class="row-actions shell-actions">
+              <button type="button" id="open-command-palette" class="secondary">Search everywhere</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel context-ribbon-panel">
+          <div class="panel-header compact-panel-header">
+            <div>
+              <p class="eyebrow">Cross-page context</p>
+              <h3>Carry the current material, supplier, search, and question across the product</h3>
+            </div>
+          </div>
+          <div id="cross-page-context" class="context-ribbon"></div>
         </section>
 
         <section class="product-section active" data-section="dashboard">
@@ -425,6 +460,10 @@
                 <div>
                   <div class="subsection-heading">Reference evidence</div>
                   <div id="provenance-panel" class="split-grid"></div>
+                  <div class="subsection">
+                    <div class="subsection-heading">Document preview</div>
+                    <div id="document-preview-panel" class="card-list compact-list"></div>
+                  </div>
                 </div>
               </div>
               <div class="subsection">
@@ -752,7 +791,15 @@
             </div>
             <div class="explore-shell-top">
               <div id="explore-tabs" class="prompt-row"></div>
-              <button type="button" id="explore-reset" class="secondary">Reset filters</button>
+              <div class="row-actions">
+                <select id="explore-sort" class="graph-select">
+                  <option value="relevance">Sort by relevance</option>
+                  <option value="title">Sort by title</option>
+                  <option value="sustainability">Sort by sustainability</option>
+                </select>
+                <button type="button" id="save-explore-search" class="secondary">Save search</button>
+                <button type="button" id="explore-reset" class="secondary">Reset filters</button>
+              </div>
             </div>
             <div class="explore-layout">
               <aside class="panel explore-filter-rail">
@@ -769,6 +816,10 @@
                   </div>
                 </form>
                 <div id="explore-status" class="upload-status"></div>
+                <div class="subsection">
+                  <div class="subsection-heading">Saved searches</div>
+                  <div id="explore-saved-searches" class="card-list compact-list"></div>
+                </div>
               </aside>
               <div class="panel explore-results-pane">
                 <div class="panel-header compact-panel-header">
@@ -778,6 +829,7 @@
                   </div>
                   <div id="explore-results-summary" class="panel-kicker">Loading research records</div>
                 </div>
+                <div id="explore-compare-summary" class="shortlist-summary-ribbon"></div>
                 <div id="explore-results" class="card-list compact-list"></div>
               </div>
               <aside class="panel explore-detail-pane">
@@ -876,6 +928,15 @@
               <div id="contribution-recent-list" class="card-list compact-list"></div>
             </article>
           </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Reviewer queue</p>
+                <h3>Approve, reject, or continue review with diff and confidence context</h3>
+              </div>
+            </div>
+            <div id="contribution-review-queue" class="card-list compact-list"></div>
+          </section>
         </section>
 
         <section class="product-section" data-section="community">
@@ -885,6 +946,24 @@
               <h2>Discuss materials, sourcing, compliance, and trend signals in context</h2>
             </div>
             <p>Community is the discussion layer around the intelligence product: browse channels, scan the post feed, open thread detail, and create lightweight demo posts tied to materials or source references.</p>
+          </section>
+          <section class="panel">
+            <div class="panel-header compact-panel-header">
+              <div>
+                <p class="eyebrow">Feed controls</p>
+                <h3>Filter discussion by moderation state and linked material context</h3>
+              </div>
+            </div>
+            <div class="split-grid">
+              <select id="community-moderation-filter">
+                <option value="">All moderation states</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="pending">Pending</option>
+              </select>
+              <select id="community-related-filter">
+                <option value="">Any linked material</option>
+              </select>
+            </div>
           </section>
           <section class="panel">
             <div class="panel-header">
@@ -934,11 +1013,36 @@
                 </div>
               </div>
               <div id="community-detail" class="detail-layout community-detail-layout"></div>
+              <form id="community-reply-form" class="stack-form">
+                <textarea id="community-reply-body" rows="3" placeholder="Add a reply to the selected discussion"></textarea>
+                <div class="row-actions">
+                  <button type="submit">Reply</button>
+                </div>
+              </form>
             </aside>
           </section>
         </section>
       </main>
     </div>
+    <div id="command-palette" class="command-palette" hidden>
+      <div class="command-palette-dialog">
+        <div class="panel-header compact-panel-header">
+          <div>
+            <p class="eyebrow">Search everywhere</p>
+            <h3>Jump across materials, suppliers, workspaces, contributions, and community</h3>
+          </div>
+          <button type="button" id="close-command-palette" class="secondary">Close</button>
+        </div>
+        <form id="command-search-form" class="inline-form">
+          <input id="command-search-input" type="text" placeholder="Search everywhere" />
+          <button type="submit">Search</button>
+        </form>
+        <div id="command-search-results" class="card-list compact-list"></div>
+      </div>
+    </div>
+    <script src="/assets/modules/shared-ui.js"></script>
+    <script src="/assets/modules/auth-shell.js"></script>
+    <script src="/assets/modules/command-palette.js"></script>
     <script src="/assets/modules/answer-panel.js"></script>
     <script src="/assets/modules/explore-page.js"></script>
     <script src="/assets/modules/contribute-page.js"></script>

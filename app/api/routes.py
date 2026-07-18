@@ -3,11 +3,23 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import CommunityPostCreate, ContributionCreate, InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import CommunityPostCreate, CommunityReplyCreate, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, RegisterRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
     router = APIRouter()
+
+    def current_user_or_401():
+        user = state.auth.current_user()
+        if not user:
+            raise HTTPException(status_code=401, detail="No active user session")
+        return user
+
+    def require_permission(permission: str):
+        user = current_user_or_401()
+        if not state.auth.has_permission(user, permission):
+            raise HTTPException(status_code=403, detail=f"Missing permission: {permission}")
+        return user
 
     @router.get("/materials")
     def list_materials():
@@ -114,6 +126,29 @@ def build_router(state) -> APIRouter:
     @router.get("/search/global")
     def global_search(query: str):
         return {"status": "ok", "data": state.repository.global_search(query)}
+
+    @router.get("/search/command")
+    def command_search(query: str):
+        results = state.repository.global_search(query)
+        workspaces = state.auth.list_workspaces(state.auth.current_user()["user_id"]) if state.auth.current_user() else []
+        submissions = [item for item in state.contributions.list_submissions() if query.lower() in item.get("title", "").lower()]
+        posts = [item for item in state.community.list_posts() if query.lower() in item.get("title", "").lower() or query.lower() in item.get("body", "").lower()]
+        payload = {
+            "results": results[:10],
+            "workspaces": [
+                {"entity_type": "workspace", "entity_id": item["workspace_id"], "title": item["name"], "subtitle": item.get("active_tab", "workspace")}
+                for item in workspaces[:5]
+            ],
+            "contributions": [
+                {"entity_type": "contribution", "entity_id": item["contribution_id"], "title": item["title"], "subtitle": item.get("status", "queued")}
+                for item in submissions[:5]
+            ],
+            "posts": [
+                {"entity_type": "community_post", "entity_id": item["post_id"], "title": item["title"], "subtitle": item.get("channel_id", "community")}
+                for item in posts[:5]
+            ],
+        }
+        return {"status": "ok", "data": payload}
 
     @router.get("/investigations")
     def list_investigations():
@@ -311,6 +346,13 @@ def build_router(state) -> APIRouter:
     def documents_search(query: str, material_id: str | None = None):
         return {"status": "ok", "data": state.repository.search_documents(query, material_id)}
 
+    @router.get("/documents/{document_id}")
+    def document_detail(document_id: str):
+        detail = state.repository.document_detail(document_id)
+        if not detail:
+            raise HTTPException(status_code=404, detail="Document not found")
+        return {"status": "ok", "data": detail}
+
     @router.post("/documents/upload")
     async def documents_upload(
         file: UploadFile = File(...),
@@ -340,6 +382,10 @@ def build_router(state) -> APIRouter:
     def analytics_overview():
         return {"status": "ok", "data": state.repository.analytics_overview()}
 
+    @router.get("/integrity/report")
+    def integrity_report():
+        return {"status": "ok", "data": state.repository.integrity_report()}
+
     @router.post("/auth/login")
     def auth_login(payload: LoginRequest):
         user = state.auth.login(payload.email, payload.password)
@@ -347,9 +393,26 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=401, detail="Invalid demo credentials")
         return {"status": "ok", "data": user}
 
+    @router.post("/auth/register")
+    def auth_register(payload: RegisterRequest):
+        try:
+            user = state.auth.register(payload.name, payload.email, payload.password, payload.role_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return {"status": "ok", "data": user}
+
+    @router.post("/auth/logout")
+    def auth_logout():
+        state.auth.logout()
+        return {"status": "ok", "data": {"logged_out": True}}
+
     @router.get("/auth/session")
     def auth_session():
         return {"status": "ok", "data": state.auth.current_user()}
+
+    @router.get("/auth/roles")
+    def auth_roles():
+        return {"status": "ok", "data": state.auth.list_roles()}
 
     @router.get("/workspaces")
     def list_workspaces():
@@ -358,10 +421,18 @@ def build_router(state) -> APIRouter:
 
     @router.post("/workspaces")
     def save_workspace(payload: WorkspaceSaveRequest):
-        user = state.auth.current_user()
-        if not user:
-            raise HTTPException(status_code=401, detail="No active user session")
+        user = require_permission("workspaces:write")
         return {"status": "ok", "data": state.auth.save_workspace(user["user_id"], payload.model_dump())}
+
+    @router.get("/searches")
+    def list_saved_searches():
+        user = current_user_or_401()
+        return {"status": "ok", "data": state.auth.list_saved_searches(user["user_id"])}
+
+    @router.post("/searches")
+    def save_search(payload: dict):
+        user = require_permission("search:save")
+        return {"status": "ok", "data": state.auth.save_search(user["user_id"], payload)}
 
     @router.get("/contributions/roles")
     def contribution_roles():
@@ -374,22 +445,35 @@ def build_router(state) -> APIRouter:
             "data": {
                 "submissions": state.contributions.list_submissions(),
                 "status_summary": state.contributions.status_summary(),
+                "review_queue": state.contributions.list_queue(),
             },
         }
 
     @router.post("/contributions")
     def create_contribution(payload: ContributionCreate):
-        current_user = state.auth.current_user()
-        submitted_by = current_user["name"] if current_user else "Demo Contributor"
+        current_user = require_permission("contributions:write")
+        if payload.related_entity_type or payload.related_entity_id:
+            validation = state.repository.validate_entity_reference(payload.related_entity_type, payload.related_entity_id)
+            if not validation["valid"]:
+                raise HTTPException(status_code=400, detail=validation["message"])
+        submitted_by = current_user["name"]
         return {"status": "ok", "data": state.contributions.create(payload.model_dump(), submitted_by)}
+
+    @router.post("/contributions/{contribution_id}/review")
+    def review_contribution(contribution_id: str, payload: ContributionReviewRequest):
+        reviewer = require_permission("contributions:review")
+        record = state.contributions.review(contribution_id, payload.status, reviewer["name"], payload.reviewer_note)
+        if not record:
+            raise HTTPException(status_code=404, detail="Contribution not found")
+        return {"status": "ok", "data": record}
 
     @router.get("/community/channels")
     def community_channels():
         return {"status": "ok", "data": state.community.list_channels()}
 
     @router.get("/community/posts")
-    def community_posts(channel_id: str | None = None):
-        return {"status": "ok", "data": state.community.list_posts(channel_id)}
+    def community_posts(channel_id: str | None = None, moderation_state: str | None = None, related_entity_id: str | None = None):
+        return {"status": "ok", "data": state.community.list_posts(channel_id, moderation_state, related_entity_id)}
 
     @router.get("/community/posts/{post_id}")
     def community_post_detail(post_id: str):
@@ -400,9 +484,12 @@ def build_router(state) -> APIRouter:
 
     @router.post("/community/posts")
     def create_community_post(payload: CommunityPostCreate):
-        current_user = state.auth.current_user()
-        author_name = current_user["name"] if current_user else "Demo Contributor"
-        return {"status": "ok", "data": state.community.create_post(payload.model_dump(), author_name)}
+        current_user = require_permission("community:write")
+        author_name = current_user["name"]
+        return {
+            "status": "ok",
+            "data": state.community.create_post(payload.model_dump(), author_name, current_user["role_title"], 68),
+        }
 
     @router.post("/community/posts/{post_id}/upvote")
     def upvote_community_post(post_id: str):
@@ -410,5 +497,57 @@ def build_router(state) -> APIRouter:
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
+
+    @router.post("/community/posts/{post_id}/save")
+    def save_community_post(post_id: str):
+        post = state.community.save_post(post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Community post not found")
+        return {"status": "ok", "data": post}
+
+    @router.post("/community/posts/{post_id}/reply")
+    def reply_community_post(post_id: str, payload: CommunityReplyCreate):
+        current_user = require_permission("community:write")
+        post = state.community.add_reply(post_id, payload.body, current_user["name"], current_user["role_title"])
+        if not post:
+            raise HTTPException(status_code=404, detail="Community post not found")
+        return {"status": "ok", "data": post}
+
+    @router.post("/community/posts/{post_id}/pin")
+    def pin_community_post(post_id: str):
+        require_permission("community:pin")
+        post = state.community.pin(post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Community post not found")
+        return {"status": "ok", "data": post}
+
+    @router.get("/notifications")
+    def notifications():
+        user = state.auth.current_user()
+        alerts = state.repository.alerts()[:4]
+        queue = state.contributions.list_queue()[:4]
+        posts = [item for item in state.community.list_posts() if item.get("moderation_state") == "pending"][:4]
+        workspaces = state.auth.list_workspaces(user["user_id"])[:2] if user else []
+        return {
+            "status": "ok",
+            "data": [
+                *[
+                    {"type": "alert", "title": item["title"], "detail": item["detail"], "tone": item["severity"]}
+                    for item in alerts
+                ],
+                *[
+                    {"type": "review", "title": item["title"], "detail": f"Contribution is {item['status'].replace('_', ' ')}.", "tone": "info"}
+                    for item in queue
+                ],
+                *[
+                    {"type": "community", "title": item["title"], "detail": f"Moderation state: {item['moderation_state']}.", "tone": "info"}
+                    for item in posts
+                ],
+                *[
+                    {"type": "workspace", "title": item["name"], "detail": f"Saved for {item.get('active_tab', 'dashboard')}.", "tone": "success"}
+                    for item in workspaces
+                ],
+            ],
+        }
 
     return router
