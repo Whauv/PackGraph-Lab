@@ -16,7 +16,7 @@ window.PackGraphExplorePage = {
     });
   },
 
-  renderResults(items, onOpen, activeId) {
+  renderResults(items, onOpen, activeId, onCompare) {
     const container = document.getElementById("explore-results");
     if (!container) return;
     if (!items.length) {
@@ -36,9 +36,11 @@ window.PackGraphExplorePage = {
         </div>
         <p>${this.escape(item.subtitle || "")}</p>
         <small>${this.escape(item.meta || "")}</small>
+        ${item.match_reason ? `<div class="match-reason">${this.escape(item.match_reason)}</div>` : ""}
         ${(item.tags || []).length ? `<div class="tags">${item.tags.map((tag) => `<span class="tag">${this.escape(tag)}</span>`).join("")}</div>` : ""}
         <div class="row-actions">
           <button type="button" class="mini-action" data-open-explore="${this.escape(item.entity_type)}::${this.escape(item.entity_id)}">Open detail</button>
+          ${item.entity_type === "material" ? `<button type="button" class="mini-action secondary" data-compare-explore="${this.escape(item.entity_id)}">Compare</button>` : ""}
         </div>
       </article>
     `).join("");
@@ -47,6 +49,9 @@ window.PackGraphExplorePage = {
         const [entityType, entityId] = button.dataset.openExplore.split("::");
         onOpen(entityType, entityId);
       });
+    });
+    container.querySelectorAll("[data-compare-explore]").forEach((button) => {
+      button.addEventListener("click", () => onCompare(button.dataset.compareExplore));
     });
   },
 

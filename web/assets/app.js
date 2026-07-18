@@ -33,6 +33,11 @@ const state = {
   theme: "light",
   currentUser: null,
   currentPage: "overview",
+  notifications: [],
+  savedSearches: [],
+  latestQuestion: "",
+  latestGlobalSearch: "",
+  latestSupplierId: null,
 };
 
 function applyTheme(theme) {
@@ -53,6 +58,9 @@ function setupThemeToggle() {
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
   const payload = await response.json();
+  if (!response.ok || payload.status === "error") {
+    throw new Error(payload.detail || payload.error || "Request failed");
+  }
   return payload.data;
 }
 
@@ -516,22 +524,27 @@ function renderGraphCanvas(graph) {
 async function openMaterial(materialId, page = "overview") {
   if (!materialId) return;
   state.selectedMaterialId = materialId;
+  state.latestSupplierId = null;
   const select = document.getElementById("material-select");
   if (select) select.value = materialId;
   setPage(page);
   await refreshMaterialContext();
+  renderCrossPageContext();
 }
 
 async function openSupplierProfile(supplierId) {
+  state.latestSupplierId = supplierId;
   const supplier = await fetchJson(`/suppliers/${encodeURIComponent(supplierId)}`);
   renderSupplierDetail(supplier);
   setPage("intelligence");
+  renderCrossPageContext();
 }
 
 async function openRegulationDetail(regulationId) {
   const regulation = await fetchJson(`/regulations/${encodeURIComponent(regulationId)}`);
   renderRegulationDetail(regulation);
   setPage("intelligence");
+  renderCrossPageContext();
 }
 
 function addMaterialToShortlist(materialId) {
@@ -660,6 +673,22 @@ function updatePageContextCard() {
   pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(state.currentPage)}</strong><small>${descriptions[state.currentPage]}</small>`;
 }
 
+function renderCrossPageContext() {
+  const container = document.getElementById("cross-page-context");
+  if (!container) return;
+  const material = state.materials.find((item) => item.material_id === state.selectedMaterialId);
+  const shortlist = selectedMaterialRecordsFromCompare();
+  const supplier = state.suppliers.find((item) => item.supplier_id === state.latestSupplierId);
+  const chips = [
+    material ? `<span class="pill">Material: ${escapeHtml(material.name)}</span>` : "",
+    supplier ? `<span class="pill">Supplier: ${escapeHtml(supplier.name)}</span>` : "",
+    state.latestQuestion ? `<span class="pill">Question: ${escapeHtml(state.latestQuestion)}</span>` : "",
+    state.latestGlobalSearch ? `<span class="pill">Search: ${escapeHtml(state.latestGlobalSearch)}</span>` : "",
+    shortlist.length ? `<span class="pill">Shortlist: ${escapeHtml(shortlist.map((item) => item.name).join(", "))}</span>` : "",
+  ].filter(Boolean);
+  container.innerHTML = chips.length ? chips.join("") : `<span class="pill">No cross-page context captured yet</span>`;
+}
+
 function renderRecommendedNextAction(panel) {
   const container = document.getElementById("answer-next-action");
   if (!container) return;
@@ -738,6 +767,9 @@ function setSection(sectionName) {
 
 async function loadSession() {
   state.currentUser = await fetchJson("/auth/session");
+  if (window.PackGraphAuthShell) {
+    window.PackGraphAuthShell.renderUser(state.currentUser);
+  }
 }
 
 async function loadMaterials() {
@@ -792,8 +824,13 @@ function populateContributionEntityOptions() {
 
 function populateCommunityMaterialOptions() {
   const select = document.getElementById("community-related-material");
-  if (!select) return;
-  select.innerHTML = `<option value="">No linked material</option>${state.materials.map((item) => `<option value="${item.material_id}">${item.name}</option>`).join("")}`;
+  const filter = document.getElementById("community-related-filter");
+  if (select) {
+    select.innerHTML = `<option value="">No linked material</option>${state.materials.map((item) => `<option value="${item.material_id}">${item.name}</option>`).join("")}`;
+  }
+  if (filter) {
+    filter.innerHTML = `<option value="">Any linked material</option>${state.materials.map((item) => `<option value="${item.material_id}">${item.name}</option>`).join("")}`;
+  }
 }
 
 async function refreshMaterialContext() {
@@ -858,14 +895,18 @@ async function loadMaterialDetail() {
 
 async function loadProvenance(searchQuery = "") {
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
+  const previewPanel = document.getElementById("document-preview-panel");
+  if (previewPanel) {
+    previewPanel.innerHTML = `<div class="row-card"><p>Select a document or report to preview extracted fields and source context.</p></div>`;
+  }
   document.getElementById("provenance-panel").innerHTML = `
     <div class="detail-card">
       <h4>Documents</h4>
-      ${material.documents.map((doc) => `<div class="row-card"><strong>${doc.title}</strong><p>${titleCase(doc.document_type)}</p><small>Provenance score ${doc.provenance_score} / issued ${doc.issued_on}</small>${doc.extraction_summary ? `<p>${escapeHtml(doc.extraction_summary)}</p>` : ""}</div>`).join("")}
+      ${material.documents.map((doc) => `<div class="row-card"><strong>${doc.title}</strong><p>${titleCase(doc.document_type)}</p><small>Provenance score ${doc.provenance_score} / issued ${doc.issued_on}</small>${doc.extraction_summary ? `<p>${escapeHtml(doc.extraction_summary)}</p>` : ""}<div class="action-row"><button type="button" class="mini-action" data-open-document="${escapeHtml(doc.document_id)}">Preview</button></div></div>`).join("")}
     </div>
     <div class="detail-card">
       <h4>Test reports</h4>
-      ${material.test_reports.map((report) => `<div class="row-card"><strong>${report.title}</strong><p>${report.lab}</p><small>Migration ${report.migration_status} / test date ${report.test_date}</small>${report.extraction_summary ? `<p>${escapeHtml(report.extraction_summary)}</p>` : ""}</div>`).join("")}
+      ${material.test_reports.map((report) => `<div class="row-card"><strong>${report.title}</strong><p>${report.lab}</p><small>Migration ${report.migration_status} / test date ${report.test_date}</small>${report.extraction_summary ? `<p>${escapeHtml(report.extraction_summary)}</p>` : ""}<div class="action-row"><button type="button" class="mini-action" data-open-document="${escapeHtml(report.report_id)}">Preview</button></div></div>`).join("")}
     </div>`;
   if (searchQuery) {
     const results = await fetchJson(`/documents/search?query=${encodeURIComponent(searchQuery)}&material_id=${state.selectedMaterialId}`);
@@ -879,6 +920,7 @@ async function loadProvenance(searchQuery = "") {
           label: "Actions",
           render: (item) => `
             <div class="action-row">
+              <button type="button" class="mini-action" data-open-document="${escapeHtml(item.document_id || item.report_id || "")}">Preview</button>
               <button type="button" class="mini-action" data-open-graph="${escapeHtml(item.material_id || state.selectedMaterialId)}">Open in graph</button>
               <button type="button" class="mini-action" data-export-material="${escapeHtml(item.material_id || state.selectedMaterialId)}">Export</button>
             </div>`,
@@ -897,6 +939,30 @@ async function loadProvenance(searchQuery = "") {
       window.PackGraphWorkbenchPanels.renderEvidenceExtraction([...(material.documents || []), ...(material.test_reports || [])]);
     }
   }
+  bindDocumentPreviewActions();
+}
+
+function bindDocumentPreviewActions() {
+  document.querySelectorAll("[data-open-document]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await loadDocumentPreview(button.dataset.openDocument);
+    });
+  });
+}
+
+async function loadDocumentPreview(documentId) {
+  const container = document.getElementById("document-preview-panel");
+  if (!container || !documentId) return;
+  const detail = await fetchJson(`/documents/${encodeURIComponent(documentId)}`);
+  container.innerHTML = `
+    <div class="detail-card">
+      <h5>${escapeHtml(detail.document_type || detail.lab || "Evidence")}</h5>
+      <h4>${escapeHtml(detail.title || documentId)}</h4>
+      <p>${escapeHtml(detail.preview_text || "No preview text available.")}</p>
+      <div class="key-facts">
+        ${(detail.extracted_fields || []).map((field) => `<div class="fact"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(field.value)}</strong></div>`).join("")}
+      </div>
+    </div>`;
 }
 
 async function loadCompliance() {
@@ -991,6 +1057,76 @@ async function loadWorkspaces() {
   }
 }
 
+async function loadNotifications() {
+  try {
+    state.notifications = await fetchJson("/notifications");
+  } catch {
+    state.notifications = [];
+  }
+  if (window.PackGraphAuthShell) {
+    window.PackGraphAuthShell.renderNotifications(state.notifications);
+  }
+}
+
+async function loadSavedSearches() {
+  try {
+    state.savedSearches = await fetchJson("/searches");
+  } catch {
+    state.savedSearches = [];
+  }
+  renderSavedSearches();
+}
+
+function renderSavedSearches() {
+  const container = document.getElementById("explore-saved-searches");
+  if (!container) return;
+  if (!state.savedSearches.length) {
+    container.innerHTML = `<div class="row-card"><p>No saved searches yet.</p></div>`;
+    return;
+  }
+  container.innerHTML = state.savedSearches.slice(0, 6).map((item) => `
+    <button type="button" class="row-card saved-search-card" data-saved-search="${escapeHtml(item.saved_search_id)}">
+      <strong>${escapeHtml(item.name || item.tab || "Saved search")}</strong>
+      <small>${escapeHtml(titleCase(item.tab || "materials"))} | ${escapeHtml(item.saved_at || "")}</small>
+    </button>`).join("");
+  container.querySelectorAll("[data-saved-search]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const search = state.savedSearches.find((item) => item.saved_search_id === button.dataset.savedSearch);
+      if (!search) return;
+      state.exploreTab = search.tab || "materials";
+      document.getElementById("explore-search").value = search.filters?.search || "";
+      document.getElementById("explore-category").value = search.filters?.category || "";
+      document.getElementById("explore-supplier").value = search.filters?.supplier_id || "";
+      document.getElementById("explore-application").value = search.filters?.application_id || "";
+      document.getElementById("explore-compliance").value = search.filters?.compliance_state || "";
+      document.getElementById("explore-sustainability").value = search.filters?.min_sustainability || "";
+      await loadExploreEntities();
+    });
+  });
+}
+
+async function saveCurrentExploreSearch() {
+  const payload = {
+    name: `${titleCase(state.exploreTab)} search`,
+    tab: state.exploreTab,
+    filters: {
+      search: document.getElementById("explore-search")?.value.trim() || "",
+      category: document.getElementById("explore-category")?.value || "",
+      supplier_id: document.getElementById("explore-supplier")?.value || "",
+      application_id: document.getElementById("explore-application")?.value || "",
+      compliance_state: document.getElementById("explore-compliance")?.value || "",
+      min_sustainability: document.getElementById("explore-sustainability")?.value || "",
+    },
+  };
+  await fetchJson("/searches", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  setStatus("explore-status", "Saved the current Explore search.", "success");
+  await loadSavedSearches();
+}
+
 async function loadExploreEntities() {
   const params = new URLSearchParams({ tab: state.exploreTab });
   const search = document.getElementById("explore-search")?.value.trim();
@@ -1007,6 +1143,19 @@ async function loadExploreEntities() {
   if (minSustainability) params.set("min_sustainability", minSustainability);
   setStatus("explore-status", "Loading browse results...", "info");
   state.exploreResults = await fetchJson(`/explore/entities?${params.toString()}`);
+  const searchReason = search ? `Matched "${search}" in the current ${state.exploreTab} browse set.` : "Matched the current filter set.";
+  state.exploreResults = state.exploreResults.map((item) => ({ ...item, match_reason: item.match_reason || searchReason }));
+  const sortValue = document.getElementById("explore-sort")?.value || "relevance";
+  if (sortValue === "title") {
+    state.exploreResults.sort((a, b) => a.title.localeCompare(b.title));
+  }
+  if (sortValue === "sustainability") {
+    state.exploreResults.sort((a, b) => {
+      const aValue = Number((a.meta || "").match(/Sustainability (\d+)/)?.[1] || 0);
+      const bValue = Number((b.meta || "").match(/Sustainability (\d+)/)?.[1] || 0);
+      return bValue - aValue;
+    });
+  }
   document.getElementById("explore-results-title").textContent = `${titleCase(state.exploreTab)} browse results`;
   document.getElementById("explore-results-summary").textContent = `${state.exploreResults.length} records in ${titleCase(state.exploreTab)}`;
   if (window.PackGraphExplorePage) {
@@ -1016,15 +1165,22 @@ async function loadExploreEntities() {
       await loadExploreEntities();
       window.PackGraphExplorePage.renderDetail(null, jumpExploreToDashboard);
     });
-    window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, state.selectedExploreDetail?.entity_id);
+    window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, state.selectedExploreDetail?.entity_id, (materialId) => {
+      addMaterialToShortlist(materialId);
+      renderExploreCompareSummary();
+    });
   }
+  renderExploreCompareSummary();
   clearStatus("explore-status");
 }
 
 async function openExploreDetail(entityType, entityId) {
   state.selectedExploreDetail = await fetchJson(`/explore/detail?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`);
   if (window.PackGraphExplorePage) {
-    window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, entityId);
+    window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, entityId, (materialId) => {
+      addMaterialToShortlist(materialId);
+      renderExploreCompareSummary();
+    });
     window.PackGraphExplorePage.renderDetail(state.selectedExploreDetail, jumpExploreToDashboard);
   }
 }
@@ -1040,7 +1196,28 @@ async function jumpExploreToDashboard(detail) {
   if (input) {
     input.value = detail?.dashboard_prompt || "What should I inspect next in the graph?";
   }
+  state.latestQuestion = detail?.dashboard_prompt || "";
+  renderCrossPageContext();
   document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderExploreCompareSummary() {
+  const container = document.getElementById("explore-compare-summary");
+  if (!container) return;
+  const selected = selectedMaterialRecordsFromCompare();
+  container.innerHTML = selected.length
+    ? `
+      <div class="shortlist-summary-copy">
+        <span class="section-label">Compare from Explore</span>
+        <strong>${selected.length} shortlisted candidates</strong>
+        <p>${escapeHtml(selected.map((item) => item.name).join(", "))}</p>
+      </div>`
+    : `
+      <div class="shortlist-summary-copy">
+        <span class="section-label">Compare from Explore</span>
+        <strong>No comparison set yet</strong>
+        <p>Add a material from Explore to carry it straight into Workbench.</p>
+      </div>`;
 }
 
 async function loadContributionData() {
@@ -1067,6 +1244,26 @@ async function loadContributionData() {
     renderContributionRoleDetail();
     window.PackGraphContributePage.renderSubmissions(state.contributionData);
   }
+  bindContributionReviewActions();
+}
+
+function bindContributionReviewActions() {
+  document.querySelectorAll("[data-review-id]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const reviewerNote = `Updated by ${state.currentUser?.name || "reviewer"} on ${new Date().toISOString().slice(0, 10)}.`;
+      try {
+        await fetchJson(`/contributions/${encodeURIComponent(button.dataset.reviewId)}/review`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: button.dataset.reviewStatus, reviewer_note: reviewerNote }),
+        });
+        setStatus("contribution-status", `Contribution moved to ${button.dataset.reviewStatus.replace("_", " ")}.`, "success");
+        await Promise.all([loadContributionData(), loadNotifications()]);
+      } catch (error) {
+        setStatus("contribution-status", error.message, "error");
+      }
+    });
+  });
 }
 
 function renderContributionRoleDetail() {
@@ -1092,15 +1289,19 @@ async function submitContribution() {
     return;
   }
   setStatus("contribution-status", "Submitting contribution for review...", "info");
-  await fetchJson("/contributions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  document.getElementById("contribution-form").reset();
-  populateContributionEntityOptions();
-  await loadContributionData();
-  setStatus("contribution-status", `Submitted ${payload.title}.`, "success");
+  try {
+    await fetchJson("/contributions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    document.getElementById("contribution-form").reset();
+    populateContributionEntityOptions();
+    await Promise.all([loadContributionData(), loadNotifications()]);
+    setStatus("contribution-status", `Submitted ${payload.title}.`, "success");
+  } catch (error) {
+    setStatus("contribution-status", error.message, "error");
+  }
 }
 
 async function loadCommunityData() {
@@ -1118,12 +1319,17 @@ async function loadCommunityData() {
 }
 
 async function loadCommunityPosts() {
-  state.communityPosts = await fetchJson(`/community/posts?channel_id=${encodeURIComponent(state.selectedCommunityChannelId)}`);
+  const moderation = document.getElementById("community-moderation-filter")?.value || "";
+  const relatedEntityId = document.getElementById("community-related-filter")?.value || "";
+  const params = new URLSearchParams({ channel_id: state.selectedCommunityChannelId });
+  if (moderation) params.set("moderation_state", moderation);
+  if (relatedEntityId) params.set("related_entity_id", relatedEntityId);
+  state.communityPosts = await fetchJson(`/community/posts?${params.toString()}`);
   if (!state.selectedCommunityPostId && state.communityPosts.length) {
     state.selectedCommunityPostId = state.communityPosts[0].post_id;
   }
   if (window.PackGraphCommunityPage) {
-    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost);
+    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost);
   }
   if (state.selectedCommunityPostId) {
     await openCommunityPost(state.selectedCommunityPostId);
@@ -1136,7 +1342,7 @@ async function openCommunityPost(postId) {
   state.selectedCommunityPostId = postId;
   const post = await fetchJson(`/community/posts/${encodeURIComponent(postId)}`);
   if (window.PackGraphCommunityPage) {
-    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost);
+    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost);
     window.PackGraphCommunityPage.renderDetail(post);
   }
 }
@@ -1144,6 +1350,20 @@ async function openCommunityPost(postId) {
 async function upvoteCommunityPost(postId) {
   await fetchJson(`/community/posts/${encodeURIComponent(postId)}/upvote`, { method: "POST" });
   await loadCommunityPosts();
+}
+
+async function saveCommunityPost(postId) {
+  await fetchJson(`/community/posts/${encodeURIComponent(postId)}/save`, { method: "POST" });
+  await loadCommunityPosts();
+}
+
+async function pinCommunityPost(postId) {
+  try {
+    await fetchJson(`/community/posts/${encodeURIComponent(postId)}/pin`, { method: "POST" });
+    await Promise.all([loadCommunityPosts(), loadNotifications()]);
+  } catch (error) {
+    setStatus("community-status", error.message, "error");
+  }
 }
 
 async function submitCommunityPost() {
@@ -1169,6 +1389,7 @@ async function submitCommunityPost() {
   state.selectedCommunityPostId = null;
   await loadCommunityData();
   setStatus("community-status", `Created post ${payload.title}.`, "success");
+  await loadNotifications();
 }
 
 async function loadScenarioHistory() {
@@ -1366,6 +1587,8 @@ async function runGlobalSearch() {
     return;
   }
   setStatus("global-search-status", "Searching the portfolio...", "info");
+  state.latestGlobalSearch = query;
+  renderCrossPageContext();
   const results = await fetchJson(`/search/global?query=${encodeURIComponent(query)}`);
   setStatus("global-search-status", results.length ? `Found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
   renderTableCard(
@@ -1884,10 +2107,67 @@ function setupGraphFilters() {
 }
 
 function setupForms() {
+  document.getElementById("auth-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const user = await fetchJson("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: document.getElementById("auth-email").value.trim(),
+          password: document.getElementById("auth-password").value,
+        }),
+      });
+      state.currentUser = user;
+      if (window.PackGraphAuthShell) {
+        window.PackGraphAuthShell.renderUser(user);
+      }
+      setStatus("auth-status", `Signed in as ${user.name}.`, "success");
+      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces()]);
+    } catch (error) {
+      setStatus("auth-status", error.message, "error");
+    }
+  });
+
+  document.getElementById("auth-register").addEventListener("click", async () => {
+    try {
+      const user = await fetchJson("/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "New Explorer",
+          email: document.getElementById("auth-email").value.trim() || `explorer${Date.now()}@packgraph.local`,
+          password: document.getElementById("auth-password").value || "packgraph-demo",
+          role_id: "explorer",
+        }),
+      });
+      state.currentUser = user;
+      if (window.PackGraphAuthShell) {
+        window.PackGraphAuthShell.renderUser(user);
+      }
+      setStatus("auth-status", `Created local account for ${user.name}.`, "success");
+      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces()]);
+    } catch (error) {
+      setStatus("auth-status", error.message, "error");
+    }
+  });
+
+  document.getElementById("auth-logout").addEventListener("click", async () => {
+    await fetchJson("/auth/logout", { method: "POST" });
+    state.currentUser = null;
+    if (window.PackGraphAuthShell) {
+      window.PackGraphAuthShell.renderUser(null);
+      window.PackGraphAuthShell.renderNotifications([]);
+    }
+    setStatus("auth-status", "Signed out of the local session.", "info");
+  });
+
   document.getElementById("ask-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const question = document.getElementById("question-input").value.trim();
     if (!question) return;
+    state.latestQuestion = question;
+    renderCrossPageContext();
     const response = await fetchJson("/query/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1989,7 +2269,7 @@ function setupForms() {
       }),
     });
     document.getElementById("workspace-name").value = "";
-    await loadWorkspaces();
+    await Promise.all([loadWorkspaces(), loadNotifications()]);
     setStatus("workspace-status", `Saved workspace ${name}.`, "success");
   });
 
@@ -1998,8 +2278,20 @@ function setupForms() {
     await runGlobalSearch();
   });
 
+  document.getElementById("save-explore-search").addEventListener("click", async () => {
+    try {
+      await saveCurrentExploreSearch();
+    } catch (error) {
+      setStatus("explore-status", error.message, "error");
+    }
+  });
+
   document.getElementById("explore-filter-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    await loadExploreEntities();
+  });
+
+  document.getElementById("explore-sort").addEventListener("change", async () => {
     await loadExploreEntities();
   });
 
@@ -2034,8 +2326,39 @@ function setupForms() {
     await submitCommunityPost();
   });
 
+  document.getElementById("community-reply-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const body = document.getElementById("community-reply-body").value.trim();
+    if (!body || !state.selectedCommunityPostId) {
+      setStatus("community-status", "Choose a thread and add a reply first.", "error");
+      return;
+    }
+    try {
+      await fetchJson(`/community/posts/${encodeURIComponent(state.selectedCommunityPostId)}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      document.getElementById("community-reply-body").value = "";
+      setStatus("community-status", "Reply added to the selected discussion.", "success");
+      await Promise.all([loadCommunityPosts(), loadNotifications()]);
+    } catch (error) {
+      setStatus("community-status", error.message, "error");
+    }
+  });
+
   document.getElementById("community-channel-select").addEventListener("change", async (event) => {
     state.selectedCommunityChannelId = event.target.value;
+    state.selectedCommunityPostId = null;
+    await loadCommunityPosts();
+  });
+
+  document.getElementById("community-moderation-filter").addEventListener("change", async () => {
+    state.selectedCommunityPostId = null;
+    await loadCommunityPosts();
+  });
+
+  document.getElementById("community-related-filter").addEventListener("change", async () => {
     state.selectedCommunityPostId = null;
     await loadCommunityPosts();
   });
@@ -2052,6 +2375,39 @@ function setupForms() {
       const format = link.textContent.trim();
       const materialName = link.dataset.materialName || "selected material";
       setStatus("export-studio-status", `Preparing ${format} for ${materialName}.`, "success");
+    });
+  });
+
+  document.getElementById("open-command-palette").addEventListener("click", () => {
+    window.PackGraphCommandPalette?.open();
+  });
+
+  document.getElementById("close-command-palette").addEventListener("click", () => {
+    window.PackGraphCommandPalette?.close();
+  });
+
+  document.getElementById("command-search-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const query = document.getElementById("command-search-input").value.trim();
+    if (!query) return;
+    const payload = await fetchJson(`/search/command?query=${encodeURIComponent(query)}`);
+    window.PackGraphCommandPalette?.render(payload, async (entityType, entityId) => {
+      window.PackGraphCommandPalette?.close();
+      if (entityType === "material") await openMaterial(entityId, "overview");
+      if (entityType === "supplier") await openSupplierProfile(entityId);
+      if (entityType === "regulation") await openRegulationDetail(entityId);
+      if (entityType === "community_post") {
+        setSection("community");
+        state.selectedCommunityPostId = entityId;
+        await openCommunityPost(entityId);
+      }
+      if (entityType === "workspace") {
+        setSection("dashboard");
+        await resumeWorkspace(entityId);
+      }
+      if (entityType === "contribution") {
+        setSection("contribute");
+      }
     });
   });
 
@@ -2074,6 +2430,8 @@ async function init() {
     loadAlerts(),
     loadInvestigations(),
     loadWorkspaces(),
+    loadSavedSearches(),
+    loadNotifications(),
     loadScenarioHistory(),
     loadRecommendationsSummary(),
     loadAnalytics(),
@@ -2105,6 +2463,7 @@ async function init() {
   if (window.PackGraphCommunityPage) {
     window.PackGraphCommunityPage.renderDetail(null);
   }
+  renderCrossPageContext();
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
   const requestedSection = new URLSearchParams(window.location.search).get("section");
   const requestedPage = new URLSearchParams(window.location.search).get("page");

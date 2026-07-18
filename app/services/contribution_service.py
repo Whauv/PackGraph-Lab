@@ -84,6 +84,12 @@ class ContributionService:
                     "badge": "Lab-backed",
                     "submitted_by": "Demo Analyst",
                     "submitted_on": "2026-07-14T10:15:00",
+                    "evidence_confidence": 86,
+                    "diff_preview": {
+                        "before": "Barrier note says suitable for chilled food-service trays.",
+                        "after": "Barrier note now distinguishes chilled trays from longer-shelf meal pouches.",
+                    },
+                    "reviewer_note": "Needs one more declaration cross-check before acceptance.",
                 },
                 {
                     "contribution_id": "CON-002",
@@ -98,6 +104,12 @@ class ContributionService:
                     "badge": "Signal shaper",
                     "submitted_by": "Compliance Lead",
                     "submitted_on": "2026-07-11T14:40:00",
+                    "evidence_confidence": 91,
+                    "diff_preview": {
+                        "before": "Supplier links based on cost and availability only.",
+                        "after": "Supplier links now include declaration strength and audit-readiness context.",
+                    },
+                    "reviewer_note": "Accepted for stronger evidence framing.",
                 },
                 {
                     "contribution_id": "CON-003",
@@ -112,6 +124,12 @@ class ContributionService:
                     "badge": "Field observer",
                     "submitted_by": "Demo Analyst",
                     "submitted_on": "2026-07-09T09:05:00",
+                    "evidence_confidence": 62,
+                    "diff_preview": {
+                        "before": "News item mentions sustainability pressure only.",
+                        "after": "News item now calls out declaration and test-report gaps as part of the update.",
+                    },
+                    "reviewer_note": "",
                 },
             ]
         )
@@ -120,11 +138,13 @@ class ContributionService:
         return self.ROLE_CONFIG
 
     def list_submissions(self) -> list[dict[str, Any]]:
-        records = sorted(self._read(), key=lambda item: item.get("submitted_on", ""), reverse=True)
-        return records
+        return sorted(self._read(), key=lambda item: item.get("submitted_on", ""), reverse=True)
+
+    def list_queue(self) -> list[dict[str, Any]]:
+        return [item for item in self.list_submissions() if item.get("status") in {"queued", "under_review"}]
 
     def status_summary(self) -> list[dict[str, Any]]:
-        counts: dict[str, int] = {"queued": 0, "under_review": 0, "accepted": 0}
+        counts: dict[str, int] = {"queued": 0, "under_review": 0, "accepted": 0, "rejected": 0}
         for record in self._read():
             status = record.get("status", "queued")
             counts[status] = counts.get(status, 0) + 1
@@ -141,7 +161,42 @@ class ContributionService:
             "badge": role["badge"],
             "submitted_by": submitted_by,
             "submitted_on": datetime.now().isoformat(timespec="seconds"),
+            "evidence_confidence": self._score_confidence(payload),
+            "diff_preview": {
+                "before": payload.get("edit_request", "") or "No prior draft was attached.",
+                "after": payload.get("summary", "") or payload.get("proposed_links", "") or "Contribution submitted.",
+            },
+            "reviewer_note": "",
         }
         records.append(record)
         self._write(records)
         return record
+
+    def review(self, contribution_id: str, status: str, reviewer_name: str, reviewer_note: str) -> dict[str, Any] | None:
+        records = self._read()
+        updated = None
+        for record in records:
+            if record["contribution_id"] != contribution_id:
+                continue
+            record["status"] = status
+            record["reviewer_name"] = reviewer_name
+            record["reviewed_on"] = datetime.now().isoformat(timespec="seconds")
+            record["reviewer_note"] = reviewer_note.strip()
+            updated = record
+            break
+        if not updated:
+            return None
+        self._write(records)
+        return updated
+
+    def _score_confidence(self, payload: dict[str, Any]) -> int:
+        score = 55
+        if payload.get("summary"):
+            score += 10
+        if payload.get("evidence_note"):
+            score += 15
+        if payload.get("edit_request"):
+            score += 10
+        if payload.get("proposed_links"):
+            score += 10
+        return min(score, 98)

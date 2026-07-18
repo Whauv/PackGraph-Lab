@@ -14,7 +14,7 @@ window.PackGraphCommunityPage = {
     });
   },
 
-  renderPosts(posts, selectedPostId, onOpen, onUpvote) {
+  renderPosts(posts, selectedPostId, onOpen, onUpvote, onSave, onPin) {
     const container = document.getElementById("community-feed");
     if (!container) return;
     if (!posts.length) {
@@ -28,8 +28,10 @@ window.PackGraphCommunityPage = {
           <span class="table-badge">${this.escape(post.channel_id)}</span>
         </div>
         <p>${this.escape(post.body)}</p>
-        <small>${this.escape(post.author_name)} | ${this.escape(post.created_at)}</small>
+        <small>${this.escape(post.author_name)} | ${this.escape(post.author_role || "")} | rep ${this.escape(post.author_reputation || "n/a")} | ${this.escape(post.created_at)}</small>
         <div class="tags">
+          ${post.pinned ? `<span class="tag">Pinned</span>` : ""}
+          <span class="tag">${this.escape(post.moderation_state || "reviewed")}</span>
           <span class="tag">${this.escape(post.upvotes)} upvotes</span>
           <span class="tag">${this.escape(post.saves)} saves</span>
           <span class="tag">${this.escape(post.comment_count)} comments</span>
@@ -38,6 +40,8 @@ window.PackGraphCommunityPage = {
         <div class="row-actions">
           <button type="button" class="mini-action" data-open-post="${this.escape(post.post_id)}">Open discussion</button>
           <button type="button" class="mini-action secondary" data-upvote-post="${this.escape(post.post_id)}">Upvote</button>
+          <button type="button" class="mini-action secondary" data-save-post="${this.escape(post.post_id)}">Save</button>
+          <button type="button" class="mini-action secondary" data-pin-post="${this.escape(post.post_id)}">${post.pinned ? "Unpin" : "Pin"}</button>
         </div>
       </article>
     `).join("");
@@ -46,6 +50,12 @@ window.PackGraphCommunityPage = {
     });
     container.querySelectorAll("[data-upvote-post]").forEach((button) => {
       button.addEventListener("click", () => onUpvote(button.dataset.upvotePost));
+    });
+    container.querySelectorAll("[data-save-post]").forEach((button) => {
+      button.addEventListener("click", () => onSave(button.dataset.savePost));
+    });
+    container.querySelectorAll("[data-pin-post]").forEach((button) => {
+      button.addEventListener("click", () => onPin(button.dataset.pinPost));
     });
   },
 
@@ -62,6 +72,8 @@ window.PackGraphCommunityPage = {
         <h4>${this.escape(post.title)}</h4>
         <p>${this.escape(post.body)}</p>
         <div class="tags">
+          ${post.pinned ? `<span class="tag">Pinned</span>` : ""}
+          <span class="tag">${this.escape(post.moderation_state || "reviewed")}</span>
           <span class="tag">${this.escape(post.upvotes)} upvotes</span>
           <span class="tag">${this.escape(post.saves)} saves</span>
           <span class="tag">${this.escape(post.comment_count)} comments</span>

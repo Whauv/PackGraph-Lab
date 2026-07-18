@@ -44,6 +44,7 @@ window.PackGraphContributePage = {
   renderSubmissions(payload) {
     const recent = document.getElementById("contribution-recent-list");
     const status = document.getElementById("contribution-status-board");
+    const queue = document.getElementById("contribution-review-queue");
     if (status) {
       status.innerHTML = (payload.status_summary || []).map((item) => `
         <div class="metric">
@@ -59,9 +60,32 @@ window.PackGraphContributePage = {
         <div class="row-card">
           <strong>${this.escape(item.title)}</strong>
           <p>${this.escape(item.summary || "No summary captured.")}</p>
-          <small>${this.escape(item.status)} | ${this.escape(item.badge)} | ${this.escape(item.submitted_on)}</small>
+          <small>${this.escape(item.status)} | confidence ${this.escape(item.evidence_confidence || "n/a")} | ${this.escape(item.badge)} | ${this.escape(item.submitted_on)}</small>
         </div>`).join("")
       : `<div class="row-card"><p>No submissions yet.</p></div>`;
+    if (queue) {
+      const reviewQueue = payload.review_queue || [];
+      queue.innerHTML = reviewQueue.length
+        ? reviewQueue.map((item) => `
+          <div class="row-card review-queue-card">
+            <div class="explore-result-top">
+              <strong>${this.escape(item.title)}</strong>
+              <span class="table-badge">${this.escape(item.status)}</span>
+            </div>
+            <p>${this.escape(item.summary || "No summary captured.")}</p>
+            <div class="diff-preview">
+              <div><span>Before</span><strong>${this.escape(item.diff_preview?.before || "No prior draft")}</strong></div>
+              <div><span>After</span><strong>${this.escape(item.diff_preview?.after || "No proposed update")}</strong></div>
+            </div>
+            <small>Evidence confidence ${this.escape(item.evidence_confidence || "n/a")} | ${this.escape(item.submitted_by)}</small>
+            <div class="row-actions">
+              <button type="button" class="mini-action" data-review-id="${this.escape(item.contribution_id)}" data-review-status="accepted">Approve</button>
+              <button type="button" class="mini-action secondary" data-review-id="${this.escape(item.contribution_id)}" data-review-status="under_review">Keep reviewing</button>
+              <button type="button" class="mini-action secondary" data-review-id="${this.escape(item.contribution_id)}" data-review-status="rejected">Reject</button>
+            </div>
+          </div>`).join("")
+        : `<div class="row-card"><p>No items currently need review.</p></div>`;
+    }
   },
 
   escape(value) {

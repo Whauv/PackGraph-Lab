@@ -59,6 +59,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role_id: str = "explorer"
+
+
 class ContributionCreate(BaseModel):
     role_id: str
     submission_type: str
@@ -71,9 +78,18 @@ class ContributionCreate(BaseModel):
     proposed_links: str = ""
 
 
+class ContributionReviewRequest(BaseModel):
+    status: Literal["accepted", "rejected", "under_review"]
+    reviewer_note: str = ""
+
+
 class CommunityPostCreate(BaseModel):
     channel_id: str
     title: str
     body: str
     related_material_id: str | None = None
     source_reference: str = ""
+
+
+class CommunityReplyCreate(BaseModel):
+    body: str
