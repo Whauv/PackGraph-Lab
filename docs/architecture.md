@@ -11,6 +11,8 @@ PackGraph Lab is a local-first sustainable packaging intelligence demo built aro
 - `app/services/scenario_engine.py`: simulates disruptions, cost inflation, compostability prioritization, and future regulation activation.
 - `web/`: polished single-page frontend with chat, comparison, provenance, compliance, investigations, and relationship explorer panels.
 
+See [repository-map.md](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\repository-map.md) for the repo organization guide and [changes/README.md](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\changes\README.md) for the lightweight change-log pattern.
+
 ## Product Flow
 
 1. Generate data into `data/generated`.

@@ -2378,39 +2378,6 @@ function setupForms() {
     });
   });
 
-  document.getElementById("open-command-palette").addEventListener("click", () => {
-    window.PackGraphCommandPalette?.open();
-  });
-
-  document.getElementById("close-command-palette").addEventListener("click", () => {
-    window.PackGraphCommandPalette?.close();
-  });
-
-  document.getElementById("command-search-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const query = document.getElementById("command-search-input").value.trim();
-    if (!query) return;
-    const payload = await fetchJson(`/search/command?query=${encodeURIComponent(query)}`);
-    window.PackGraphCommandPalette?.render(payload, async (entityType, entityId) => {
-      window.PackGraphCommandPalette?.close();
-      if (entityType === "material") await openMaterial(entityId, "overview");
-      if (entityType === "supplier") await openSupplierProfile(entityId);
-      if (entityType === "regulation") await openRegulationDetail(entityId);
-      if (entityType === "community_post") {
-        setSection("community");
-        state.selectedCommunityPostId = entityId;
-        await openCommunityPost(entityId);
-      }
-      if (entityType === "workspace") {
-        setSection("dashboard");
-        await resumeWorkspace(entityId);
-      }
-      if (entityType === "contribution") {
-        setSection("contribute");
-      }
-    });
-  });
-
 }
 
 async function init() {

@@ -23,8 +23,8 @@ window.PackGraphExplorePage = {
       container.innerHTML = `
         <div class="table-empty">
           <span class="table-empty-illustration" aria-hidden="true"></span>
-          <strong>No browse results yet</strong>
-          <p>Adjust the filters or switch tabs to widen the research scope.</p>
+          <strong>No results</strong>
+          <p>Broaden the filters or switch modes.</p>
         </div>`;
       return;
     }
@@ -61,8 +61,8 @@ window.PackGraphExplorePage = {
     if (!detail) {
       container.innerHTML = `
         <div class="detail-card">
-          <h4>Explore detail panel</h4>
-          <p>Select a material, application, supplier, or news item to inspect the linked research context.</p>
+          <h4>Select a result</h4>
+          <p>Open a material, supplier, application, or update to inspect the context.</p>
         </div>`;
       return;
     }
@@ -82,8 +82,8 @@ window.PackGraphExplorePage = {
         </div>
       </div>
       <div class="detail-card">
-        <h5>Linked context</h5>
-        <h4>What this connects to</h4>
+        <h5>Context</h5>
+        <h4>Linked entities</h4>
         ${Object.entries(related).map(([label, values]) => `
           <div class="subsection">
             <div class="subsection-heading">${this.escape(label)}</div>
@@ -91,10 +91,10 @@ window.PackGraphExplorePage = {
           </div>
         `).join("")}
         <div class="subsection">
-          <div class="subsection-heading">Jump to dashboard</div>
-          <p>Open the graph-backed workspace with a focused question already prepared from this entity.</p>
+          <div class="subsection-heading">Open in dashboard</div>
+          <p>Carry this context into the main workspace with a prepared question.</p>
           <div class="row-actions">
-            <button type="button" id="explore-jump-dashboard">Ask in Dashboard</button>
+            <button type="button" id="explore-jump-dashboard">Open Dashboard</button>
           </div>
         </div>
       </div>`;

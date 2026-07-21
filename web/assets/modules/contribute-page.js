@@ -19,7 +19,7 @@ window.PackGraphContributePage = {
     const container = document.getElementById("contribute-role-detail");
     if (!container) return;
     if (!role) {
-      container.innerHTML = `<div class="detail-card"><p>Select a role to inspect permissions and verification behavior.</p></div>`;
+      container.innerHTML = `<div class="detail-card"><p>Select a role to review permissions and review depth.</p></div>`;
       return;
     }
     container.innerHTML = `
@@ -33,8 +33,8 @@ window.PackGraphContributePage = {
         </div>
       </div>
       <div class="detail-card">
-        <h5>Role permissions</h5>
-        <h4>What this contributor can do</h4>
+        <h5>Permissions</h5>
+        <h4>What this role can do</h4>
         <div class="card-list compact-list">
           ${(role.permissions || []).map((permission) => `<div class="row-card"><strong>${this.escape(permission)}</strong></div>`).join("")}
         </div>
@@ -80,11 +80,11 @@ window.PackGraphContributePage = {
             <small>Evidence confidence ${this.escape(item.evidence_confidence || "n/a")} | ${this.escape(item.submitted_by)}</small>
             <div class="row-actions">
               <button type="button" class="mini-action" data-review-id="${this.escape(item.contribution_id)}" data-review-status="accepted">Approve</button>
-              <button type="button" class="mini-action secondary" data-review-id="${this.escape(item.contribution_id)}" data-review-status="under_review">Keep reviewing</button>
+              <button type="button" class="mini-action secondary" data-review-id="${this.escape(item.contribution_id)}" data-review-status="under_review">Hold</button>
               <button type="button" class="mini-action secondary" data-review-id="${this.escape(item.contribution_id)}" data-review-status="rejected">Reject</button>
             </div>
           </div>`).join("")
-        : `<div class="row-card"><p>No items currently need review.</p></div>`;
+        : `<div class="row-card"><p>The queue is clear.</p></div>`;
     }
   },
 

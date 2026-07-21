@@ -38,6 +38,11 @@ PackGraph Lab demonstrates those flows with fresh branding, synthetic data, and 
 - `scripts/`: dataset generation, graph ingestion, and benchmarking scripts
 - `web/`: local frontend
 
+Helpful repo guides:
+
+- [Repository map](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\repository-map.md)
+- [Change tracking guide](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\changes\README.md)
+
 ## Local run
 
 ### Option 1: direct Python run with Neo4j Community Edition
