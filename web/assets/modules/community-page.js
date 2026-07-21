@@ -18,7 +18,7 @@ window.PackGraphCommunityPage = {
     const container = document.getElementById("community-feed");
     if (!container) return;
     if (!posts.length) {
-      container.innerHTML = `<div class="row-card"><p>No posts yet in this channel. Create one to seed the discussion.</p></div>`;
+      container.innerHTML = `<div class="row-card"><p>No threads yet in this channel.</p></div>`;
       return;
     }
     container.innerHTML = posts.map((post) => `
@@ -38,7 +38,7 @@ window.PackGraphCommunityPage = {
         </div>
         ${(post.related_entities || []).length ? `<div class="tags">${post.related_entities.map((entity) => `<span class="tag">${this.escape(entity.label)}</span>`).join("")}</div>` : ""}
         <div class="row-actions">
-          <button type="button" class="mini-action" data-open-post="${this.escape(post.post_id)}">Open discussion</button>
+          <button type="button" class="mini-action" data-open-post="${this.escape(post.post_id)}">Open thread</button>
           <button type="button" class="mini-action secondary" data-upvote-post="${this.escape(post.post_id)}">Upvote</button>
           <button type="button" class="mini-action secondary" data-save-post="${this.escape(post.post_id)}">Save</button>
           <button type="button" class="mini-action secondary" data-pin-post="${this.escape(post.post_id)}">${post.pinned ? "Unpin" : "Pin"}</button>
@@ -63,7 +63,7 @@ window.PackGraphCommunityPage = {
     const container = document.getElementById("community-detail");
     if (!container) return;
     if (!post) {
-      container.innerHTML = `<div class="detail-card"><p>Open a discussion to review related materials, source references, moderation framing, and replies.</p></div>`;
+      container.innerHTML = `<div class="detail-card"><p>Open a thread to review linked materials, sources, and replies.</p></div>`;
       return;
     }
     container.innerHTML = `
@@ -80,10 +80,10 @@ window.PackGraphCommunityPage = {
         </div>
       </div>
       <div class="detail-card">
-        <h5>Discussion framing</h5>
-        <h4>Related references and moderation context</h4>
+        <h5>Context</h5>
+        <h4>References and moderation</h4>
         <div class="subsection">
-          <div class="subsection-heading">Related entities</div>
+          <div class="subsection-heading">Linked entities</div>
           <div class="tags">${(post.related_entities || []).length ? post.related_entities.map((entity) => `<span class="tag">${this.escape(entity.label)}</span>`).join("") : `<span class="tag">None</span>`}</div>
         </div>
         <div class="subsection">
