@@ -54,6 +54,10 @@ class WorkspaceSaveRequest(BaseModel):
     active_tab: str = "materials"
 
 
+class ComponentDiscoveryRequest(BaseModel):
+    query: str
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str

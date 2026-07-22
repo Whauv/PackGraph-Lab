@@ -30,6 +30,22 @@ class RepositoryExtensionTests(unittest.TestCase):
         self.assertIn("affected_materials", regulation)
         self.assertIn("likely_actions", regulation)
 
+    def test_list_suppliers_filters_by_region(self):
+        region = self.repository.suppliers[0]["regions_served"][0]
+        suppliers = self.repository.list_suppliers(region=region)
+        self.assertTrue(suppliers)
+        self.assertTrue(all(region in item["regions_served"] for item in suppliers))
+
+    def test_explore_supplier_results_can_filter_by_region(self):
+        region = self.repository.suppliers[0]["regions_served"][0]
+        results = self.repository.explore_entities(tab="suppliers", region=region)
+        self.assertTrue(results)
+        supplier_ids = {item["entity_id"] for item in results}
+        matching_supplier_ids = {
+            item["supplier_id"] for item in self.repository.suppliers if region in item["regions_served"]
+        }
+        self.assertTrue(supplier_ids.issubset(matching_supplier_ids))
+
 
 class ScenarioHistoryTests(unittest.TestCase):
     def test_save_and_list_history(self):

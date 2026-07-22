@@ -38,6 +38,7 @@ const state = {
   latestQuestion: "",
   latestGlobalSearch: "",
   latestSupplierId: null,
+  supplierRegionSummary: [],
 };
 
 function applyTheme(theme) {
@@ -119,6 +120,7 @@ function formatEntityLabel(type) {
     document: "Document",
     report: "Report",
     test_report: "Report",
+    component: "Component",
   };
   return labels[type] || titleCase(type);
 }
@@ -600,6 +602,15 @@ function bindInlineActions() {
       await openRegulationDetail(button.dataset.openRegulation);
     });
   });
+  document.querySelectorAll("[data-ask-component]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById("question-input");
+      if (!input) return;
+      input.value = `What should I know about the component ${button.dataset.askComponent} for packaging decisions?`;
+      setPage("overview");
+      input.focus();
+    });
+  });
   document.querySelectorAll("[data-export-material]").forEach((button) => {
     button.addEventListener("click", () => {
       const materialId = button.dataset.exportMaterial;
@@ -777,6 +788,7 @@ async function loadMaterials() {
   const body = await payload.json();
   state.materials = body.data;
   state.suppliers = await fetchJson("/suppliers");
+  state.supplierRegionSummary = await fetchJson("/suppliers/regions/summary");
   state.applications = await fetchJson("/applications");
   state.regulations = await fetchJson("/regulations");
   state.filteredMaterials = [...state.materials];
@@ -805,9 +817,12 @@ function populateFilterOptions() {
 
 function populateExploreOptions() {
   const categories = [...new Set(state.materials.map((item) => item.category))].sort();
+  const supplierRegions = [...new Set(state.suppliers.flatMap((item) => item.regions_served || []))].sort();
+  document.getElementById("explore-region").innerHTML = `<option value="">All supplier regions</option>${supplierRegions.map((item) => `<option value="${item}">${item}</option>`).join("")}`;
   document.getElementById("explore-category").innerHTML = `<option value="">All categories</option>${categories.map((item) => `<option value="${item}">${titleCase(item)}</option>`).join("")}`;
   document.getElementById("explore-supplier").innerHTML = `<option value="">All suppliers</option>${state.suppliers.map((item) => `<option value="${item.supplier_id}">${item.name}</option>`).join("")}`;
   document.getElementById("explore-application").innerHTML = `<option value="">All applications</option>${state.applications.map((item) => `<option value="${item.application_id}">${item.name}</option>`).join("")}`;
+  renderSupplierRegionSummary();
 }
 
 function populateContributionEntityOptions() {
@@ -1095,6 +1110,7 @@ function renderSavedSearches() {
       if (!search) return;
       state.exploreTab = search.tab || "materials";
       document.getElementById("explore-search").value = search.filters?.search || "";
+      document.getElementById("explore-region").value = search.filters?.region || "";
       document.getElementById("explore-category").value = search.filters?.category || "";
       document.getElementById("explore-supplier").value = search.filters?.supplier_id || "";
       document.getElementById("explore-application").value = search.filters?.application_id || "";
@@ -1111,6 +1127,7 @@ async function saveCurrentExploreSearch() {
     tab: state.exploreTab,
     filters: {
       search: document.getElementById("explore-search")?.value.trim() || "",
+      region: document.getElementById("explore-region")?.value || "",
       category: document.getElementById("explore-category")?.value || "",
       supplier_id: document.getElementById("explore-supplier")?.value || "",
       application_id: document.getElementById("explore-application")?.value || "",
@@ -1127,15 +1144,48 @@ async function saveCurrentExploreSearch() {
   await loadSavedSearches();
 }
 
+function renderSupplierRegionSummary() {
+  const container = document.getElementById("supplier-region-summary");
+  if (!container) return;
+  if (!state.supplierRegionSummary.length) {
+    container.innerHTML = `<div class="row-card"><p>No supplier geography data yet.</p></div>`;
+    return;
+  }
+  const activeRegion = document.getElementById("explore-region")?.value || "";
+  container.innerHTML = state.supplierRegionSummary.map((item) => `
+    <button
+      type="button"
+      class="row-card saved-search-card ${activeRegion === item.region ? "is-active" : ""}"
+      data-supplier-region="${escapeHtml(item.region)}"
+    >
+      <strong>${escapeHtml(item.region)}</strong>
+      <small>${escapeHtml(String(item.supplier_count))} suppliers serve this region</small>
+    </button>
+  `).join("");
+  container.querySelectorAll("[data-supplier-region]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.exploreTab = "suppliers";
+      const selected = button.dataset.supplierRegion;
+      const regionSelect = document.getElementById("explore-region");
+      if (regionSelect) {
+        regionSelect.value = regionSelect.value === selected ? "" : selected;
+      }
+      await loadExploreEntities();
+    });
+  });
+}
+
 async function loadExploreEntities() {
   const params = new URLSearchParams({ tab: state.exploreTab });
   const search = document.getElementById("explore-search")?.value.trim();
+  const region = document.getElementById("explore-region")?.value;
   const category = document.getElementById("explore-category")?.value;
   const supplierId = document.getElementById("explore-supplier")?.value;
   const applicationId = document.getElementById("explore-application")?.value;
   const complianceState = document.getElementById("explore-compliance")?.value;
   const minSustainability = document.getElementById("explore-sustainability")?.value;
   if (search) params.set("search", search);
+  if (region) params.set("region", region);
   if (category) params.set("category", category);
   if (supplierId) params.set("supplier_id", supplierId);
   if (applicationId) params.set("application_id", applicationId);
@@ -1170,6 +1220,7 @@ async function loadExploreEntities() {
       renderExploreCompareSummary();
     });
   }
+  renderSupplierRegionSummary();
   renderExploreCompareSummary();
   clearStatus("explore-status");
 }
@@ -1580,17 +1631,48 @@ async function loadAnalytics() {
 
 async function runGlobalSearch() {
   const input = document.getElementById("global-search-input");
+  const imageInput = document.getElementById("global-search-image");
   const query = input.value.trim();
-  if (!query) {
-    setStatus("global-search-status", "Type something to search.", "error");
+  const hasImage = Boolean(imageInput?.files?.length);
+  if (!query && !hasImage) {
+    setStatus("global-search-status", "Type something or upload an image.", "error");
     renderTableCard("global-search-results", [], [], "Search across materials, suppliers, regulations, documents, and reports.");
+    renderRelatedDiscovery(null);
     return;
   }
-  setStatus("global-search-status", "Searching the portfolio...", "info");
-  state.latestGlobalSearch = query;
+  setStatus("global-search-status", hasImage ? "Identifying the uploaded image and checking the product knowledge base..." : "Searching the portfolio...", "info");
+  state.latestGlobalSearch = query || imageInput.files[0]?.name || "";
   renderCrossPageContext();
-  const results = await fetchJson(`/search/global?query=${encodeURIComponent(query)}`);
-  setStatus("global-search-status", results.length ? `Found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
+  let results = [];
+  let related = null;
+  let identification = null;
+
+  if (hasImage || query) {
+    const formData = new FormData();
+    if (query) formData.append("query", query);
+    if (hasImage) formData.append("image", imageInput.files[0]);
+    const payload = await fetchJson("/search/discover", {
+      method: "POST",
+      body: formData,
+    });
+    results = payload.results || [];
+    related = payload.related || null;
+    identification = payload.identification || null;
+  }
+
+  const discoveredComponent = results.find((item) => item.entity_type === "component" && item.discovery_state === "newly_discovered");
+  if (discoveredComponent && identification) {
+    setStatus(
+      "global-search-status",
+      `${identification.label} was identified ${identification.method === "image_filename_inference" ? "from the uploaded image" : "from your search"} and saved on July 22, 2026 for future lookups.`,
+      "success"
+    );
+  } else if (identification) {
+    const basis = identification.method === "image_filename_inference" ? "Identified from the uploaded image" : "Matched from your search";
+    setStatus("global-search-status", results.length ? `${basis} and found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
+  } else {
+    setStatus("global-search-status", results.length ? `Found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
+  }
   renderTableCard(
     "global-search-results",
     [
@@ -1615,15 +1697,56 @@ async function runGlobalSearch() {
           if (item.entity_type === "regulation") {
             return `<div class="action-row"><button type="button" class="mini-action" data-open-regulation="${escapeHtml(item.entity_id)}">Open regulation</button></div>`;
           }
+          if (item.entity_type === "component") {
+            return `
+              <div class="action-row">
+                <button type="button" class="mini-action" data-ask-component="${escapeHtml(item.title)}">Ask workspace</button>
+                ${item.source_url ? `<a class="mini-action link-action" href="${escapeHtml(item.source_url)}" target="_blank" rel="noopener">Open source</a>` : ""}
+              </div>`;
+          }
           const fallbackMaterial = item.entity_type === "report" || item.entity_type === "document" ? state.selectedMaterialId : "";
           return `<div class="action-row"><button type="button" class="mini-action" data-open-graph="${escapeHtml(fallbackMaterial)}">Open context</button></div>`;
         },
       },
     ],
     results,
-    "Try a material family, supplier name, regulation title, or evidence keyword."
+    "Try a material family, supplier name, regulation title, evidence keyword, or upload a component image."
   );
+  renderRelatedDiscovery(related);
   bindInlineActions();
+}
+
+function renderRelatedDiscovery(related) {
+  const container = document.getElementById("global-search-related");
+  if (!container) return;
+  if (!related || (!related.materials?.length && !related.applications?.length && !related.components?.length)) {
+    container.innerHTML = "";
+    return;
+  }
+  const section = (title, items) => {
+    if (!items.length) return "";
+    return `
+      <div class="detail-card">
+        <h5>${escapeHtml(title)}</h5>
+        <div class="card-list compact-list">
+          ${items.join("")}
+        </div>
+      </div>`;
+  };
+  container.innerHTML = [
+    section(
+      "Related materials",
+      (related.materials || []).map((item) => `<div class="row-card"><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.category)} | ${escapeHtml(item.compliance_state)}</p></div>`)
+    ),
+    section(
+      "Related applications",
+      (related.applications || []).map((item) => `<div class="row-card"><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.use_case)}</p></div>`)
+    ),
+    section(
+      "Similar components",
+      (related.components || []).map((item) => `<div class="row-card"><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.summary || "Cached component reference")}</p></div>`)
+    ),
+  ].join("");
 }
 
 function skeletonBlock(type) {
@@ -2276,6 +2399,16 @@ function setupForms() {
   document.getElementById("global-search-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     await runGlobalSearch();
+  });
+
+  document.getElementById("global-search-image-trigger").addEventListener("click", () => {
+    document.getElementById("global-search-image").click();
+  });
+
+  document.getElementById("global-search-image").addEventListener("change", (event) => {
+    const label = document.getElementById("global-search-image-label");
+    const file = event.target.files?.[0];
+    label.textContent = file ? `Selected image: ${file.name}` : "No image selected.";
   });
 
   document.getElementById("save-explore-search").addEventListener("click", async () => {

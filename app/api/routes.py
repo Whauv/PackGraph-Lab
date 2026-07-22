@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import CommunityPostCreate, CommunityReplyCreate, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, RegisterRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, LoginRequest, MaterialCompareRequest, QueryRequest, RegisterRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -68,8 +68,12 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.repository.timeline_for_material(material_id)}
 
     @router.get("/suppliers")
-    def list_suppliers():
-        return {"status": "ok", "data": state.repository.list_suppliers()}
+    def list_suppliers(region: str | None = None):
+        return {"status": "ok", "data": state.repository.list_suppliers(region=region)}
+
+    @router.get("/suppliers/regions/summary")
+    def supplier_region_summary():
+        return {"status": "ok", "data": state.repository.supplier_region_summary()}
 
     @router.get("/suppliers/{supplier_id}")
     def get_supplier(supplier_id: str):
@@ -91,6 +95,7 @@ def build_router(state) -> APIRouter:
         application_id: str | None = None,
         compliance_state: str | None = None,
         min_sustainability: int | None = None,
+        region: str | None = None,
     ):
         return {
             "status": "ok",
@@ -102,6 +107,7 @@ def build_router(state) -> APIRouter:
                 application_id=application_id,
                 compliance_state=compliance_state,
                 min_sustainability=min_sustainability,
+                region=region,
             ),
         }
 
@@ -125,7 +131,56 @@ def build_router(state) -> APIRouter:
 
     @router.get("/search/global")
     def global_search(query: str):
-        return {"status": "ok", "data": state.repository.global_search(query)}
+        results = state.repository.global_search(query)
+        if not results:
+            discovered = state.components.discover(query)
+            if discovered:
+                record = discovered["record"]
+                results = [
+                    {
+                        "entity_type": "component",
+                        "entity_id": record["component_id"],
+                        "title": record["name"],
+                        "subtitle": f"{record.get('component_type', 'Web-discovered component')} | cached on {record.get('discovered_at', 'unknown date')}",
+                        "meta": f"Stored from {record.get('source_name', 'web discovery')} for future lookups.",
+                        "source_url": record.get("source_url", ""),
+                        "discovery_state": discovered["discovery_state"],
+                    }
+                ]
+        return {"status": "ok", "data": results}
+
+    @router.get("/components")
+    def list_components():
+        return {"status": "ok", "data": state.repository.list_components()}
+
+    @router.get("/components/{component_id}")
+    def get_component(component_id: str):
+        component = state.repository.get_component(component_id)
+        if not component:
+            raise HTTPException(status_code=404, detail="Component not found")
+        return {"status": "ok", "data": component}
+
+    @router.post("/components/discover")
+    def discover_component(payload: ComponentDiscoveryRequest):
+        discovered = state.components.discover(payload.query)
+        if not discovered:
+            raise HTTPException(status_code=404, detail="No web-backed component reference could be discovered for this query")
+        return {"status": "ok", "data": discovered}
+
+    @router.post("/search/discover")
+    async def discover_from_common_search(
+        query: str | None = Form(None),
+        image: UploadFile | None = File(None),
+    ):
+        content = await image.read() if image else None
+        payload = state.components.discover_with_related(
+            query=query,
+            filename=image.filename if image else None,
+            content=content,
+        )
+        if not payload:
+            raise HTTPException(status_code=404, detail="No identifiable component or element was found from the current input")
+        return {"status": "ok", "data": payload}
 
     @router.get("/search/command")
     def command_search(query: str):

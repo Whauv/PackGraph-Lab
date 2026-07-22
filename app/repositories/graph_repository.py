@@ -46,6 +46,7 @@ class LocalGraphRepository:
         for relationship in self.relationships:
             self.relationships_by_node[relationship["from"]].append(relationship)
             self.relationships_by_node[relationship["to"]].append(relationship)
+        self.runtime_components_path = self.settings.packgraph_runtime_dir / "discovered_components.json"
         self.runtime_documents_path = self.settings.packgraph_runtime_dir / "uploaded_source_documents.json"
         self.runtime_test_reports_path = self.settings.packgraph_runtime_dir / "uploaded_test_reports.json"
 
@@ -61,11 +62,29 @@ class LocalGraphRepository:
     def runtime_test_reports(self) -> list[dict[str, Any]]:
         return self._read_runtime_json(self.runtime_test_reports_path, [])
 
+    def runtime_components(self) -> list[dict[str, Any]]:
+        return self._read_runtime_json(self.runtime_components_path, [])
+
     def all_documents(self) -> list[dict[str, Any]]:
         return [*self.documents, *self.runtime_documents()]
 
     def all_test_reports(self) -> list[dict[str, Any]]:
         return [*self.test_reports, *self.runtime_test_reports()]
+
+    def list_components(self) -> list[dict[str, Any]]:
+        return self.runtime_components()
+
+    def get_component(self, component_id: str) -> dict[str, Any] | None:
+        component = next((item for item in self.runtime_components() if item.get("component_id") == component_id), None)
+        if not component:
+            return None
+        result = deepcopy(component)
+        result["related_materials"] = [
+            self.material_index[item]
+            for item in component.get("related_material_ids", [])
+            if item in self.material_index
+        ]
+        return result
 
     def list_materials(self) -> list[dict[str, Any]]:
         return self.materials
@@ -134,8 +153,25 @@ class LocalGraphRepository:
         result["test_reports"] = [report for report in self.all_test_reports() if report.get("material_id") == material_id]
         return result
 
-    def list_suppliers(self) -> list[dict[str, Any]]:
-        return self.suppliers
+    def list_suppliers(self, region: str | None = None) -> list[dict[str, Any]]:
+        if not region:
+            return self.suppliers
+        region_lower = region.lower()
+        return [
+            item
+            for item in self.suppliers
+            if any(served.lower() == region_lower for served in item.get("regions_served", []))
+        ]
+
+    def supplier_region_summary(self) -> list[dict[str, Any]]:
+        counts: dict[str, int] = defaultdict(int)
+        for supplier in self.suppliers:
+            for region in supplier.get("regions_served", []):
+                counts[region] += 1
+        return [
+            {"region": region, "supplier_count": supplier_count}
+            for region, supplier_count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+        ]
 
     def list_applications(self) -> list[dict[str, Any]]:
         return self.applications
@@ -152,6 +188,7 @@ class LocalGraphRepository:
         application_id: str | None = None,
         compliance_state: str | None = None,
         min_sustainability: int | None = None,
+        region: str | None = None,
     ) -> list[dict[str, Any]]:
         search_lower = search.lower().strip() if search else ""
         if tab == "applications":
@@ -159,6 +196,8 @@ class LocalGraphRepository:
             for application in self.applications:
                 linked_materials = self._materials_for_application(application["application_id"])
                 if not linked_materials:
+                    continue
+                if region and not any(region in item["regions_available"] for item in linked_materials):
                     continue
                 if category and not any(item["category"].lower() == category.lower() for item in linked_materials):
                     continue
@@ -188,7 +227,7 @@ class LocalGraphRepository:
 
         if tab == "suppliers":
             results = []
-            for supplier in self.suppliers:
+            for supplier in self.list_suppliers(region=region):
                 supplied_materials = [self.material_index[item] for item in supplier["supplied_material_ids"] if item in self.material_index]
                 if category and not any(item["category"].lower() == category.lower() for item in supplied_materials):
                     continue
@@ -207,8 +246,8 @@ class LocalGraphRepository:
                         "entity_id": supplier["supplier_id"],
                         "title": supplier["name"],
                         "subtitle": f"{supplier['country']} | lead time {supplier['lead_time_days']} days",
-                        "meta": f"Risk {supplier['disruption_risk_score']} | {len(supplied_materials)} materials",
-                        "tags": supplier["certifications"][:3],
+                        "meta": f"Risk {supplier['disruption_risk_score']} | {len(supplied_materials)} materials | {', '.join(supplier['regions_served'][:2])}",
+                        "tags": [*supplier["regions_served"][:2], *supplier["certifications"][:2]][:4],
                         "focus_material_id": supplied_materials[0]["material_id"] if supplied_materials else None,
                         "dashboard_prompt": f"Which risks and substitution options should I inspect for supplier {supplier['name']}?",
                     }
@@ -225,6 +264,10 @@ class LocalGraphRepository:
                     continue
                 if application_id and application_id not in item["related_application_ids"]:
                     continue
+                if region and not any(region == served for served in item.get("regions", item.get("regions_available", []))):
+                    linked_suppliers = [self.supplier_index[sid] for sid in item.get("related_supplier_ids", []) if sid in self.supplier_index]
+                    if not any(region in supplier.get("regions_served", []) for supplier in linked_suppliers):
+                        continue
                 if compliance_state and item["compliance_state"].lower() != compliance_state.lower():
                     continue
                 if min_sustainability is not None and item["sustainability_score"] < min_sustainability:
@@ -253,6 +296,8 @@ class LocalGraphRepository:
             min_sustainability=min_sustainability,
             search=search,
         ):
+            if region and region not in material["regions_available"]:
+                continue
             if supplier_id and supplier_id not in material["supplier_ids"]:
                 continue
             if application_id and application_id not in material["target_applications"]:
@@ -373,6 +418,24 @@ class LocalGraphRepository:
                 "focus_material_id": item["related_material_ids"][0] if item["related_material_ids"] else None,
                 "dashboard_prompt": f"Summarize the graph impact of the update titled '{item['title']}'.",
             }
+        if entity_type == "component":
+            component = self.get_component(entity_id)
+            if not component:
+                return None
+            return {
+                "entity_type": "component",
+                "entity_id": component["component_id"],
+                "title": component["name"],
+                "summary": component.get("summary", "Web-discovered component reference."),
+                "facts": component.get("key_facts", []),
+                "related": {
+                    "materials": [item["name"] for item in component.get("related_materials", [])[:4]],
+                    "tags": component.get("tags", [])[:4],
+                    "evidence": component.get("evidence", [])[:2],
+                },
+                "focus_material_id": component.get("related_material_ids", [None])[0],
+                "dashboard_prompt": f"What should I know about the component {component['name']} for packaging decisions?",
+            }
         return None
 
     def list_regulations(self) -> list[dict[str, Any]]:
@@ -484,6 +547,28 @@ class LocalGraphRepository:
                     }
                 )
 
+        for component in self.runtime_components():
+            haystack = " ".join(
+                [
+                    component.get("name", ""),
+                    component.get("summary", ""),
+                    " ".join(component.get("aliases", [])),
+                    " ".join(component.get("tags", [])),
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "component",
+                        "entity_id": component.get("component_id", ""),
+                        "title": component.get("name", "Discovered component"),
+                        "subtitle": f"{component.get('component_type', 'Web-discovered component')} | cached on {component.get('discovered_at', 'unknown date')}",
+                        "meta": f"Stored from {component.get('source_name', 'web discovery')} for future lookups.",
+                        "source_url": component.get("source_url", ""),
+                        "discovery_state": "cached",
+                    }
+                )
+
         return results[:28]
 
     def resolve_entity_reference(self, entity_type: str | None, entity_id: str | None) -> dict[str, Any] | None:
@@ -500,6 +585,10 @@ class LocalGraphRepository:
             return {"type": "regulation", "id": entity_id, "label": self.regulation_index[entity_id]["name"]}
         if normalized_type == "news" and entity_id in self.news_index:
             return {"type": "news", "id": entity_id, "label": self.news_index[entity_id]["title"]}
+        if normalized_type == "component":
+            component = self.get_component(entity_id)
+            if component:
+                return {"type": "component", "id": entity_id, "label": component.get("name", entity_id)}
         if normalized_type == "document":
             document = next((item for item in self.all_documents() if item.get("document_id") == entity_id), None)
             if document:

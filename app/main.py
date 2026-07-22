@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.repositories.graph_repository import build_graph_repository
 from app.services.auth_service import AuthService
 from app.services.community_service import CommunityService
+from app.services.component_discovery_service import ComponentDiscoveryService
 from app.services.contribution_service import ContributionService
 from app.services.document_intelligence_service import DocumentIntelligenceService
 from app.services.export_service import ExportService
@@ -32,6 +33,8 @@ class AppState:
         self.auth.ensure_seed()
         self.documents = DocumentIntelligenceService(settings.packgraph_runtime_dir, self.repository)
         self.documents.ensure_seed()
+        self.components = ComponentDiscoveryService(settings.packgraph_runtime_dir, self.repository)
+        self.components.ensure_seed()
         self.contributions = ContributionService(settings.packgraph_runtime_dir)
         self.contributions.ensure_seed()
         self.community = CommunityService(settings.packgraph_runtime_dir)
