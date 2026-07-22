@@ -172,14 +172,19 @@
                 <div class="panel-header compact-panel-header">
                   <div>
                     <p class="eyebrow">Primary action</p>
-                    <h3>Search first</h3>
+                    <h3>Search or identify a component</h3>
                   </div>
                   <div id="global-search-summary" class="panel-kicker">Materials, suppliers, rules, documents, reports.</div>
                 </div>
                 <form id="global-search-form" class="inline-form query-form">
-                  <input id="global-search-input" type="text" placeholder="Search a material, supplier, regulation, document, or report" />
-                  <button type="submit">Search</button>
+                  <input id="global-search-input" type="text" placeholder="Search a material, supplier, component, regulation, document, or report" />
+                  <div class="search-discovery-actions">
+                    <input id="global-search-image" type="file" accept="image/*" hidden />
+                    <button type="button" id="global-search-image-trigger" class="secondary">Use image</button>
+                    <button type="submit">Search</button>
+                  </div>
                 </form>
+                <div id="global-search-image-label" class="panel-helper compact-helper">No image selected.</div>
                 <div class="overview-filter-strip">
                   <form id="filter-form" class="stack-form">
                     <div class="filter-grid overview-filter-grid-basic">
@@ -206,6 +211,7 @@
                 </div>
                 <div id="global-search-status" class="upload-status"></div>
                 <div id="global-search-results" class="table-card"></div>
+                <div id="global-search-related" class="card-list compact-list"></div>
               </article>
 
               <article class="panel overview-chat" id="chat-panel">
@@ -778,6 +784,7 @@
                 <div class="subsection-heading">Refine</div>
                 <form id="explore-filter-form" class="stack-form">
                   <input id="explore-search" type="text" placeholder="Search terms" />
+                  <select id="explore-region"><option value="">All supplier regions</option></select>
                   <select id="explore-category"><option value="">All categories</option></select>
                   <select id="explore-supplier"><option value="">All suppliers</option></select>
                   <select id="explore-application"><option value="">All applications</option></select>
@@ -788,6 +795,10 @@
                   </div>
                 </form>
                 <div id="explore-status" class="upload-status"></div>
+                <div class="subsection">
+                  <div class="subsection-heading">Supplier geography</div>
+                  <div id="supplier-region-summary" class="card-list compact-list"></div>
+                </div>
                 <div class="subsection">
                   <div class="subsection-heading">Saved searches</div>
                   <div id="explore-saved-searches" class="card-list compact-list"></div>
