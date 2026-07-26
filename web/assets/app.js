@@ -1,9 +1,11 @@
 const state = {
   materials: [],
+  products: [],
   suppliers: [],
   applications: [],
   regulations: [],
   exploreTab: "materials",
+  exploreView: "cards",
   currentSection: "dashboard",
   exploreResults: [],
   selectedExploreDetail: null,
@@ -39,6 +41,7 @@ const state = {
   latestGlobalSearch: "",
   latestSupplierId: null,
   supplierRegionSummary: [],
+  privateDataStatus: { private_data_active: false, dataset_count: 0, record_count: 0 },
 };
 
 function applyTheme(theme) {
@@ -85,6 +88,84 @@ function renderStructuredAnswer(panel) {
   renderRecommendedNextAction(panel);
 }
 
+function renderQueryRows(rows = []) {
+  const container = document.getElementById("answer-panel-rows");
+  if (!container) return;
+  if (!rows.length) {
+    container.innerHTML = `<div class="table-empty">No structured rows returned yet.</div>`;
+    return;
+  }
+  const columns = Object.keys(rows[0]).slice(0, 4);
+  container.innerHTML = `
+    <table class="comparison-matrix-table">
+      <thead><tr>${columns.map((column) => `<th>${escapeHtml(titleCase(column))}</th>`).join("")}</tr></thead>
+      <tbody>
+        ${rows.slice(0, 8).map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(String(row[column] ?? ""))}</td>`).join("")}</tr>`).join("")}
+      </tbody>
+    </table>`;
+}
+
+function renderExecutionDebug(response) {
+  const container = document.getElementById("answer-panel-debug");
+  if (!container) return;
+  const trace = response.pipeline_trace || [];
+  const classifier = response.classifier || {};
+  const retrieval = response.retrieval || {};
+  const review = response.review_gate || {};
+  container.innerHTML = `
+    <div class="debug-stack">
+      <div class="row-card"><strong>Route</strong><p>${escapeHtml(classifier.route || "graph")} | intent ${escapeHtml(classifier.intent || "unknown")} | confidence ${escapeHtml(String(classifier.confidence ?? ""))}</p></div>
+      <div class="row-card"><strong>Template</strong><p>${escapeHtml(retrieval.reviewed_template || "none")} | private matches ${escapeHtml(String(retrieval.private_matches_found ?? 0))}</p></div>
+      <div class="row-card"><strong>Review gate</strong><p>${escapeHtml(review.status || "cleared")} | ${escapeHtml(review.reason || "No review note.")}</p></div>
+      ${trace.map((item) => `<div class="row-card"><strong>${escapeHtml(titleCase(item.stage))}</strong><p>${escapeHtml(item.detail || "")}</p></div>`).join("")}
+    </div>`;
+}
+
+function promptDiaryGroups() {
+  const groups = [
+    {
+      title: "Graph-safe demo prompts",
+      prompts: [
+        "Recommend food-safe materials for snack packaging.",
+        "Show recyclable substitutes for the selected material.",
+        "Trace the evidence for this material.",
+        "Which materials are at risk from supplier disruption?",
+      ],
+    },
+  ];
+  if (state.privateDataStatus.private_data_active) {
+    groups.push({
+      title: "Private-data-safe prompts",
+      prompts: [
+        "Find aluminum suppliers in Germany.",
+        "List products that mention grade A or premium grade.",
+        "Show materials connected to France or Europe.",
+        "Search suppliers with stainless or aluminum keywords.",
+      ],
+    });
+  }
+  return groups;
+}
+
+function renderPromptDiary() {
+  const container = document.getElementById("prompt-diary-groups");
+  if (!container) return;
+  container.innerHTML = promptDiaryGroups().map((group) => `
+    <div class="row-card prompt-diary-group">
+      <strong>${escapeHtml(group.title)}</strong>
+      <div class="prompt-row">
+        ${group.prompts.map((prompt) => `<button type="button" class="mini-action" data-prompt-diary="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("")}
+      </div>
+    </div>
+  `).join("");
+  container.querySelectorAll("[data-prompt-diary]").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.getElementById("question-input").value = button.dataset.promptDiary;
+      document.getElementById("ask-form").requestSubmit();
+    });
+  });
+}
+
 function titleCase(value) {
   return String(value)
     .split(/[-_ ]+/)
@@ -115,6 +196,7 @@ function escapeHtml(value) {
 function formatEntityLabel(type) {
   const labels = {
     material: "Material",
+    product: "Product",
     supplier: "Supplier",
     regulation: "Regulation",
     document: "Document",
@@ -783,10 +865,20 @@ async function loadSession() {
   }
 }
 
+async function loadPrivateDataStatus() {
+  try {
+    state.privateDataStatus = await fetchJson("/private-data/status");
+  } catch {
+    state.privateDataStatus = { private_data_active: false, dataset_count: 0, record_count: 0 };
+  }
+  renderPromptDiary();
+}
+
 async function loadMaterials() {
   const payload = await fetch("/materials");
   const body = await payload.json();
   state.materials = body.data;
+  state.products = await fetchJson("/products");
   state.suppliers = await fetchJson("/suppliers");
   state.supplierRegionSummary = await fetchJson("/suppliers/regions/summary");
   state.applications = await fetchJson("/applications");
@@ -816,7 +908,10 @@ function populateFilterOptions() {
 }
 
 function populateExploreOptions() {
-  const categories = [...new Set(state.materials.map((item) => item.category))].sort();
+  const categories = [...new Set([
+    ...state.materials.map((item) => item.category),
+    ...state.products.map((item) => item.industry_name),
+  ])].sort();
   const supplierRegions = [...new Set(state.suppliers.flatMap((item) => item.regions_served || []))].sort();
   document.getElementById("explore-region").innerHTML = `<option value="">All supplier regions</option>${supplierRegions.map((item) => `<option value="${item}">${item}</option>`).join("")}`;
   document.getElementById("explore-category").innerHTML = `<option value="">All categories</option>${categories.map((item) => `<option value="${item}">${titleCase(item)}</option>`).join("")}`;
@@ -1109,7 +1204,10 @@ function renderSavedSearches() {
       const search = state.savedSearches.find((item) => item.saved_search_id === button.dataset.savedSearch);
       if (!search) return;
       state.exploreTab = search.tab || "materials";
+      state.exploreView = search.view || "cards";
       document.getElementById("explore-search").value = search.filters?.search || "";
+      document.getElementById("explore-hero-input").value = search.filters?.search || "";
+      document.getElementById("explore-taxonomy").value = search.filters?.taxonomy || "";
       document.getElementById("explore-region").value = search.filters?.region || "";
       document.getElementById("explore-category").value = search.filters?.category || "";
       document.getElementById("explore-supplier").value = search.filters?.supplier_id || "";
@@ -1125,8 +1223,10 @@ async function saveCurrentExploreSearch() {
   const payload = {
     name: `${titleCase(state.exploreTab)} search`,
     tab: state.exploreTab,
+    view: state.exploreView,
     filters: {
       search: document.getElementById("explore-search")?.value.trim() || "",
+      taxonomy: document.getElementById("explore-taxonomy")?.value || "",
       region: document.getElementById("explore-region")?.value || "",
       category: document.getElementById("explore-category")?.value || "",
       supplier_id: document.getElementById("explore-supplier")?.value || "",
@@ -1164,7 +1264,7 @@ function renderSupplierRegionSummary() {
   `).join("");
   container.querySelectorAll("[data-supplier-region]").forEach((button) => {
     button.addEventListener("click", async () => {
-      state.exploreTab = "suppliers";
+      state.exploreTab = state.exploreTab === "news" ? "materials" : state.exploreTab;
       const selected = button.dataset.supplierRegion;
       const regionSelect = document.getElementById("explore-region");
       if (regionSelect) {
@@ -1177,7 +1277,8 @@ function renderSupplierRegionSummary() {
 
 async function loadExploreEntities() {
   const params = new URLSearchParams({ tab: state.exploreTab });
-  const search = document.getElementById("explore-search")?.value.trim();
+  const search = document.getElementById("explore-search")?.value.trim() || document.getElementById("explore-hero-input")?.value.trim();
+  const taxonomy = document.getElementById("explore-taxonomy")?.value;
   const region = document.getElementById("explore-region")?.value;
   const category = document.getElementById("explore-category")?.value;
   const supplierId = document.getElementById("explore-supplier")?.value;
@@ -1185,6 +1286,7 @@ async function loadExploreEntities() {
   const complianceState = document.getElementById("explore-compliance")?.value;
   const minSustainability = document.getElementById("explore-sustainability")?.value;
   if (search) params.set("search", search);
+  if (taxonomy) params.set("taxonomy", taxonomy);
   if (region) params.set("region", region);
   if (category) params.set("category", category);
   if (supplierId) params.set("supplier_id", supplierId);
@@ -1208,6 +1310,7 @@ async function loadExploreEntities() {
   }
   document.getElementById("explore-results-title").textContent = `${titleCase(state.exploreTab)} browse results`;
   document.getElementById("explore-results-summary").textContent = `${state.exploreResults.length} records in ${titleCase(state.exploreTab)}`;
+  document.getElementById("explore-active-view-label").textContent = `${titleCase(state.exploreView)} view`;
   if (window.PackGraphExplorePage) {
     window.PackGraphExplorePage.renderTabs(state.exploreTab, async (tab) => {
       state.exploreTab = tab;
@@ -1215,10 +1318,14 @@ async function loadExploreEntities() {
       await loadExploreEntities();
       window.PackGraphExplorePage.renderDetail(null, jumpExploreToDashboard);
     });
+    window.PackGraphExplorePage.renderViewSwitcher(state.exploreView, async (view) => {
+      state.exploreView = view;
+      await loadExploreEntities();
+    });
     window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, state.selectedExploreDetail?.entity_id, (materialId) => {
       addMaterialToShortlist(materialId);
       renderExploreCompareSummary();
-    });
+    }, state.exploreView);
   }
   renderSupplierRegionSummary();
   renderExploreCompareSummary();
@@ -1231,7 +1338,7 @@ async function openExploreDetail(entityType, entityId) {
     window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, entityId, (materialId) => {
       addMaterialToShortlist(materialId);
       renderExploreCompareSummary();
-    });
+    }, state.exploreView);
     window.PackGraphExplorePage.renderDetail(state.selectedExploreDetail, jumpExploreToDashboard);
   }
 }
@@ -1269,6 +1376,35 @@ function renderExploreCompareSummary() {
         <strong>No comparison set yet</strong>
         <p>Add a material from Explore to carry it straight into Workbench.</p>
       </div>`;
+}
+
+async function updateExploreAutocomplete(query) {
+  const container = document.getElementById("explore-autocomplete");
+  if (!container) return;
+  if (!query || query.trim().length < 2) {
+    container.innerHTML = "";
+    return;
+  }
+  const suggestions = await fetchJson(`/explore/autocomplete?query=${encodeURIComponent(query.trim())}`);
+  if (!suggestions.length) {
+    container.innerHTML = "";
+    return;
+  }
+  container.innerHTML = suggestions.map((item) => `
+    <button type="button" class="explore-autocomplete-item" data-explore-suggestion="${escapeHtml(item.entity_type)}::${escapeHtml(item.entity_id)}::${escapeHtml(item.label)}">
+      <strong>${escapeHtml(item.label)}</strong>
+      <small>${escapeHtml(titleCase(item.entity_type))}</small>
+    </button>
+  `).join("");
+  container.querySelectorAll("[data-explore-suggestion]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [entityType, entityId, label] = button.dataset.exploreSuggestion.split("::");
+      document.getElementById("explore-hero-input").value = label;
+      document.getElementById("explore-search").value = label;
+      container.innerHTML = "";
+      await openExploreDetail(entityType, entityId);
+    });
+  });
 }
 
 async function loadContributionData() {
@@ -1773,10 +1909,9 @@ async function loadBenchmarks() {
   }
   const data = await fetchJson("/benchmarks");
   const neo4jStatus = data.neo4j?.status || data.status || "not-run";
-  const memgraphStatus = data.memgraph?.status || "not-run";
   document.getElementById("benchmark-status").innerHTML = `
     <div class="metric"><div class="value">${titleCase(neo4jStatus)}</div><div>Neo4j benchmark state</div></div>
-    <div class="metric"><div class="value">${titleCase(memgraphStatus)}</div><div>Memgraph benchmark state</div></div>`;
+    <div class="metric"><div class="value">${state.privateDataStatus.private_data_active ? "Active" : "Not loaded"}</div><div>Private data status</div></div>`;
   document.getElementById("benchmark-query-set").innerHTML = (data.query_set || []).map((item) => `<div class="row-card"><strong>${item.query}</strong><p>${item.note}</p></div>`).join("");
   document.getElementById("benchmark-plan-notes").innerHTML = (data.query_plan_notes || data.notes || []).map((item) => `<div class="row-card"><p>${item.note || item}</p></div>`).join("");
 }
@@ -2297,8 +2432,10 @@ function setupForms() {
       body: JSON.stringify({ question, options: { material_id: state.selectedMaterialId, prioritize_sustainability: true } }),
     });
     addMessage("Question", question);
-    addMessage("PackGraph", response.message, JSON.stringify(response.plan.audit, null, 2));
+    addMessage("PackGraph", response.message);
     renderStructuredAnswer(response.panel);
+    renderQueryRows(response.rows || []);
+    renderExecutionDebug(response);
   });
 
   document.querySelectorAll("[data-prompt]").forEach((button) => {
@@ -2421,6 +2558,7 @@ function setupForms() {
 
   document.getElementById("explore-filter-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    document.getElementById("explore-hero-input").value = document.getElementById("explore-search").value;
     await loadExploreEntities();
   });
 
@@ -2430,6 +2568,28 @@ function setupForms() {
 
   document.getElementById("explore-reset").addEventListener("click", async () => {
     document.getElementById("explore-filter-form").reset();
+    document.getElementById("explore-hero-input").value = "";
+    document.getElementById("explore-autocomplete").innerHTML = "";
+    await loadExploreEntities();
+  });
+
+  document.getElementById("explore-hero-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const value = document.getElementById("explore-hero-input").value.trim();
+    document.getElementById("explore-search").value = value;
+    await loadExploreEntities();
+  });
+
+  document.getElementById("explore-hero-input").addEventListener("input", async (event) => {
+    const value = event.target.value;
+    document.getElementById("explore-search").value = value;
+    await updateExploreAutocomplete(value);
+  });
+
+  document.getElementById("explore-hero-clear").addEventListener("click", async () => {
+    document.getElementById("explore-hero-input").value = "";
+    document.getElementById("explore-search").value = "";
+    document.getElementById("explore-autocomplete").innerHTML = "";
     await loadExploreEntities();
   });
 
@@ -2523,6 +2683,7 @@ async function init() {
   setupGraphFilters();
   setupForms();
   setupOverviewOnboardingHint();
+  await loadPrivateDataStatus();
   await Promise.all([
     loadSession(),
     loadMaterials(),
@@ -2555,6 +2716,8 @@ async function init() {
     risk_flags: [],
     next_steps: [],
   });
+  renderQueryRows([]);
+  renderExecutionDebug({});
   renderSupplierDetail(null);
   renderRegulationDetail(null);
   if (window.PackGraphExplorePage) {
@@ -2572,6 +2735,29 @@ async function init() {
   }
   if (["overview", "workbench", "intelligence"].includes(requestedPage)) {
     setPage(requestedPage);
+  }
+  if (window.PackGraphUI?.initGuidedTour) {
+    window.PackGraphUI.initGuidedTour({
+      navigator: async (step) => {
+        if (step.section && step.section !== "dashboard") {
+          setSection(step.section);
+        } else if (step.section === "dashboard") {
+          setSection("dashboard");
+        }
+        if (step.page) {
+          setPage(step.page);
+        }
+      },
+      steps: [
+        { section: "dashboard", page: "overview", selector: "#chat-panel", title: "Chat", body: "Start here to ask natural-language questions and get the main decision answer." },
+        { section: "explore", selector: ".explore-shell-panel", title: "Explore", body: "Browse materials, products, and updates before you move into a decision workflow." },
+        { section: "dashboard", page: "workbench", selector: ".workbench-primary-panel", title: "Projects", body: "Use this workspace to compare shortlisted options, test scenarios, and package exports." },
+        { section: "contribute", selector: ".contribute-shell", title: "Contribute", body: "Add new findings, evidence, and corrections through structured contribution flows." },
+        { section: "community", selector: ".community-shell", title: "Community", body: "Discuss sourcing, materials, and regulations without losing context from the product graph." },
+        { section: "dashboard", page: "workbench", selector: "#provenance-panel", title: "Review", body: "Review evidence, extracted fields, and missing proof before you trust a recommendation." },
+        { section: "dashboard", page: "intelligence", selector: "#graph-subgraph", title: "Resolution", body: "Use graph context and node relationships to resolve duplicates, ambiguity, and final decision context." },
+      ],
+    });
   }
 }
 

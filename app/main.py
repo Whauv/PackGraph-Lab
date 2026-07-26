@@ -19,6 +19,7 @@ from app.services.contribution_service import ContributionService
 from app.services.document_intelligence_service import DocumentIntelligenceService
 from app.services.export_service import ExportService
 from app.services.investigation_service import InvestigationService
+from app.services.private_data_service import PrivateDataService
 from app.services.query_engine import QueryEngine
 from app.services.scenario_history_service import ScenarioHistoryService
 
@@ -28,7 +29,8 @@ class AppState:
         settings = get_settings()
         self.settings = settings
         self.repository = build_graph_repository(settings)
-        self.query_engine = QueryEngine(self.repository)
+        self.private_data = PrivateDataService(settings.private_data_dir)
+        self.query_engine = QueryEngine(self.repository, self.private_data)
         self.auth = AuthService(settings.packgraph_runtime_dir)
         self.auth.ensure_seed()
         self.documents = DocumentIntelligenceService(settings.packgraph_runtime_dir, self.repository)
@@ -51,7 +53,7 @@ class AppState:
                 return json.load(handle)
         return {
             "status": "not-run",
-            "notes": "Run python scripts/benchmark_backends.py after starting Neo4j and optionally Memgraph.",
+            "notes": "Run python scripts/benchmark_backends.py after starting Neo4j.",
         }
 
 
@@ -103,4 +105,11 @@ def favicon():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "data": {"service": "PackGraph Lab", "backend": state.settings.graph_backend}}
+    return {
+        "status": "ok",
+        "data": {
+            "service": "PackGraph Lab",
+            "backend": state.settings.graph_backend,
+            "private_data_active": state.private_data.has_data(),
+        },
+    }

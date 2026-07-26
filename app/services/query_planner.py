@@ -20,6 +20,7 @@ class QueryPlanner:
             ("supplier_risk_ranking", r"(riskiest suppliers|highest supplier risk|supplier risk)", "Rank suppliers by disruption exposure", []),
             ("non_compliant_materials", r"(non.?compliant|regulation|violat|out of bounds|affected)", "Identify materials that fail a selected regulation screen", ["regulation_id"]),
             ("materials_at_risk", r"(materials at risk|disruption|unavailable supplier|risk exposure)", "Find materials exposed to supplier disruption", []),
+            ("catalog_lookup", r"(find|list|search|lookup|show).*(products?|suppliers?|materials?|locations?|grades?)", "Search product, supplier, material, location, or grade records", []),
             ("material_filter", r"(show|list|find|which).*(materials|films|bioplastics|coatings|paper|laminates)", "Filter the material portfolio using natural language constraints", []),
             ("recommend_food_packaging", r"(recommend|best|food packaging|snack|pouch|food-safe|compostable|recyclable)", "Recommend food-safe packaging materials", []),
         ]
@@ -85,6 +86,15 @@ class QueryPlanner:
         prioritize_sustainability = any(token in text for token in ["sustainable", "sustainability", "compostable", "recyclable", "lower footprint"])
         prioritize_cost = any(token in text for token in ["cheap", "cheapest", "low cost", "lower cost", "cost efficient"])
         food_safe = any(token in text for token in ["food safe", "food-safe", "food contact", "snack", "pouch", "packaging"])
+        location_hint_match = re.search(r"\bin\s+([a-z][a-z\s\-]+?)(?:\?|$| with | for | that | where )", text)
+        location_hint = location_hint_match.group(1).strip() if location_hint_match else None
+        entity_target = next((term.rstrip("s") for term in ["products", "suppliers", "materials", "locations", "grades"] if term in text), None)
+        search_keywords = [
+            token for token in re.findall(r"[a-z0-9][a-z0-9\-/]+", text)
+            if token not in {"a", "an", "and", "best", "by", "find", "for", "from", "in", "list", "lookup", "search", "show", "the", "what", "which"}
+            and token not in {"products", "suppliers", "materials", "locations", "grades"}
+            and token != (location_hint or "")
+        ]
 
         return {
             "material_id": materials[0] if materials else None,
@@ -100,6 +110,9 @@ class QueryPlanner:
             "prioritize_sustainability": prioritize_sustainability,
             "prioritize_cost": prioritize_cost,
             "food_safe": food_safe,
+            "location_hint": location_hint,
+            "entity_target": entity_target,
+            "search_keywords": search_keywords[:8],
         }
 
     def _ambiguous(self, question: str, reason: str) -> dict[str, Any]:

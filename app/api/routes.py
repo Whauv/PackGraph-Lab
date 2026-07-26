@@ -86,6 +86,10 @@ def build_router(state) -> APIRouter:
     def list_applications():
         return {"status": "ok", "data": state.repository.list_applications()}
 
+    @router.get("/products")
+    def list_products():
+        return {"status": "ok", "data": state.repository.list_products()}
+
     @router.get("/explore/entities")
     def explore_entities(
         tab: str = "materials",
@@ -96,6 +100,7 @@ def build_router(state) -> APIRouter:
         compliance_state: str | None = None,
         min_sustainability: int | None = None,
         region: str | None = None,
+        taxonomy: str | None = None,
     ):
         return {
             "status": "ok",
@@ -108,8 +113,13 @@ def build_router(state) -> APIRouter:
                 compliance_state=compliance_state,
                 min_sustainability=min_sustainability,
                 region=region,
+                taxonomy=taxonomy,
             ),
         }
+
+    @router.get("/explore/autocomplete")
+    def explore_autocomplete(query: str):
+        return {"status": "ok", "data": state.repository.explore_autocomplete(query)}
 
     @router.get("/explore/detail")
     def explore_detail(entity_type: str, entity_id: str):
@@ -204,6 +214,14 @@ def build_router(state) -> APIRouter:
             ],
         }
         return {"status": "ok", "data": payload}
+
+    @router.get("/private-data/status")
+    def private_data_status():
+        return {"status": "ok", "data": state.private_data.private_status()}
+
+    @router.get("/private-data/schema")
+    def private_data_schema():
+        return {"status": "ok", "data": state.private_data.inspect_schema()}
 
     @router.get("/investigations")
     def list_investigations():

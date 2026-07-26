@@ -41,11 +41,9 @@ def main() -> None:
     results = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "neo4j": benchmark(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password, "neo4j"),
-        "memgraph": benchmark(settings.memgraph_uri, settings.memgraph_username, settings.memgraph_password, "memgraph"),
         "notes": [
-            "Use the same generated dataset and ingestion script for both backends.",
-            "Memgraph support is benchmark-oriented and optional.",
-            "Result consistency should be inspected together with backend-specific planner differences.",
+            "Use the same generated dataset and ingestion script for Neo4j-backed verification.",
+            "Inspect timing, query plan behavior, and private-data expansion coverage together.",
         ],
     }
     output = Path("data/runtime/benchmark_results.json")
