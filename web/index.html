@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PackGraph Lab</title>
-    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/assets/style.css" />
+    <link rel="icon" href="/assets/favicon.svg?v=20260726" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/style.css?v=20260726" />
   </head>
   <body>
     <div class="shell">
@@ -227,6 +227,10 @@
                 <button class="mini-action" data-prompt="Show recyclable substitutes for the selected material.">Substitutes</button>
                 <button class="mini-action" data-prompt="Trace the evidence for this material.">Evidence</button>
               </div>
+              <div class="subsection prompt-diary-panel">
+                <div class="subsection-heading">Prompt diary</div>
+                <div id="prompt-diary-groups" class="prompt-diary-groups"></div>
+              </div>
               <p class="panel-helper compact-helper">Ask naturally. The planner routes the question and returns a reviewable answer.</p>
               <div class="chat-region">
                 <div class="chat-box" id="chat-log"></div>
@@ -276,6 +280,16 @@
                   <span class="section-label">Recommended next action</span>
                   <strong>Ask a focused question to reveal the best next move.</strong>
                   <p>After the answer lands, PackGraph will guide you toward compare, evidence review, graph inspection, or scenario testing.</p>
+                </div>
+                <div class="split-grid structured-answer-grid answer-support-grid">
+                  <div>
+                    <div class="subsection-heading">Result rows</div>
+                    <div id="answer-panel-rows" class="table-card"></div>
+                  </div>
+                  <div>
+                    <div class="subsection-heading">Execution details</div>
+                    <div id="answer-panel-debug" class="table-card"></div>
+                  </div>
                 </div>
               </div>
               </article>
@@ -755,20 +769,37 @@
           <section class="page-banner">
             <div>
               <p class="eyebrow">Explore</p>
-              <h2>Research before you ask</h2>
+              <h2>Research materials and products before you decide</h2>
             </div>
-            <p>Browse materials, applications, suppliers, and updates directly, then move into the dashboard with better context.</p>
+            <p>Browse materials and finished products in one discovery surface, then move into the dashboard with a clearer question and stronger graph context.</p>
           </section>
           <section class="panel explore-shell-panel">
-            <div class="panel-header compact-panel-header">
-              <div>
-                <p class="eyebrow">Explore</p>
-                <h3>Browse the graph directly</h3>
+            <div class="explore-hero">
+              <div class="explore-hero-copy">
+                <p class="eyebrow">Magic search</p>
+                <h3>Ask naturally or jump directly to an entity</h3>
+                <p>Type a material, product, application, regulation, or supplier. Suggestions come from the current graph, and deeper queries route into the same workspace logic.</p>
               </div>
-              <div class="panel-kicker">Materials, applications, suppliers, updates.</div>
+              <div class="explore-hero-search">
+                <form id="explore-hero-form" class="stack-form">
+                  <input id="explore-hero-input" type="text" placeholder="Try: compostable takeaway bowl, high barrier film, pharma blister product" autocomplete="off" />
+                  <div id="explore-autocomplete" class="explore-autocomplete"></div>
+                  <div class="row-actions">
+                    <button type="submit">Search graph</button>
+                    <button type="button" id="explore-hero-clear" class="secondary">Clear</button>
+                  </div>
+                </form>
+              </div>
             </div>
             <div class="explore-shell-top">
-              <div id="explore-tabs" class="prompt-row"></div>
+              <div class="explore-switcher-group">
+                <div id="explore-tabs" class="prompt-row"></div>
+                <div id="explore-view-switcher" class="prompt-row">
+                  <button type="button" class="tab explore-view active" data-explore-view="cards">Cards</button>
+                  <button type="button" class="tab explore-view" data-explore-view="map">Map</button>
+                  <button type="button" class="tab explore-view" data-explore-view="graph">Graph</button>
+                </div>
+              </div>
               <div class="row-actions">
                 <select id="explore-sort" class="graph-select">
                   <option value="relevance">Sort by relevance</option>
@@ -784,6 +815,13 @@
                 <div class="subsection-heading">Refine</div>
                 <form id="explore-filter-form" class="stack-form">
                   <input id="explore-search" type="text" placeholder="Search terms" />
+                  <select id="explore-taxonomy">
+                    <option value="">All classes</option>
+                    <option value="Natural">Natural</option>
+                    <option value="Refined">Refined</option>
+                    <option value="Compound">Compound</option>
+                    <option value="Product">Product</option>
+                  </select>
                   <select id="explore-region"><option value="">All supplier regions</option></select>
                   <select id="explore-category"><option value="">All categories</option></select>
                   <select id="explore-supplier"><option value="">All suppliers</option></select>
@@ -813,13 +851,14 @@
                   <div id="explore-results-summary" class="panel-kicker">Loading research records</div>
                 </div>
                 <div id="explore-compare-summary" class="shortlist-summary-ribbon"></div>
+                <div id="explore-active-view-label" class="explore-active-view-label">Cards view</div>
                 <div id="explore-results" class="card-list compact-list"></div>
               </div>
               <aside class="explore-detail-pane surface-column">
                 <div class="panel-header compact-panel-header">
                   <div>
                     <p class="eyebrow">Detail</p>
-                    <h3>Selection</h3>
+                    <h3>Entity page</h3>
                   </div>
                 </div>
                 <div id="explore-detail" class="detail-layout explore-detail-layout"></div>
@@ -1004,14 +1043,15 @@
         </section>
       </main>
     </div>
-    <script src="/assets/modules/shared-ui.js"></script>
-    <script src="/assets/modules/auth-shell.js"></script>
-    <script src="/assets/modules/answer-panel.js"></script>
-    <script src="/assets/modules/explore-page.js"></script>
-    <script src="/assets/modules/contribute-page.js"></script>
-    <script src="/assets/modules/community-page.js"></script>
-    <script src="/assets/modules/workbench-panels.js"></script>
-    <script src="/assets/modules/trend-charts.js"></script>
-    <script src="/assets/app.js"></script>
+    <script src="/assets/modules/shared-ui.js?v=20260726"></script>
+    <script src="/assets/modules/auth-shell.js?v=20260726"></script>
+    <script src="/assets/modules/answer-panel.js?v=20260726"></script>
+    <script src="/assets/modules/explore-page.js?v=20260726"></script>
+    <script src="/assets/modules/contribute-page.js?v=20260726"></script>
+    <script src="/assets/modules/community-page.js?v=20260726"></script>
+    <script src="/assets/modules/workbench-panels.js?v=20260726"></script>
+    <script src="/assets/modules/trend-charts.js?v=20260726"></script>
+    <script src="/assets/app.js?v=20260726"></script>
+    <button type="button" id="guided-tour-button" class="guided-tour-button">Guided tour</button>
   </body>
 </html>

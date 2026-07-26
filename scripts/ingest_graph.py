@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 from app.core.config import get_settings
 from app.repositories.data_store import get_data_store
 from app.repositories.graph_repository import Neo4jAdminRepository
+from app.services.private_data_service import PrivateDataService
 
 
 CONSTRAINTS = [
@@ -20,12 +21,14 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT application_id IF NOT EXISTS FOR (a:Application) REQUIRE a.application_id IS UNIQUE",
     "CREATE CONSTRAINT regulation_id IF NOT EXISTS FOR (r:Regulation) REQUIRE r.regulation_id IS UNIQUE",
     "CREATE CONSTRAINT document_id IF NOT EXISTS FOR (d:SourceDocument) REQUIRE d.document_id IS UNIQUE",
+    "CREATE CONSTRAINT private_record_id IF NOT EXISTS FOR (p:PrivateRecord) REQUIRE p.private_record_id IS UNIQUE",
 ]
 
 
 def main() -> None:
     settings = get_settings()
     store = get_data_store().load_bundle()
+    private_data = PrivateDataService(settings.private_data_dir)
     started = time.perf_counter()
     repo = None
     try:
@@ -102,8 +105,26 @@ def main() -> None:
             rows = [rel for rel in store["relationships"] if rel["type"] == rel_type]
             repo.run(query, {"rows": rows})
 
+        private_rows = [normalize_neo4j_properties(row) for row in private_data.ingestable_records()]
+        if private_rows:
+            repo.run(
+                """
+                UNWIND $rows AS row
+                MERGE (n:PrivateRecord {private_record_id: row.private_record_id})
+                SET n += row
+                """,
+                {"rows": private_rows},
+            )
+
         elapsed = round(time.perf_counter() - started, 3)
-        print({"status": "ok", "elapsed_seconds": elapsed, "counts": store["manifest"]["counts"]})
+        print(
+            {
+                "status": "ok",
+                "elapsed_seconds": elapsed,
+                "counts": store["manifest"]["counts"],
+                "private_records": len(private_rows),
+            }
+        )
     finally:
         if repo:
             repo.close()

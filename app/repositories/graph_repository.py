@@ -37,6 +37,7 @@ class LocalGraphRepository:
         self.regulation_index = {item["regulation_id"]: item for item in self.regulations}
         self.news_index = {item["news_id"]: item for item in self.material_news}
         self.document_index = {item["document_id"]: item for item in self.documents}
+        self.industry_index = {item["industry_id"]: item for item in self.industries}
         self.snapshots_by_supplier = defaultdict(list)
         self.snapshots_by_material = defaultdict(list)
         self.relationships_by_node = defaultdict(list)
@@ -49,6 +50,8 @@ class LocalGraphRepository:
         self.runtime_components_path = self.settings.packgraph_runtime_dir / "discovered_components.json"
         self.runtime_documents_path = self.settings.packgraph_runtime_dir / "uploaded_source_documents.json"
         self.runtime_test_reports_path = self.settings.packgraph_runtime_dir / "uploaded_test_reports.json"
+        self.products = self._build_products()
+        self.product_index = {item["product_id"]: item for item in self.products}
 
     def _read_runtime_json(self, path, default):
         if not path.exists():
@@ -176,8 +179,117 @@ class LocalGraphRepository:
     def list_applications(self) -> list[dict[str, Any]]:
         return self.applications
 
+    def list_products(self) -> list[dict[str, Any]]:
+        return self.products
+
     def list_news(self) -> list[dict[str, Any]]:
         return self.material_news
+
+    def explore_autocomplete(self, query: str) -> list[dict[str, Any]]:
+        query_lower = query.lower().strip()
+        if len(query_lower) < 2:
+            return []
+        suggestions = []
+        for material in self.materials:
+            if query_lower in material["name"].lower():
+                suggestions.append({"entity_type": "material", "entity_id": material["material_id"], "label": material["name"]})
+        for product in self.products:
+            if query_lower in product["name"].lower():
+                suggestions.append({"entity_type": "product", "entity_id": product["product_id"], "label": product["name"]})
+        for supplier in self.suppliers:
+            if query_lower in supplier["name"].lower():
+                suggestions.append({"entity_type": "supplier", "entity_id": supplier["supplier_id"], "label": supplier["name"]})
+        return suggestions[:8]
+
+    def _build_products(self) -> list[dict[str, Any]]:
+        products = []
+        buyer_region_order = ["North America", "Europe", "Asia Pacific", "Latin America", "Middle East", "Africa"]
+        buyer_suffixes = ["Procurement Group", "Consumer Brands", "Retail Network", "Manufacturing Cluster"]
+        for index, application in enumerate(self.applications, start=1):
+            linked_materials = self._materials_for_application(application["application_id"])
+            if not linked_materials:
+                continue
+            linked_suppliers = self._suppliers_for_materials(linked_materials)
+            industry_name = self.industry_index.get(application["industry_id"], {}).get("name", "Packaging")
+            average_sustainability = round(mean(item["sustainability_score"] for item in linked_materials), 1)
+            average_recyclability = round(mean(item["recyclability_score"] for item in linked_materials), 1)
+            average_supply_score = round(mean(100 - self.supplier_index[supplier_id]["disruption_risk_score"] for material in linked_materials for supplier_id in material["supplier_ids"] if supplier_id in self.supplier_index), 1)
+            buyer_names = [f"{industry_name} {buyer_suffixes[(index + offset) % len(buyer_suffixes)]}" for offset in range(2)]
+            buyer_regions = [buyer_region_order[(index + offset) % len(buyer_region_order)] for offset in range(2)]
+            products.append(
+                {
+                    "product_id": f"PROD-{index:03d}",
+                    "name": f"{application['name']} product line",
+                    "application_id": application["application_id"],
+                    "application_name": application["name"],
+                    "application_use_case": application["use_case"],
+                    "industry_id": application["industry_id"],
+                    "industry_name": industry_name,
+                    "material_ids": [item["material_id"] for item in linked_materials[:5]],
+                    "alternate_material_ids": [item["material_id"] for item in linked_materials[1:4]],
+                    "material_categories": list(dict.fromkeys(item["category"] for item in linked_materials)),
+                    "supplier_ids": [item["supplier_id"] for item in linked_suppliers[:6]],
+                    "supplier_regions": list(dict.fromkeys(region for supplier in linked_suppliers for region in supplier.get("regions_served", []))),
+                    "buyer_names": buyer_names,
+                    "buyer_regions": buyer_regions,
+                    "sustainability_score": average_sustainability,
+                    "recyclability_score": average_recyclability,
+                    "supply_chain_score": average_supply_score,
+                    "match_score": round(mean(item["oxygen_barrier"] + item["seal_strength"] for item in linked_materials) / 2, 1),
+                    "compliance_state": "compliant" if all(item["compliance_state"] == "compliant" for item in linked_materials[:3]) else "watch",
+                    "thumbnail_tone": self._classify_material(linked_materials[0]),
+                }
+            )
+        return products
+
+    def _thumbnail_label(self, entity_type: str, title: str) -> str:
+        prefixes = {
+            "material": "MAT",
+            "product": "PROD",
+            "news": "NEWS",
+            "supplier": "SUP",
+        }
+        return f"{prefixes.get(entity_type, entity_type[:3].upper())} | {title[:18]}"
+
+    def _classify_material(self, material: dict[str, Any]) -> str:
+        category = material.get("category", "").lower()
+        composition = material.get("composition", "").lower()
+        descriptor = material.get("descriptor", "").lower()
+        if any(token in category for token in ["ore", "fiber", "pulp"]) or "unrefined" in descriptor:
+            return "Natural"
+        if any(token in category for token in ["composite", "laminate"]) or "," in composition or "/" in composition:
+            return "Compound"
+        return "Refined"
+
+    def _explore_material_card(self, material: dict[str, Any], classification: str) -> dict[str, Any]:
+        return {
+            "entity_type": "material",
+            "entity_id": material["material_id"],
+            "title": material["name"],
+            "subtitle": f"{material['category']} | {material['compliance_state']}",
+            "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
+            "tags": [classification, material["descriptor"], *material["regions_available"][:2]],
+            "classification": classification,
+            "thumbnail": self._thumbnail_label("material", material["name"]),
+            "location_summary": material["regions_available"],
+            "focus_material_id": material["material_id"],
+            "dashboard_prompt": f"Map the strongest evidence, risks, and substitutes for {material['name']}.",
+        }
+
+    def _explore_product_card(self, product: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "entity_type": "product",
+            "entity_id": product["product_id"],
+            "title": product["name"],
+            "subtitle": f"{product['industry_name']} | {product['application_name']}",
+            "meta": f"Match {product['match_score']} | Sustainability {product['sustainability_score']} | Supply {product['supply_chain_score']}",
+            "tags": ["Product", *product["material_categories"][:2], *product["buyer_regions"][:1]],
+            "classification": "Product",
+            "thumbnail": self._thumbnail_label("product", product["name"]),
+            "location_summary": list(dict.fromkeys([*product["supplier_regions"][:2], *product["buyer_regions"][:2]])),
+            "focus_material_id": product["material_ids"][0] if product["material_ids"] else None,
+            "dashboard_prompt": f"Compare alternate materials for product {product['name']} and explain the tradeoffs.",
+        }
 
     def explore_entities(
         self,
@@ -189,46 +301,38 @@ class LocalGraphRepository:
         compliance_state: str | None = None,
         min_sustainability: int | None = None,
         region: str | None = None,
+        taxonomy: str | None = None,
     ) -> list[dict[str, Any]]:
         search_lower = search.lower().strip() if search else ""
-        if tab == "applications":
+        if tab == "products":
             results = []
-            for application in self.applications:
-                linked_materials = self._materials_for_application(application["application_id"])
-                if not linked_materials:
+            for product in self.products:
+                if taxonomy and taxonomy.lower() != "product":
                     continue
-                if region and not any(region in item["regions_available"] for item in linked_materials):
+                if region and region not in product["supplier_regions"] and region not in product["buyer_regions"]:
                     continue
-                if category and not any(item["category"].lower() == category.lower() for item in linked_materials):
+                if category and category.lower() != product["industry_name"].lower() and category.lower() not in [item.lower() for item in product["material_categories"]]:
                     continue
-                if supplier_id and not any(supplier_id in item["supplier_ids"] for item in linked_materials):
+                if supplier_id and supplier_id not in product["supplier_ids"]:
                     continue
-                if compliance_state and not any(item["compliance_state"].lower() == compliance_state.lower() for item in linked_materials):
+                if application_id and application_id != product["application_id"]:
                     continue
-                if min_sustainability is not None and max(item["sustainability_score"] for item in linked_materials) < min_sustainability:
+                if compliance_state and product["compliance_state"].lower() != compliance_state.lower():
                     continue
-                haystack = " ".join([application["name"], application["use_case"], application["priority"]]).lower()
-                if search_lower and search_lower not in haystack and not any(search_lower in item["name"].lower() for item in linked_materials):
+                if min_sustainability is not None and product["sustainability_score"] < min_sustainability:
                     continue
-                linked_suppliers = self._suppliers_for_materials(linked_materials)
-                results.append(
-                    {
-                        "entity_type": "application",
-                        "entity_id": application["application_id"],
-                        "title": application["name"],
-                        "subtitle": f"{application['use_case']} | priority {application['priority']}",
-                        "meta": f"{len(linked_materials)} materials | {len(linked_suppliers)} suppliers",
-                        "tags": list(dict.fromkeys(item["category"] for item in linked_materials))[:3],
-                        "focus_material_id": linked_materials[0]["material_id"],
-                        "dashboard_prompt": f"What materials look best for the application {application['name']} and why?",
-                    }
-                )
+                haystack = " ".join([product["name"], product["application_use_case"], product["industry_name"], " ".join(product["buyer_names"])]).lower()
+                if search_lower and search_lower not in haystack:
+                    continue
+                results.append(self._explore_product_card(product))
             return results[:36]
 
         if tab == "suppliers":
             results = []
             for supplier in self.list_suppliers(region=region):
                 supplied_materials = [self.material_index[item] for item in supplier["supplied_material_ids"] if item in self.material_index]
+                if taxonomy and taxonomy.lower() not in {"refined", "compound", "natural"}:
+                    continue
                 if category and not any(item["category"].lower() == category.lower() for item in supplied_materials):
                     continue
                 if application_id and not any(application_id in item["target_applications"] for item in supplied_materials):
@@ -248,6 +352,9 @@ class LocalGraphRepository:
                         "subtitle": f"{supplier['country']} | lead time {supplier['lead_time_days']} days",
                         "meta": f"Risk {supplier['disruption_risk_score']} | {len(supplied_materials)} materials | {', '.join(supplier['regions_served'][:2])}",
                         "tags": [*supplier["regions_served"][:2], *supplier["certifications"][:2]][:4],
+                        "classification": "Supplier",
+                        "thumbnail": self._thumbnail_label("supplier", supplier["name"]),
+                        "location_summary": supplier["regions_served"][:4],
                         "focus_material_id": supplied_materials[0]["material_id"] if supplied_materials else None,
                         "dashboard_prompt": f"Which risks and substitution options should I inspect for supplier {supplier['name']}?",
                     }
@@ -283,6 +390,8 @@ class LocalGraphRepository:
                         "subtitle": f"{item['source']} | {item['published_on']}",
                         "meta": f"{item['topic']} | sustainability {item['sustainability_score']}",
                         "tags": [item["topic"], item["source_type"], item["compliance_state"]],
+                        "classification": "Update",
+                        "thumbnail": self._thumbnail_label("news", item["title"]),
                         "focus_material_id": item["related_material_ids"][0] if item["related_material_ids"] else None,
                         "dashboard_prompt": f"Explain the graph impact of this update: {item['title']}",
                     }
@@ -296,24 +405,16 @@ class LocalGraphRepository:
             min_sustainability=min_sustainability,
             search=search,
         ):
+            classification = self._classify_material(material)
+            if taxonomy and classification.lower() != taxonomy.lower():
+                continue
             if region and region not in material["regions_available"]:
                 continue
             if supplier_id and supplier_id not in material["supplier_ids"]:
                 continue
             if application_id and application_id not in material["target_applications"]:
                 continue
-            results.append(
-                {
-                    "entity_type": "material",
-                    "entity_id": material["material_id"],
-                    "title": material["name"],
-                    "subtitle": f"{material['category']} | {material['compliance_state']}",
-                    "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
-                    "tags": [material["descriptor"], *material["regions_available"][:2]],
-                    "focus_material_id": material["material_id"],
-                    "dashboard_prompt": f"Map the strongest evidence, risks, and substitutes for {material['name']}.",
-                }
-            )
+            results.append(self._explore_material_card(material, classification))
         return results[:36]
 
     def explore_detail(self, entity_type: str, entity_id: str) -> dict[str, Any] | None:
@@ -322,50 +423,127 @@ class LocalGraphRepository:
             if not material:
                 return None
             applications = [self.application_index[item] for item in material["target_applications"] if item in self.application_index]
+            buyers = self._buyers_for_material(material)
+            suppliers = material["suppliers"]
             return {
                 "entity_type": "material",
                 "entity_id": material["material_id"],
                 "title": material["name"],
-                "summary": f"{material['descriptor']} {material['category']} used across {len(applications)} target applications.",
+                "summary": f"{material['descriptor']} {material['category']} candidate used across {len(applications)} downstream applications with {len(suppliers)} qualified suppliers.",
+                "classification": self._classify_material(material),
+                "thumbnail": self._thumbnail_label("material", material["name"]),
                 "facts": [
                     {"label": "Composition", "value": material["composition"]},
                     {"label": "Compliance", "value": material["compliance_state"]},
                     {"label": "Sustainability", "value": material["sustainability_score"]},
                     {"label": "Food contact", "value": "Approved" if material["food_contact_safe"] else "Review required"},
                 ],
+                "sections": {
+                    "overview": {
+                    "summary": material["composition"],
+                    "facts": [
+                            {"label": "Natural class", "value": self._classify_material(material)},
+                            {"label": "Descriptor", "value": material["descriptor"]},
+                            {"label": "Regions", "value": ", ".join(material["regions_available"][:4])},
+                            {"label": "Compliance", "value": material["compliance_state"].replace("-", " ").title()},
+                        ],
+                    },
+                    "applications": self._application_scores_for_material(material, applications),
+                    "suppliers": [
+                        {
+                            "name": supplier["name"],
+                            "location": supplier["country"],
+                            "regions": ", ".join(supplier["regions_served"][:3]),
+                            "lead_time": f"{supplier['lead_time_days']} days",
+                        }
+                        for supplier in suppliers[:8]
+                    ],
+                    "buyers": buyers[:8],
+                    "market_signals": self._material_market_signals(material),
+                    "sustainability_metrics": [
+                        {"label": "Sustainability score", "value": material["sustainability_score"]},
+                        {"label": "Recyclability", "value": material["recyclability_score"]},
+                        {"label": "Compostability", "value": material["compostability_score"]},
+                        {"label": "Cost range", "value": f"{material['cost_range']['low']} to {material['cost_range']['high']} {material['cost_range']['currency']}"},
+                    ],
+                    "regulatory_requirements": self._regulations_for_material(material["material_id"]),
+                },
                 "related": {
                     "suppliers": [item["name"] for item in material["suppliers"][:4]],
                     "applications": [item["name"] for item in applications[:4]],
                     "documents": [item["title"] for item in material["documents"][:3]],
                 },
+                "map_points": self._entity_map_points(material=material, buyers=buyers, suppliers=suppliers),
+                "graph": self._material_detail_graph(material, applications, suppliers, buyers),
                 "focus_material_id": material["material_id"],
                 "dashboard_prompt": f"Trace the graph evidence, supplier risk, and substitute logic for {material['name']}.",
             }
 
-        if entity_type == "application":
-            application = self.application_index.get(entity_id)
-            if not application:
+        if entity_type == "product":
+            product = self.product_index.get(entity_id)
+            if not product:
                 return None
-            linked_materials = self._materials_for_application(entity_id)
-            linked_suppliers = self._suppliers_for_materials(linked_materials)
+            linked_materials = [self.material_index[item] for item in product["material_ids"] if item in self.material_index]
+            linked_suppliers = [self.supplier_index[item] for item in product["supplier_ids"] if item in self.supplier_index]
             return {
-                "entity_type": "application",
-                "entity_id": application["application_id"],
-                "title": application["name"],
-                "summary": f"{application['use_case']} workflow with {len(linked_materials)} linked material options and {len(linked_suppliers)} suppliers.",
+                "entity_type": "product",
+                "entity_id": product["product_id"],
+                "title": product["name"],
+                "summary": f"{product['industry_name']} product connected to {len(linked_materials)} candidate materials, {len(linked_suppliers)} suppliers, and {len(product['buyer_names'])} buyer references.",
+                "classification": "Product",
+                "thumbnail": self._thumbnail_label("product", product["name"]),
                 "facts": [
-                    {"label": "Use case", "value": application["use_case"]},
-                    {"label": "Priority", "value": application["priority"]},
-                    {"label": "Material options", "value": len(linked_materials)},
-                    {"label": "Supplier options", "value": len(linked_suppliers)},
+                    {"label": "Industry", "value": product["industry_name"]},
+                    {"label": "Application", "value": product["application_name"]},
+                    {"label": "Compliance", "value": product["compliance_state"]},
+                    {"label": "Buyer regions", "value": ", ".join(product["buyer_regions"][:3])},
                 ],
+                "sections": {
+                    "overview": {
+                        "summary": product["application_use_case"],
+                        "facts": [
+                            {"label": "Product type", "value": "Finished market-ready item"},
+                            {"label": "Primary demand region", "value": product["buyer_regions"][0]},
+                            {"label": "Supplier reach", "value": ", ".join(product["supplier_regions"][:3])},
+                            {"label": "Alt materials", "value": len(product["alternate_material_ids"])},
+                        ],
+                    },
+                    "applications": [
+                        {
+                            "name": product["application_name"],
+                            "match_score": product["match_score"],
+                            "sustainability_score": product["sustainability_score"],
+                            "supply_chain_score": product["supply_chain_score"],
+                            "connected_products": [product["name"]],
+                        }
+                    ],
+                    "suppliers": [
+                        {
+                            "name": supplier["name"],
+                            "location": supplier["country"],
+                            "regions": ", ".join(supplier["regions_served"][:3]),
+                            "lead_time": f"{supplier['lead_time_days']} days",
+                        }
+                        for supplier in linked_suppliers[:8]
+                    ],
+                    "buyers": [{"name": item, "region": region_name} for item, region_name in zip(product["buyer_names"], product["buyer_regions"], strict=False)],
+                    "market_signals": self._product_market_signals(product),
+                    "sustainability_metrics": self._product_sustainability_metrics(product, linked_materials),
+                    "regulatory_requirements": self._product_regulatory_requirements(linked_materials),
+                    "alternate_materials": [
+                        {"name": self.material_index[item]["name"], "reason": "Alternative candidate already linked to this product"}
+                        for item in product["alternate_material_ids"] if item in self.material_index
+                    ],
+                },
                 "related": {
                     "materials": [item["name"] for item in linked_materials[:4]],
                     "suppliers": [item["name"] for item in linked_suppliers[:4]],
-                    "signals": [f"Average sustainability {round(mean(item['sustainability_score'] for item in linked_materials), 1)}"] if linked_materials else [],
+                    "buyers": product["buyer_names"][:4],
                 },
+                "map_points": self._entity_map_points(product=product, suppliers=linked_suppliers),
+                "graph": self._product_detail_graph(product, linked_materials, linked_suppliers),
                 "focus_material_id": linked_materials[0]["material_id"] if linked_materials else None,
-                "dashboard_prompt": f"Recommend the best material paths for application {application['name']} and explain the tradeoffs.",
+                "dashboard_prompt": f"Which material path is strongest for product {product['name']} and what are the supplier or compliance risks?",
             }
 
         if entity_type == "supplier":
@@ -465,6 +643,26 @@ class LocalGraphRepository:
                         "title": material["name"],
                         "subtitle": f"{material['category']} | {material['compliance_state']}",
                         "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
+                    }
+                )
+
+        for product in self.products:
+            haystack = " ".join(
+                [
+                    product["name"],
+                    product["industry_name"],
+                    product["application_name"],
+                    " ".join(product["buyer_names"]),
+                ]
+            ).lower()
+            if query_lower in haystack:
+                results.append(
+                    {
+                        "entity_type": "product",
+                        "entity_id": product["product_id"],
+                        "title": product["name"],
+                        "subtitle": f"{product['industry_name']} | {product['application_name']}",
+                        "meta": f"Match {product['match_score']} | Sustainability {product['sustainability_score']}",
                     }
                 )
 
@@ -729,6 +927,148 @@ class LocalGraphRepository:
                 "Refresh supplier declarations for exposed materials.",
             ],
         }
+
+    def _buyers_for_material(self, material: dict[str, Any]) -> list[dict[str, Any]]:
+        buyers = []
+        for offset, application_id in enumerate(material.get("target_applications", [])[:4]):
+            application = self.application_index.get(application_id)
+            if not application:
+                continue
+            industry_name = self.industry_index.get(application["industry_id"], {}).get("name", "Packaging")
+            buyers.append(
+                {
+                    "name": f"{industry_name} Demand Group {offset + 1}",
+                    "region": material["regions_available"][offset % len(material["regions_available"])],
+                    "signal": f"Interested in {application['name'].lower()} supply continuity",
+                }
+            )
+        return buyers
+
+    def _application_scores_for_material(self, material: dict[str, Any], applications: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        scored = []
+        for application in applications:
+            priority = application.get("priority", "barrier")
+            match_score = round((material["oxygen_barrier"] + material["seal_strength"] + material["thermal_tolerance"]) / 3, 1)
+            if priority == "recyclability":
+                match_score = round((match_score + material["recyclability_score"]) / 2, 1)
+            sustainability_score = round((material["sustainability_score"] + material["compostability_score"] + material["recyclability_score"]) / 3, 1)
+            supply_chain_score = round(mean(100 - self.supplier_index[supplier_id]["disruption_risk_score"] for supplier_id in material["supplier_ids"] if supplier_id in self.supplier_index), 1)
+            connected_products = [item["name"] for item in self.products if item["application_id"] == application["application_id"]][:3]
+            scored.append(
+                {
+                    "name": application["name"],
+                    "use_case": application["use_case"],
+                    "match_score": match_score,
+                    "sustainability_score": sustainability_score,
+                    "supply_chain_score": supply_chain_score,
+                    "connected_products": connected_products,
+                }
+            )
+        return scored
+
+    def _material_market_signals(self, material: dict[str, Any]) -> list[dict[str, Any]]:
+        snapshots = self.snapshots_by_material.get(material["material_id"], [])
+        current = snapshots[-1] if snapshots else None
+        previous = snapshots[-2] if len(snapshots) > 1 else None
+        cost_shift = 0 if not current or not previous else round(current["price_index"] - previous["price_index"], 2)
+        return [
+            {"label": "Current cost index", "value": current["price_index"] if current else "N/A"},
+            {"label": "Quarterly cost shift", "value": cost_shift},
+            {"label": "Average supplier risk", "value": round(mean(self.supplier_index[supplier_id]["disruption_risk_score"] for supplier_id in material["supplier_ids"] if supplier_id in self.supplier_index), 1)},
+        ]
+
+    def _regulations_for_material(self, material_id: str) -> list[dict[str, Any]]:
+        rows = []
+        for regulation in self.regulations:
+            if self._relationship_between(material_id, regulation["regulation_id"]):
+                rows.append(
+                    {
+                        "name": regulation["name"],
+                        "region": regulation["region_id"],
+                        "effective_on": regulation["effective_on"],
+                    }
+                )
+        return rows[:6]
+
+    def _entity_map_points(
+        self,
+        material: dict[str, Any] | None = None,
+        product: dict[str, Any] | None = None,
+        buyers: list[dict[str, Any]] | None = None,
+        suppliers: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
+        points = []
+        for supplier in suppliers or []:
+            for region in supplier.get("regions_served", [])[:2]:
+                points.append({"type": "supplier", "label": supplier["name"], "region": region})
+        for buyer in buyers or []:
+            points.append({"type": "buyer", "label": buyer["name"], "region": buyer["region"]})
+        if material:
+            for region in material.get("regions_available", [])[:3]:
+                points.append({"type": "material", "label": material["name"], "region": region})
+        if product:
+            for region in product.get("buyer_regions", [])[:3]:
+                points.append({"type": "product", "label": product["name"], "region": region})
+        return points
+
+    def _material_detail_graph(
+        self,
+        material: dict[str, Any],
+        applications: list[dict[str, Any]],
+        suppliers: list[dict[str, Any]],
+        buyers: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        nodes = [{"id": material["material_id"], "label": material["name"], "type": "material"}]
+        edges = []
+        for application in applications[:4]:
+            nodes.append({"id": application["application_id"], "label": application["name"], "type": "application"})
+            edges.append({"source": material["material_id"], "target": application["application_id"], "label": "Used in"})
+        for supplier in suppliers[:4]:
+            nodes.append({"id": supplier["supplier_id"], "label": supplier["name"], "type": "supplier"})
+            edges.append({"source": supplier["supplier_id"], "target": material["material_id"], "label": "Supplies"})
+        for index, buyer in enumerate(buyers[:4], start=1):
+            buyer_id = f"buyer-{material['material_id']}-{index}"
+            nodes.append({"id": buyer_id, "label": buyer["name"], "type": "buyer"})
+            edges.append({"source": material["material_id"], "target": buyer_id, "label": "Bought by"})
+        return {"nodes": nodes, "edges": edges}
+
+    def _product_market_signals(self, product: dict[str, Any]) -> list[dict[str, Any]]:
+        return [
+            {"label": "Demand region", "value": product["buyer_regions"][0]},
+            {"label": "Supply chain score", "value": product["supply_chain_score"]},
+            {"label": "Primary industry", "value": product["industry_name"]},
+        ]
+
+    def _product_sustainability_metrics(self, product: dict[str, Any], linked_materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            {"label": "Product sustainability", "value": product["sustainability_score"]},
+            {"label": "Product recyclability", "value": product["recyclability_score"]},
+            {"label": "Average material compostability", "value": round(mean(item["compostability_score"] for item in linked_materials), 1) if linked_materials else "N/A"},
+        ]
+
+    def _product_regulatory_requirements(self, linked_materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        regulation_ids = []
+        for material in linked_materials:
+            for regulation in self._regulations_for_material(material["material_id"]):
+                regulation_ids.append((regulation["name"], regulation["region"], regulation["effective_on"]))
+        unique = list(dict.fromkeys(regulation_ids))
+        return [{"name": name, "region": region, "effective_on": effective_on} for name, region, effective_on in unique[:6]]
+
+    def _product_detail_graph(
+        self,
+        product: dict[str, Any],
+        linked_materials: list[dict[str, Any]],
+        linked_suppliers: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        nodes = [{"id": product["product_id"], "label": product["name"], "type": "product"}]
+        edges = []
+        for material in linked_materials[:4]:
+            nodes.append({"id": material["material_id"], "label": material["name"], "type": "material"})
+            edges.append({"source": product["product_id"], "target": material["material_id"], "label": "Uses"})
+        for supplier in linked_suppliers[:4]:
+            nodes.append({"id": supplier["supplier_id"], "label": supplier["name"], "type": "supplier"})
+            edges.append({"source": supplier["supplier_id"], "target": product["product_id"], "label": "Feeds"})
+        return {"nodes": nodes, "edges": edges}
 
     def compare_suppliers(self, supplier_ids: list[str] | None = None) -> list[dict[str, Any]]:
         suppliers = self.suppliers if not supplier_ids else [self.supplier_index[sid] for sid in supplier_ids if sid in self.supplier_index]
@@ -1344,8 +1684,7 @@ class LocalGraphRepository:
             **raw_benchmarks,
             "query_plan_notes": [
                 "Neo4j should favor indexed node lookups and directed relationship traversals for these workloads.",
-                "Memgraph comparisons should focus on latency and result parity for traversal-heavy queries.",
-                "Coverage can be expanded with pathfinding, filtered aggregations, and temporal snapshot joins.",
+                "Coverage can be expanded with pathfinding, filtered aggregations, temporal snapshot joins, and private-data record exploration.",
             ],
             "query_set": query_notes,
         }
@@ -1388,7 +1727,6 @@ class LocalGraphRepository:
         return [
             {"backend": "local", "active": settings.graph_backend == "local", "mode": "json graph cache", "status": "ready"},
             {"backend": "neo4j", "active": settings.graph_backend == "neo4j", "mode": "primary graph database", "status": "configured"},
-            {"backend": "memgraph", "active": settings.graph_backend == "memgraph", "mode": "benchmark target", "status": "optional"},
         ]
 
     def _node_descriptor(self, node_id: str) -> dict[str, Any]:

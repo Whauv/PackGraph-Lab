@@ -21,3 +21,4 @@ data/runtime/neo4j_query_audit.jsonl
 data/runtime/uploaded_artifacts.json
 data/runtime/uploaded_source_documents.json
 data/runtime/uploaded_test_reports.json
+private_data/

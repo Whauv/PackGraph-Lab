@@ -2,7 +2,7 @@
 
 PackGraph Lab is a local-first product prototype for synthetic packaging intelligence. It is designed to show how a graph-native system can support material selection, supplier evaluation, compliance review, document evidence tracing, and scenario planning for packaging teams.
 
-The project uses fully synthetic data, a FastAPI backend, a graph-oriented repository layer, optional Neo4j-backed execution, and a multi-surface frontend that behaves like a real product rather than a single demo screen.
+The project uses synthetic data for demo mode, supports private JSON ingestion from `private_data/`, uses Neo4j as the primary graph backend, and exposes a multi-surface frontend that behaves like a real product rather than a single demo screen.
 
 ## What the project is
 
@@ -82,13 +82,14 @@ It includes:
 - Synthetic data generation for materials, suppliers, applications, regulations, certifications, documents, test reports, recycling streams, industries, regions, and quarterly snapshots
 - Graph-oriented domain model with linked entities and 1,000+ generated relationships
 - Local generated bundle used for immediate demo runtime
-- Optional Neo4j Community Edition ingestion path with repeatable `MERGE`-based loading
-- Optional Memgraph benchmark scaffold
+- Neo4j Community Edition ingestion path with repeatable `MERGE`-based loading
+- Recursive private JSON discovery from `private_data/` with schema-safe inspection and ingestable flattened records
 
 ### Backend
 
 - FastAPI backend with endpoints for materials, suppliers, applications, investigations, recommendations, natural-language queries, scenarios, backend status, compliance, relationships, contributions, community, search, and supporting drilldowns
 - Safe query-planning layer that uses reviewed intent routing instead of unconstrained Cypher generation
+- Hybrid reasoning pipeline with router, classifier metadata, reviewed template retrieval, parameter extraction, scoring details, pipeline trace, and human-review gate metadata
 - Scenario engine for supplier outages, regulation activation, reformulation targets, and cost constraints
 - Document intelligence support for uploaded evidence metadata and extracted field presentation
 - Export support for PDF and CSV flows
@@ -97,9 +98,10 @@ It includes:
 ### Frontend
 
 - Landing page with product overview, setup guidance, workflow framing, and entry links
-- Dashboard with structured answer panel, comparison flow, evidence workspace, graph explorer, supplier and regulation drilldowns, trend panels, and timeline panels
+- Dashboard with structured answer panel, prompt diary, result/debug split, evidence workspace, graph explorer, supplier and regulation drilldowns, trend panels, and timeline panels
 - Light and dark theme support
 - Explore, Contribute, and Community product sections
+- Guided tour system across Chat, Explore, Projects, Contribute, Community, Review, and Resolution flows
 - Graph controls including presets, branch filters, zoom controls, path tracing, and interaction-focused graph context
 
 ## Core capabilities
@@ -135,22 +137,27 @@ At a high level, the project works like this:
 ```mermaid
 flowchart LR
     A["Synthetic data generator"] --> B["Generated JSON bundle"]
+    P["private_data JSON"] --> Q["Schema-safe private inspector"]
     B --> C["Local graph repository"]
     B --> D["Neo4j ingestion script"]
+    P --> D
     D --> E["Neo4j Community Edition"]
-    C --> F["Reviewed query planner"]
-    C --> G["Scenario engine"]
-    C --> H["Document intelligence and evidence services"]
-    C --> I["Investigations, workspaces, contributions, and community services"]
-    F --> J["Structured answer panel"]
-    G --> K["Scenario outputs and history"]
-    H --> L["Evidence and provenance UI"]
-    I --> M["Saved state across product surfaces"]
-    J --> N["Dashboard / Explore / Contribute / Community"]
-    K --> N
-    L --> N
-    M --> N
-    E --> O["Live graph execution, traversal, and pathfinding"]
+    C --> F["Hybrid query router"]
+    Q --> F
+    F --> G["NLP classifier + reviewed template retrieval"]
+    G --> H["Parameter extraction + Cypher execution"]
+    H --> I["Graph/private results"]
+    I --> J["Ensemble scoring + reranking"]
+    J --> K["Structured answer panel + debug trace"]
+    K --> L["Human review gate"]
+    C --> M["Scenario engine"]
+    C --> N["Document intelligence and evidence services"]
+    C --> O["Investigations, workspaces, contributions, and community services"]
+    L --> R["Dashboard / Explore / Contribute / Community"]
+    M --> R
+    N --> R
+    O --> R
+    E --> H
 ```
 
 For more detail, see:
@@ -165,6 +172,8 @@ For more detail, see:
   FastAPI app, models, repositories, and services.
 - `data/`
   Synthetic generated seed data plus local runtime files.
+- `private_data/`
+  Ignored local-only JSON for confidential or real ingestion experiments.
 - `docs/`
   Architecture, repository guidance, and change-tracking notes.
 - `queries/`
@@ -215,7 +224,7 @@ This starts:
 - Neo4j Community Edition
 - the PackGraph API
 - the synthetic dataset generation and ingestion flow
-- the optional Memgraph benchmark target
+- optional private-data ingestion from `private_data/`
 
 ## Runtime modes
 
@@ -239,6 +248,14 @@ Useful for:
 - query-audit and plan-oriented graph behavior
 
 When `GRAPH_BACKEND=neo4j`, the app writes graph query audit output to `data/runtime/neo4j_query_audit.jsonl`.
+
+## Private data mode
+
+- Put confidential or real JSON under `private_data/` or nested subfolders inside it.
+- The app discovers these files recursively.
+- `GET /private-data/schema` returns field/type summaries without exposing values, filenames, or folder names.
+- Natural-language queries can use private data for searches across products, suppliers, materials, locations, grades, and keyword matches.
+- Private matches remain read-only until a human-review decision clears any graph write-back.
 
 ## Data model overview
 
