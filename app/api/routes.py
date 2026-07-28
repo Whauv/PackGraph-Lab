@@ -349,6 +349,14 @@ def build_router(state) -> APIRouter:
     def ask(request: QueryRequest):
         return {"status": "ok", "data": state.query_engine.ask(request.question, request.options)}
 
+    @router.get("/project-memory")
+    def project_memory():
+        return {"status": "ok", "data": state.query_engine.project_memory.load()}
+
+    @router.get("/review-candidates")
+    def review_candidates():
+        return {"status": "ok", "data": state.query_engine.review_store.list()}
+
     @router.post("/query/scenario")
     def scenario(request: ScenarioRequest):
         current_user = state.auth.current_user()
