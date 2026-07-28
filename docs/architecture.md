@@ -15,7 +15,19 @@ PackGraph Lab is now oriented around Neo4j as the primary graph runtime, with sy
 - `app/services/query_planner.py`
   Provides reviewed intent routing and parameter extraction.
 - `app/services/query_engine.py`
-  Runs the hybrid reasoning pipeline and returns trace metadata, scoring details, and review-gate state.
+  Runs the hybrid reasoning pipeline and returns trace metadata, scoring details, review-gate state, explicit agent tool traces, evidence profiling, project memory, and review staging metadata.
+- `app/services/agent_tools.py`
+  Defines the explicit toolbelt used by the controlled graph assistant.
+- `app/services/agent_state_machine.py`
+  Defines the strict chat query state progression.
+- `app/services/agent_memory.py`
+  Stores lightweight local project/session memory in staging JSON.
+- `app/services/agent_review.py`
+  Stages human-review candidates before any write-back behavior.
+- `app/services/entity_resolution_agent.py`
+  Detects alias and duplicate risk in returned rows.
+- `agents/packgraph_lab_agent/agent.py`
+  Provides the optional Google ADK-compatible wrapper without changing the default local runtime.
 - `web/`
   Hosts the product shell, guided tour, prompt diary, structured answer panel, and section-level workspaces.
 
@@ -46,6 +58,34 @@ Every question follows this read-oriented path:
 
 The API response exposes classifier metadata, retrieval details, scoring info, normalized rows, and a stage-by-stage pipeline trace.
 
+## Controlled agent layer
+
+The chat path is now structured as a controlled agent surface rather than a plain query endpoint. Each request emits:
+
+- `agent_state_machine`
+- `agent_tools`
+- `agent_orchestration`
+- `investigation_plan`
+- `evidence_profile`
+- `missing_evidence`
+- `project_memory`
+- `review_candidate`
+- `entity_resolution`
+
+The state machine is:
+
+1. `question_received`
+2. `intent_classified`
+3. `entities_resolved`
+4. `tools_selected`
+5. `graph_queried`
+6. `evidence_retrieved`
+7. `results_scored`
+8. `answer_generated`
+9. `review_checked`
+
+This keeps the runtime deterministic, inspectable, and safer to extend without unconstrained graph writes.
+
 ## Private data safety
 
 - `private_data/` is ignored by git and can contain nested private subfolders.
@@ -58,6 +98,9 @@ The API response exposes classifier metadata, retrieval details, scoring info, n
 - Review is the human-in-the-loop checkpoint before new private records become graph write-backs.
 - Resolution is the product workflow for cross-graph entity matching, duplicate handling, and merge decisions.
 - Schema migration should move through PR-based review and staged approval rather than direct ad hoc graph edits.
+- Review candidates are staged in `data/staging/agent_review_candidates.json`.
+- Lightweight project memory is stored in `data/staging/project_memory.json`.
+- Agent audits are written to `data/runtime/agent_audit.jsonl`.
 
 ## Product flow
 

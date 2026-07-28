@@ -90,6 +90,7 @@ It includes:
 - FastAPI backend with endpoints for materials, suppliers, applications, investigations, recommendations, natural-language queries, scenarios, backend status, compliance, relationships, contributions, community, search, and supporting drilldowns
 - Safe query-planning layer that uses reviewed intent routing instead of unconstrained Cypher generation
 - Hybrid reasoning pipeline with router, classifier metadata, reviewed template retrieval, parameter extraction, scoring details, pipeline trace, and human-review gate metadata
+- Controlled agentic orchestration with explicit tools, strict state-machine output, evidence profiling, local project memory, review-candidate staging, and entity-resolution checks
 - Scenario engine for supplier outages, regulation activation, reformulation targets, and cost constraints
 - Document intelligence support for uploaded evidence metadata and extracted field presentation
 - Export support for PDF and CSV flows
@@ -249,6 +250,26 @@ Useful for:
 
 When `GRAPH_BACKEND=neo4j`, the app writes graph query audit output to `data/runtime/neo4j_query_audit.jsonl`.
 
+## Agent staging and review flow
+
+The chat backend now behaves like a controlled graph assistant without becoming a fully autonomous writer.
+
+- Query responses now include `agent_state_machine`, `agent_tools`, `agent_orchestration`, `investigation_plan`, `evidence_profile`, `missing_evidence`, `project_memory`, `review_candidate`, and `entity_resolution`.
+- Local project/session memory is stored in `data/staging/project_memory.json`.
+- Human-review candidates are stored in `data/staging/agent_review_candidates.json`.
+- Agent audit records are appended to `data/runtime/agent_audit.jsonl`.
+- Any merge suggestion, evidence gap, or potential write-back remains staged for human review first.
+
+## Optional Google ADK scaffold
+
+If you want an ADK-compatible wrapper without making Google tooling part of the default local app:
+
+```bash
+pip install -r requirements-adk.txt
+```
+
+The optional wrapper lives in `agents/packgraph_lab_agent/agent.py` and exposes read-only tools for classification, readonly graph querying, review-candidate creation, and state-machine inspection.
+
 ## Private data mode
 
 - Put confidential or real JSON under `private_data/` or nested subfolders inside it.
@@ -303,6 +324,8 @@ Typical relationship types include:
 - `GET /scenarios/history`
 - `GET /compliance/dashboard`
 - `GET /graph/relationships`
+- `GET /project-memory`
+- `GET /review-candidates`
 
 ### Workspace and supporting product flows
 
