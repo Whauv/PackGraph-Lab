@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.runtime_db import build_runtime_db
 from app.repositories.graph_repository import LocalGraphRepository
 from app.services.agent_memory import ProjectMemoryStore
 from app.services.agent_orchestrator import AgentOrchestrationRecorder
@@ -21,9 +22,10 @@ class QueryEngine:
         self.repository = repository
         self.private_data = private_data
         self.settings = getattr(repository, "settings", get_settings())
+        self.runtime_db = build_runtime_db(self.settings)
         self.planner = QueryPlanner()
         self.scenarios = ScenarioEngine(repository)
-        self.review_store = ReviewCandidateStore(self.settings)
+        self.review_store = ReviewCandidateStore(self.settings, self.runtime_db)
         self.project_memory = ProjectMemoryStore(self.settings)
         self.evidence_agent = EvidenceAgent()
         self.entity_resolution = EntityResolutionAgent(self.settings)

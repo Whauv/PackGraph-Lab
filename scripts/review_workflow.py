@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.core.config import get_settings
+from app.core.runtime_db import build_runtime_db
 from app.services.agent_review import ReviewCandidateStore
 
 
@@ -30,7 +31,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> dict:
     args = build_parser().parse_args(argv)
-    store = ReviewCandidateStore(get_settings())
+    settings = get_settings()
+    store = ReviewCandidateStore(settings, build_runtime_db(settings))
     if args.command == "summary":
         payload = store.summary()
     elif args.command == "export":

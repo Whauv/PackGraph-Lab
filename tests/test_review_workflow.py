@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from app.core.config import Settings
+from app.core.runtime_db import build_runtime_db
 from app.services.agent_review import ReviewCandidateStore
 
 
@@ -31,9 +32,9 @@ class ReviewWorkflowTests(unittest.TestCase):
         self.settings.packgraph_staging_dir.mkdir(parents=True, exist_ok=True)
         self.settings.private_data_dir.mkdir(parents=True, exist_ok=True)
         self.settings.project_memory_path.write_text("{}", encoding="utf-8")
-        self.settings.review_candidates_path.write_text("[]", encoding="utf-8")
         self.settings.match_decision_cache_path.write_text("{}", encoding="utf-8")
-        self.store = ReviewCandidateStore(self.settings)
+        self.runtime_db = build_runtime_db(self.settings)
+        self.store = ReviewCandidateStore(self.settings, self.runtime_db)
 
     def tearDown(self):
         self.tempdir.cleanup()

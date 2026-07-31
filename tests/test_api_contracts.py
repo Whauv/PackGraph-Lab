@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+
+class ApiContractTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        root = Path(self.tempdir.name)
+        runtime_dir = root / "runtime"
+        staging_dir = root / "staging"
+        private_dir = root / "private"
+        runtime_dir.mkdir(parents=True, exist_ok=True)
+        staging_dir.mkdir(parents=True, exist_ok=True)
+        private_dir.mkdir(parents=True, exist_ok=True)
+        os.environ["PACKGRAPH_RUNTIME_DIR"] = str(runtime_dir)
+        os.environ["PACKGRAPH_STAGING_DIR"] = str(staging_dir)
+        os.environ["PACKGRAPH_PRIVATE_DATA_DIR"] = str(private_dir)
+        os.environ["PACKGRAPH_RUNTIME_DB_PATH"] = str(runtime_dir / "packgraph_runtime.db")
+        os.environ["PACKGRAPH_PROJECT_MEMORY_PATH"] = str(staging_dir / "project_memory.json")
+        os.environ["PACKGRAPH_REVIEW_CANDIDATES_PATH"] = str(staging_dir / "agent_review_candidates.json")
+        os.environ["PACKGRAPH_AGENT_AUDIT_PATH"] = str(runtime_dir / "agent_audit.jsonl")
+        os.environ["PACKGRAPH_REVIEW_AUDIT_PATH"] = str(runtime_dir / "review_audit.jsonl")
+        os.environ["PACKGRAPH_ENTITY_RESOLUTION_AUDIT_PATH"] = str(runtime_dir / "entity_resolution_audit.jsonl")
+        os.environ["PACKGRAPH_MATCH_DECISION_CACHE_PATH"] = str(runtime_dir / "match_decision_cache.json")
+        os.environ["PACKGRAPH_OBSERVABILITY_LOG_PATH"] = str(runtime_dir / "app_events.jsonl")
+        os.environ["PACKGRAPH_METRICS_PATH"] = str(runtime_dir / "metrics_snapshot.json")
+        os.environ["GRAPH_BACKEND"] = "local"
+        from app.core.config import get_settings
+        from app.repositories.data_store import get_data_store
+
+        get_settings.cache_clear()
+        get_data_store.cache_clear()
+        from app.main import app
+
+        self.client = TestClient(app)
+
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def test_health_and_metrics_endpoints(self):
+        self.assertEqual(self.client.get("/health/live").status_code, 200)
+        self.assertEqual(self.client.get("/health/ready").status_code, 200)
+        self.client.get("/materials")
+        metrics = self.client.get("/metrics")
+        self.assertEqual(metrics.status_code, 200)
+
+    def test_auth_and_jobs_contract(self):
+        login = self.client.post("/auth/login", json={"email": "admin@packgraph.local", "password": "packgraph-demo"})
+        self.assertEqual(login.status_code, 200)
+        token = login.json()["data"]["session_token"]
+        headers = {"Authorization": f"Bearer {token}", "Idempotency-Key": "job-create-1"}
+        job = self.client.post("/jobs", json={"job_type": "evaluate_entity_resolution", "payload": {}}, headers=headers)
+        self.assertEqual(job.status_code, 200)
+        listed = self.client.get("/jobs", headers={"Authorization": f"Bearer {token}"})
+        self.assertEqual(listed.status_code, 200)
+
+
+if __name__ == "__main__":
+    unittest.main()
