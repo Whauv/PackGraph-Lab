@@ -26,7 +26,7 @@ class QueryEngine:
         self.review_store = ReviewCandidateStore(self.settings)
         self.project_memory = ProjectMemoryStore(self.settings)
         self.evidence_agent = EvidenceAgent()
-        self.entity_resolution = EntityResolutionAgent()
+        self.entity_resolution = EntityResolutionAgent(self.settings)
         self.investigation_planner = InvestigationPlanner()
         self.agent_tools = AgentToolbelt(repository, self.review_store)
         self.agent_orchestration = AgentOrchestrationRecorder(self.settings)

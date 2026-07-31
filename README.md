@@ -91,6 +91,9 @@ It includes:
 - Safe query-planning layer that uses reviewed intent routing instead of unconstrained Cypher generation
 - Hybrid reasoning pipeline with router, classifier metadata, reviewed template retrieval, parameter extraction, scoring details, pipeline trace, and human-review gate metadata
 - Controlled agentic orchestration with explicit tools, strict state-machine output, evidence profiling, local project memory, review-candidate staging, and entity-resolution checks
+- Flexible local-source ingest support for recursive JSON folders and optional SQLite sources selected from CLI or `.env`
+- Ingest profiling with schema/source summaries, duplicate-content reporting, provenance metadata, and per-domain metrics
+- Review workflow support for summaries, pending export, reviewed-decision import, and structured audit logging
 - Scenario engine for supplier outages, regulation activation, reformulation targets, and cost constraints
 - Document intelligence support for uploaded evidence metadata and extracted field presentation
 - Export support for PDF and CSV flows
@@ -212,6 +215,74 @@ Notes:
 - This path assumes Neo4j Community Edition is available at `bolt://localhost:7687` if you want live graph execution.
 - If Neo4j is unavailable, the app can still fall back to the local JSON-backed repository for UI review and non-live demo flows.
 
+## Ingest and verification commands
+
+### Profile local sources before ingest
+
+This scans JSON subfolders recursively and optionally profiles a SQLite source if configured.
+
+```bash
+python scripts/ingest_graph.py --profile-only
+```
+
+Override the ingest sources from the CLI:
+
+```bash
+python scripts/ingest_graph.py --profile-only --json-source-dir .\\private_data --sqlite-path .\\local_records.sqlite
+```
+
+### Run ingest
+
+```bash
+python scripts/ingest_graph.py
+```
+
+Profile and save the observability report:
+
+```bash
+python scripts/ingest_graph.py --report-path .\\smoke-test-output\\ingest-report.json
+```
+
+Skip generated demo bundle ingest and load only local JSON / SQLite records:
+
+```bash
+python scripts/ingest_graph.py --skip-generated
+```
+
+### Review export / import
+
+Review pending items:
+
+```bash
+python scripts/review_workflow.py summary
+```
+
+Export pending review items:
+
+```bash
+python scripts/review_workflow.py export --output .\\review-exports\\pending-review.json
+```
+
+Import reviewed decisions and optionally apply them to the persistent match cache:
+
+```bash
+python scripts/review_workflow.py import --input .\\review-exports\\reviewed-decisions.json --apply
+```
+
+### Resolve / matching evaluation
+
+Evaluate entity-resolution precision and recall:
+
+```bash
+python scripts/evaluate_entity_resolution.py
+```
+
+Use a custom labeled dataset:
+
+```bash
+python scripts/evaluate_entity_resolution.py --dataset .\\tests\\fixtures\\entity_resolution_eval.json
+```
+
 ### Option 2: Docker Compose
 
 Use this when you want the project stack to start together.
@@ -326,6 +397,7 @@ Typical relationship types include:
 - `GET /graph/relationships`
 - `GET /project-memory`
 - `GET /review-candidates`
+- `GET /review-candidates/summary`
 
 ### Workspace and supporting product flows
 

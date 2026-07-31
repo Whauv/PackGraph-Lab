@@ -7,9 +7,13 @@ PackGraph Lab is now oriented around Neo4j as the primary graph runtime, with sy
 - `app/services/data_generator.py`
   Generates the synthetic demo bundle used when private or live graph data is unavailable.
 - `scripts/ingest_graph.py`
-  Loads the generated bundle into Neo4j and also ingests flattened private JSON records from `private_data/` as `PrivateRecord` nodes.
+  Loads the generated bundle into Neo4j and now profiles/ingests recursive JSON folders plus optional SQLite sources with provenance metadata and duplicate reporting.
 - `app/services/private_data_service.py`
-  Recursively discovers JSON files under `private_data/`, inspects schema without exposing values, and supports private-record lookup.
+  Recursively discovers JSON files under `private_data/`, can inspect optional SQLite sources, hides sensitive values, reports duplicates, and produces provenance-ready ingest rows.
+- `app/services/ingest_sources.py`
+  Resolves CLI-vs-env ingest source selection so local source overrides do not require code changes.
+- `app/services/ingest_pipeline.py`
+  Splits generated-bundle ingest and external-record ingest into smaller modules with per-domain node/edge metrics.
 - `app/repositories/graph_repository.py`
   Serves the graph-style repository API used by the product shell and Neo4j-backed runtime behavior.
 - `app/services/query_planner.py`
@@ -93,6 +97,13 @@ This keeps the runtime deterministic, inspectable, and safer to extend without u
 - Recursive discovery only returns abstract dataset summaries and field/type coverage.
 - Private matches are treated as read-only until a human-review step clears any write-back.
 
+## Ingest observability
+
+- Source profiling runs before ingest and can be used with `--profile-only`.
+- Duplicate-content groups are reported before graph writes.
+- External rows include `provenance_id`, `source_record_id`, `parser_name`, and `parser_version`.
+- Per-domain ingest metrics are emitted for generated nodes/edges and external record loads.
+
 ## Review and resolution direction
 
 - Review is the human-in-the-loop checkpoint before new private records become graph write-backs.
@@ -101,6 +112,8 @@ This keeps the runtime deterministic, inspectable, and safer to extend without u
 - Review candidates are staged in `data/staging/agent_review_candidates.json`.
 - Lightweight project memory is stored in `data/staging/project_memory.json`.
 - Agent audits are written to `data/runtime/agent_audit.jsonl`.
+- Review exports/imports are handled through `scripts/review_workflow.py`.
+- Entity-resolution audit and cached match decisions are stored under `data/runtime/`.
 
 ## Product flow
 

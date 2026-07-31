@@ -357,6 +357,10 @@ def build_router(state) -> APIRouter:
     def review_candidates():
         return {"status": "ok", "data": state.query_engine.review_store.list()}
 
+    @router.get("/review-candidates/summary")
+    def review_candidates_summary():
+        return {"status": "ok", "data": state.query_engine.review_store.summary()}
+
     @router.post("/query/scenario")
     def scenario(request: ScenarioRequest):
         current_user = state.auth.current_user()

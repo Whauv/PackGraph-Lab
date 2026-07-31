@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import time
 from pathlib import Path
@@ -12,6 +13,8 @@ if str(ROOT) not in sys.path:
 from app.core.config import get_settings
 from app.repositories.data_store import get_data_store
 from app.repositories.graph_repository import Neo4jAdminRepository
+from app.services.ingest_pipeline import IngestPipeline
+from app.services.ingest_sources import resolve_ingest_sources
 from app.services.private_data_service import PrivateDataService
 
 
@@ -25,109 +28,82 @@ CONSTRAINTS = [
 ]
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Ingest PackGraph Lab demo data and local JSON/SQLite sources into Neo4j.")
+    parser.add_argument("--json-source-dir", help="Override the JSON ingest directory. Scans subfolders recursively.")
+    parser.add_argument("--sqlite-path", help="Optional SQLite database path to profile and ingest.")
+    parser.add_argument("--profile-only", action="store_true", help="Only profile local sources without writing to Neo4j.")
+    parser.add_argument("--skip-generated", action="store_true", help="Skip generated PackGraph bundle ingestion.")
+    parser.add_argument("--report-path", help="Write the ingest/profile report JSON to this path.")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> dict:
+    args = build_parser().parse_args(argv)
     settings = get_settings()
-    store = get_data_store().load_bundle()
-    private_data = PrivateDataService(settings.private_data_dir)
+    sources = resolve_ingest_sources(
+        settings,
+        json_source_dir=args.json_source_dir,
+        sqlite_path=args.sqlite_path,
+    )
+    source_service = PrivateDataService(
+        settings.private_data_dir,
+        settings.sqlite_ingest_path,
+        parser_name=settings.ingest_parser_name,
+        parser_version=settings.ingest_parser_version,
+    )
+
     started = time.perf_counter()
+    profile = source_service.inspect_schema(sources.json_source_dir, sources.sqlite_path)
+    local_rows = source_service.ingestable_records(sources.json_source_dir, sources.sqlite_path)
+    report = {
+        "status": "profiled" if args.profile_only else "pending_ingest",
+        "selection_source": sources.selection_source,
+        "json_source_dir": str(sources.json_source_dir) if sources.json_source_dir else None,
+        "sqlite_path": str(sources.sqlite_path) if sources.sqlite_path else None,
+        "profile": profile,
+        "private_records": len(local_rows),
+    }
+
+    if args.profile_only:
+        report["elapsed_seconds"] = round(time.perf_counter() - started, 3)
+        _emit_report(report, args.report_path)
+        print(report)
+        return report
+
+    store = get_data_store().load_bundle()
     repo = None
     try:
         repo = connect_with_retry(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password)
         for query in CONSTRAINTS:
             repo.run(query)
 
-        entity_map = {
-            "materials": ("Material", "material_id"),
-            "suppliers": ("Supplier", "supplier_id"),
-            "applications": ("Application", "application_id"),
-            "regulations": ("Regulation", "regulation_id"),
-            "certifications": ("Certification", "certification_id"),
-            "recycling_streams": ("RecyclingStream", "stream_id"),
-            "regions": ("Region", "region_id"),
-            "industries": ("Industry", "industry_id"),
-            "source_documents": ("SourceDocument", "document_id"),
-            "test_reports": ("TestReport", "report_id"),
-            "quarterly_snapshots": ("QuarterlySnapshot", "snapshot_id"),
-        }
-        for key, (label, id_key) in entity_map.items():
-            query = f"""
-            UNWIND $rows AS row
-            MERGE (n:{label} {{{id_key}: row.{id_key}}})
-            SET n += row
-            """
-            repo.run(query, {"rows": [normalize_neo4j_properties(row) for row in store[key]]})
+        pipeline = IngestPipeline(repo)
+        metrics = {"generated": {"nodes": {}, "edges": {}}, "external": {"nodes": {}, "edges": {}}}
+        if not args.skip_generated:
+            metrics["generated"] = pipeline.ingest_generated_bundle(store, normalize_neo4j_properties)
+        metrics["external"] = pipeline.ingest_external_records([normalize_neo4j_properties(row) for row in local_rows])
 
-        relation_queries = {
-            "TARGETS_APPLICATION": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Application {application_id: row.to})
-                MERGE (a)-[:TARGETS_APPLICATION]->(b)
-            """,
-            "SUPPLIED_BY": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Supplier {supplier_id: row.to})
-                MERGE (a)-[:SUPPLIED_BY]->(b)
-            """,
-            "HAS_DOCUMENT": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:SourceDocument {document_id: row.to})
-                MERGE (a)-[:HAS_DOCUMENT]->(b)
-            """,
-            "SUBSTITUTES_WITH": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Material {material_id: row.to})
-                MERGE (a)-[:SUBSTITUTES_WITH]->(b)
-            """,
-            "RECYCLES_INTO": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:RecyclingStream {stream_id: row.to})
-                MERGE (a)-[:RECYCLES_INTO]->(b)
-            """,
-            "REVIEWED_UNDER": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Regulation {regulation_id: row.to})
-                MERGE (a)-[:REVIEWED_UNDER]->(b)
-            """,
-            "SUPPLIES": """
-                UNWIND $rows AS row
-                MATCH (a:Supplier {supplier_id: row.from})
-                MATCH (b:Material {material_id: row.to})
-                MERGE (a)-[:SUPPLIES]->(b)
-            """,
-        }
-        for rel_type, query in relation_queries.items():
-            rows = [rel for rel in store["relationships"] if rel["type"] == rel_type]
-            repo.run(query, {"rows": rows})
-
-        private_rows = [normalize_neo4j_properties(row) for row in private_data.ingestable_records()]
-        if private_rows:
-            repo.run(
-                """
-                UNWIND $rows AS row
-                MERGE (n:PrivateRecord {private_record_id: row.private_record_id})
-                SET n += row
-                """,
-                {"rows": private_rows},
-            )
-
-        elapsed = round(time.perf_counter() - started, 3)
-        print(
+        report.update(
             {
                 "status": "ok",
-                "elapsed_seconds": elapsed,
+                "elapsed_seconds": round(time.perf_counter() - started, 3),
                 "counts": store["manifest"]["counts"],
-                "private_records": len(private_rows),
+                "metrics": metrics,
             }
         )
+        _emit_report(report, args.report_path)
+        print(report)
+        return report
     finally:
         if repo:
             repo.close()
+
+
+def _emit_report(report: dict, report_path: str | None) -> None:
+    if not report_path:
+        return
+    Path(report_path).write_text(json.dumps(report, indent=2), encoding="utf-8")
 
 
 def connect_with_retry(uri: str, username: str, password: str, attempts: int = 30, delay_seconds: float = 2.0) -> Neo4jAdminRepository:
@@ -176,5 +152,9 @@ def normalize_scalar_or_list(value):
     return json.dumps(value, sort_keys=True)
 
 
-if __name__ == "__main__":
+def cli_main() -> None:
     main()
+
+
+if __name__ == "__main__":
+    cli_main()
