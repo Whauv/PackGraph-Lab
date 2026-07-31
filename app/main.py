@@ -29,7 +29,12 @@ class AppState:
         settings = get_settings()
         self.settings = settings
         self.repository = build_graph_repository(settings)
-        self.private_data = PrivateDataService(settings.private_data_dir)
+        self.private_data = PrivateDataService(
+            settings.private_data_dir,
+            settings.sqlite_ingest_path,
+            parser_name=settings.ingest_parser_name,
+            parser_version=settings.ingest_parser_version,
+        )
         self.query_engine = QueryEngine(self.repository, self.private_data)
         self.auth = AuthService(settings.packgraph_runtime_dir)
         self.auth.ensure_seed()

@@ -1,0 +1,17 @@
+[
+  {
+    "left": {"entity_type": "supplier", "label": "Aluminium Works GmbH", "cost": "4.0 USD/kg"},
+    "right": {"entity_type": "supplier", "label": "Aluminum Works", "cost": "4.0 USD/kg"},
+    "expected_match": true
+  },
+  {
+    "left": {"entity_type": "material", "label": "Polyethylene film", "recyclability": "82 %"},
+    "right": {"entity_type": "material", "label": "PE film", "recyclability": "81 %"},
+    "expected_match": true
+  },
+  {
+    "left": {"entity_type": "supplier", "label": "Northshore Fibers", "cost": "6 USD/kg"},
+    "right": {"entity_type": "supplier", "label": "Blue Harbor Polymers", "cost": "2 USD/kg"},
+    "expected_match": false
+  }
+]

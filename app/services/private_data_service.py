@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from collections import Counter, defaultdict
+from contextlib import closing
+import hashlib
 import json
 import re
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -13,40 +17,57 @@ class PrivateDataService:
     }
     ENTITY_TERMS = {"product", "products", "supplier", "suppliers", "material", "materials", "location", "locations", "grade", "grades"}
 
-    def __init__(self, private_data_dir: Path):
+    def __init__(
+        self,
+        private_data_dir: Path,
+        sqlite_ingest_path: Path | None = None,
+        *,
+        parser_name: str = "packgraph-local-ingest",
+        parser_version: str = "2.0",
+    ):
         self.private_data_dir = private_data_dir
+        self.sqlite_ingest_path = sqlite_ingest_path
+        self.parser_name = parser_name
+        self.parser_version = parser_version
 
-    def has_data(self) -> bool:
-        return any(self.private_data_dir.rglob("*.json"))
+    def has_data(self, source_dir: Path | None = None, sqlite_path: Path | None = None) -> bool:
+        json_dir = self._resolve_source_dir(source_dir)
+        sqlite_file = self._resolve_sqlite_path(sqlite_path)
+        has_json = bool(json_dir and any(json_dir.rglob("*.json")))
+        has_sqlite = bool(sqlite_file and sqlite_file.exists())
+        return has_json or has_sqlite
 
-    def inspect_schema(self) -> dict[str, Any]:
-        datasets = self._discover_datasets()
+    def inspect_schema(self, source_dir: Path | None = None, sqlite_path: Path | None = None) -> dict[str, Any]:
+        datasets, diagnostics = self._discover_datasets(source_dir, sqlite_path)
         return {
             "private_data_active": bool(datasets),
             "dataset_count": len(datasets),
             "record_count": sum(dataset["record_count"] for dataset in datasets),
+            "source_profile": diagnostics,
             "datasets": [
                 {
                     "dataset": dataset["dataset_id"],
                     "entity_hint": dataset["entity_hint"],
                     "record_count": dataset["record_count"],
                     "fields": dataset["fields"],
+                    "source_kind": dataset["source_kind"],
+                    "provenance_prefix": dataset["provenance_prefix"],
                 }
                 for dataset in datasets
             ],
         }
 
-    def query(self, question: str) -> dict[str, Any]:
+    def query(self, question: str, source_dir: Path | None = None, sqlite_path: Path | None = None) -> dict[str, Any]:
         extracted = self._extract_question_parts(question)
         matches = []
-        for dataset in self._discover_datasets():
+        for dataset in self._discover_datasets(source_dir, sqlite_path)[0]:
             for record in dataset["records"]:
                 match = self._match_record(dataset, record, extracted)
                 if match:
                     matches.append(match)
         matches.sort(key=lambda item: item["score"], reverse=True)
         return {
-            "private_data_active": self.has_data(),
+            "private_data_active": self.has_data(source_dir, sqlite_path),
             "query": extracted,
             "rows": matches[:12],
         }
@@ -59,38 +80,114 @@ class PrivateDataService:
             "record_count": summary["record_count"],
         }
 
-    def ingestable_records(self) -> list[dict[str, Any]]:
+    def ingestable_records(self, source_dir: Path | None = None, sqlite_path: Path | None = None) -> list[dict[str, Any]]:
         rows = []
-        for dataset in self._discover_datasets():
+        datasets, _ = self._discover_datasets(source_dir, sqlite_path)
+        for dataset in datasets:
             for index, record in enumerate(dataset["records"], start=1):
                 row = self._flatten_record(record)
+                source_record_id = f"{dataset['dataset_id']}:{index}"
                 row["private_record_id"] = f"{dataset['dataset_id'].upper()}-{index:04d}"
+                row["source_record_id"] = source_record_id
                 row["entity_hint"] = dataset["entity_hint"]
                 row["dataset_id"] = dataset["dataset_id"]
+                row["provenance_id"] = self._hash_text(f"{dataset['provenance_prefix']}|{source_record_id}")
+                row["parser_name"] = self.parser_name
+                row["parser_version"] = self.parser_version
+                row["source_kind"] = dataset["source_kind"]
+                row["content_hash"] = self._record_hash(row)
                 rows.append(row)
         return rows
 
-    def _discover_datasets(self) -> list[dict[str, Any]]:
+    def _resolve_source_dir(self, source_dir: Path | None) -> Path | None:
+        return source_dir or self.private_data_dir
+
+    def _resolve_sqlite_path(self, sqlite_path: Path | None) -> Path | None:
+        return sqlite_path or self.sqlite_ingest_path
+
+    def _discover_datasets(self, source_dir: Path | None = None, sqlite_path: Path | None = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         datasets = []
-        for file_index, path in enumerate(sorted(self.private_data_dir.rglob("*.json")), start=1):
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except Exception:
-                continue
-            for records in self._coerce_payload_to_record_sets(payload):
-                if not records:
+        diagnostics = {
+            "json_files_scanned": 0,
+            "sqlite_tables_scanned": 0,
+            "invalid_sources": [],
+            "duplicate_content_report": [],
+        }
+
+        json_dir = self._resolve_source_dir(source_dir)
+        if json_dir and json_dir.exists():
+            for path in sorted(json_dir.rglob("*.json")):
+                diagnostics["json_files_scanned"] += 1
+                try:
+                    payload = json.loads(path.read_text(encoding="utf-8"))
+                except Exception as exc:
+                    diagnostics["invalid_sources"].append({"kind": "json", "path_hint": self._hash_text(str(path)), "error": str(exc)})
                     continue
-                fields = self._summarize_fields(records)
-                datasets.append(
+                for records in self._coerce_payload_to_record_sets(payload):
+                    if not records:
+                        continue
+                    fields = self._summarize_fields(records)
+                    datasets.append(
+                        {
+                            "dataset_id": f"json_dataset_{len(datasets) + 1}",
+                            "entity_hint": self._infer_entity_hint(records),
+                            "record_count": len(records),
+                            "fields": fields,
+                            "records": records,
+                            "source_kind": "json",
+                            "provenance_prefix": self._hash_text(str(path)),
+                        }
+                    )
+
+        sqlite_file = self._resolve_sqlite_path(sqlite_path)
+        if sqlite_file and sqlite_file.exists():
+            try:
+                with closing(sqlite3.connect(sqlite_file)) as connection:
+                    connection.row_factory = sqlite3.Row
+                    table_rows = connection.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+                    for table in table_rows:
+                        table_name = table["name"]
+                        if table_name.startswith("sqlite_"):
+                            continue
+                        diagnostics["sqlite_tables_scanned"] += 1
+                        records = [dict(row) for row in connection.execute(f'SELECT * FROM "{table_name}"').fetchall()]
+                        if not records:
+                            continue
+                        datasets.append(
+                            {
+                                "dataset_id": f"sqlite_{table_name}_{len(datasets) + 1}",
+                                "entity_hint": self._infer_entity_hint(records),
+                                "record_count": len(records),
+                                "fields": self._summarize_fields(records),
+                                "records": records,
+                                "source_kind": "sqlite",
+                                "provenance_prefix": self._hash_text(f"{sqlite_file}:{table_name}"),
+                            }
+                        )
+            except Exception as exc:
+                diagnostics["invalid_sources"].append({"kind": "sqlite", "path_hint": self._hash_text(str(sqlite_file)), "error": str(exc)})
+
+        diagnostics["duplicate_content_report"] = self._duplicate_content_report(datasets)
+        return datasets, diagnostics
+
+    def _duplicate_content_report(self, datasets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for dataset in datasets:
+            for index, record in enumerate(dataset["records"], start=1):
+                flat = self._flatten_record(record)
+                grouped[self._record_hash(flat)].append(
                     {
-                        "dataset_id": f"dataset_{len(datasets) + 1}",
-                        "entity_hint": self._infer_entity_hint(records),
-                        "record_count": len(records),
-                        "fields": fields,
-                        "records": records,
+                        "dataset_id": dataset["dataset_id"],
+                        "entity_hint": dataset["entity_hint"],
+                        "source_kind": dataset["source_kind"],
+                        "record_index": index,
                     }
                 )
-        return datasets
+        return [
+            {"content_hash": key, "occurrences": len(items), "records": items}
+            for key, items in grouped.items()
+            if len(items) > 1
+        ]
 
     def _coerce_payload_to_record_sets(self, payload: Any) -> list[list[dict[str, Any]]]:
         if isinstance(payload, list) and payload and all(isinstance(item, dict) for item in payload):
@@ -186,6 +283,13 @@ class PrivateDataService:
             else:
                 flattened[composite] = value
         return flattened
+
+    def _record_hash(self, record: dict[str, Any]) -> str:
+        normalized = json.dumps(record, sort_keys=True, default=str)
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+
+    def _hash_text(self, value: str) -> str:
+        return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
 
     def _value_type(self, value: Any) -> str:
         if isinstance(value, bool):

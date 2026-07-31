@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "packgraph-lab"
+version = "0.2.0"
+description = "Local-first packaging intelligence workspace with graph, ingest, review, and entity-resolution tooling."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.116.1",
+  "uvicorn[standard]==0.35.0",
+  "pydantic==2.11.7",
+  "neo4j==5.28.2",
+  "python-dotenv==1.1.1",
+  "python-multipart==0.0.20",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*", "agents*", "scripts*"]
