@@ -136,6 +136,87 @@ MIGRATIONS: list[tuple[str, list[str]]] = [
             """,
         ],
     ),
+    (
+        "002_multi_tenant_governance",
+        [
+            "ALTER TABLE sessions ADD COLUMN org_id TEXT",
+            "ALTER TABLE workspaces ADD COLUMN org_id TEXT",
+            "ALTER TABLE saved_searches ADD COLUMN org_id TEXT",
+            "ALTER TABLE review_candidates ADD COLUMN org_id TEXT",
+            "ALTER TABLE review_history ADD COLUMN org_id TEXT",
+            "ALTER TABLE jobs ADD COLUMN org_id TEXT",
+            "ALTER TABLE idempotency_records ADD COLUMN org_id TEXT",
+            """
+            CREATE TABLE IF NOT EXISTS source_registry (
+                source_id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                source_type TEXT NOT NULL,
+                source_family TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                connector_name TEXT NOT NULL,
+                parser_name TEXT,
+                parser_version TEXT,
+                retention_policy_id TEXT,
+                redaction_policy_id TEXT,
+                trust_score REAL NOT NULL DEFAULT 0.5,
+                pii_risk_level TEXT NOT NULL DEFAULT 'low',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS retention_rules (
+                retention_policy_id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                label TEXT NOT NULL,
+                retention_days INTEGER NOT NULL,
+                applies_to TEXT NOT NULL,
+                action_on_expiry TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS redaction_rules (
+                redaction_policy_id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                label TEXT NOT NULL,
+                pii_fields_json TEXT NOT NULL,
+                masking_strategy TEXT NOT NULL,
+                applies_to TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS trust_scores (
+                trust_score_id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                score REAL NOT NULL,
+                rationale TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(source_id) REFERENCES source_registry(source_id)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS lineage_edges (
+                lineage_edge_id TEXT PRIMARY KEY,
+                org_id TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                artifact_id TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                field_name TEXT,
+                citation_span TEXT,
+                field_confidence REAL,
+                metadata_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(source_id) REFERENCES source_registry(source_id)
+            )
+            """,
+        ],
+    ),
 ]
 
 
@@ -178,7 +259,12 @@ class RuntimeDatabase:
                 if migration_id in applied_ids:
                     continue
                 for statement in statements:
-                    connection.execute(statement)
+                    try:
+                        connection.execute(statement)
+                    except sqlite3.OperationalError as exc:
+                        if "duplicate column name" in str(exc).lower():
+                            continue
+                        raise
                 connection.execute(
                     "INSERT INTO schema_migrations (migration_id, applied_at) VALUES (?, ?)",
                     (migration_id, datetime.now(UTC).isoformat()),

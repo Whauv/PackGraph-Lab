@@ -92,7 +92,9 @@ function renderQueryRows(rows = []) {
   const container = document.getElementById("answer-panel-rows");
   if (!container) return;
   if (!rows.length) {
-    container.innerHTML = `<div class="table-empty">No structured rows returned yet.</div>`;
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No structured rows yet", "Run a question to see scored rows and recommended candidates.")
+      : `<div class="table-empty">No structured rows returned yet.</div>`;
     return;
   }
   const columns = Object.keys(rows[0]).slice(0, 4);
@@ -112,13 +114,35 @@ function renderExecutionDebug(response) {
   const classifier = response.classifier || {};
   const retrieval = response.retrieval || {};
   const review = response.review_gate || {};
+  if (!trace.length && !classifier.route && !retrieval.reviewed_template) {
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("Technical details stay quiet by default", "Run a question if you want to inspect routing, templates, and review-gate behavior.")
+      : "";
+    return;
+  }
   container.innerHTML = `
-    <div class="debug-stack">
-      <div class="row-card"><strong>Route</strong><p>${escapeHtml(classifier.route || "graph")} | intent ${escapeHtml(classifier.intent || "unknown")} | confidence ${escapeHtml(String(classifier.confidence ?? ""))}</p></div>
-      <div class="row-card"><strong>Template</strong><p>${escapeHtml(retrieval.reviewed_template || "none")} | private matches ${escapeHtml(String(retrieval.private_matches_found ?? 0))}</p></div>
-      <div class="row-card"><strong>Review gate</strong><p>${escapeHtml(review.status || "cleared")} | ${escapeHtml(review.reason || "No review note.")}</p></div>
-      ${trace.map((item) => `<div class="row-card"><strong>${escapeHtml(titleCase(item.stage))}</strong><p>${escapeHtml(item.detail || "")}</p></div>`).join("")}
+    <div class="technical-details-block">
+      <button type="button" id="toggle-technical-details" class="secondary technical-details-toggle">Show technical details</button>
+      <div id="technical-details-content" class="debug-stack technical-details-content" hidden>
+        <div class="row-card"><strong>Route</strong><p>${escapeHtml(classifier.route || "graph")} | intent ${escapeHtml(classifier.intent || "unknown")} | confidence ${escapeHtml(String(classifier.confidence ?? ""))}</p></div>
+        <div class="row-card"><strong>Template</strong><p>${escapeHtml(retrieval.reviewed_template || "none")} | private matches ${escapeHtml(String(retrieval.private_matches_found ?? 0))}</p></div>
+        <div class="row-card"><strong>Review gate</strong><p>${escapeHtml(review.status || "cleared")} | ${escapeHtml(review.reason || "No review note.")}</p></div>
+        ${trace.map((item) => `<div class="row-card"><strong>${escapeHtml(titleCase(item.stage))}</strong><p>${escapeHtml(item.detail || "")}</p></div>`).join("")}
+      </div>
     </div>`;
+  document.getElementById("toggle-technical-details")?.addEventListener("click", () => {
+    const content = document.getElementById("technical-details-content");
+    const button = document.getElementById("toggle-technical-details");
+    if (!content || !button) return;
+    const hidden = content.hasAttribute("hidden");
+    if (hidden) {
+      content.removeAttribute("hidden");
+      button.textContent = "Hide technical details";
+    } else {
+      content.setAttribute("hidden", "hidden");
+      button.textContent = "Show technical details";
+    }
+  });
 }
 
 function promptDiaryGroups() {
@@ -246,6 +270,22 @@ function clearStatus(id) {
   if (!element) return;
   element.textContent = "";
   element.className = "upload-status";
+}
+
+function renderSurfaceState(containerId, mode, title, text) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (mode === "loading") {
+    container.innerHTML = window.PackGraphUI?.loadingState
+      ? window.PackGraphUI.loadingState(title, text)
+      : `<div class="table-empty"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></div>`;
+    return;
+  }
+  if (mode === "error" || mode === "empty") {
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState(title, text)
+      : `<div class="table-empty"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></div>`;
+  }
 }
 
 function setupOverviewOnboardingHint() {
@@ -1293,8 +1333,15 @@ async function loadExploreEntities() {
   if (applicationId) params.set("application_id", applicationId);
   if (complianceState) params.set("compliance_state", complianceState);
   if (minSustainability) params.set("min_sustainability", minSustainability);
+  renderSurfaceState("explore-results", "loading", "Loading browse results", "PackGraph is assembling materials, products, or updates for the current filter set.");
   setStatus("explore-status", "Loading browse results...", "info");
-  state.exploreResults = await fetchJson(`/explore/entities?${params.toString()}`);
+  try {
+    state.exploreResults = await fetchJson(`/explore/entities?${params.toString()}`);
+  } catch (error) {
+    renderSurfaceState("explore-results", "error", "Explore could not load", error.message);
+    setStatus("explore-status", error.message, "error");
+    return;
+  }
   const searchReason = search ? `Matched "${search}" in the current ${state.exploreTab} browse set.` : "Matched the current filter set.";
   state.exploreResults = state.exploreResults.map((item) => ({ ...item, match_reason: item.match_reason || searchReason }));
   const sortValue = document.getElementById("explore-sort")?.value || "relevance";
@@ -1408,8 +1455,17 @@ async function updateExploreAutocomplete(query) {
 }
 
 async function loadContributionData() {
-  state.contributionRoles = await fetchJson("/contributions/roles");
-  state.contributionData = await fetchJson("/contributions");
+  renderSurfaceState("contribution-recent-list", "loading", "Loading contribution activity", "Recent submissions, review queue, and role guidance are loading.");
+  renderSurfaceState("contribution-review-queue", "loading", "Loading review queue", "PackGraph is gathering contribution items for this org.");
+  try {
+    state.contributionRoles = await fetchJson("/contributions/roles");
+    state.contributionData = await fetchJson("/contributions");
+  } catch (error) {
+    renderSurfaceState("contribution-recent-list", "error", "Contribute is unavailable", error.message);
+    renderSurfaceState("contribution-review-queue", "error", "Review queue unavailable", error.message);
+    setStatus("contribution-status", error.message, "error");
+    return;
+  }
   const roleSelect = document.getElementById("contribution-role");
   if (roleSelect) {
     roleSelect.innerHTML = state.contributionRoles.map((role) => `<option value="${role.role_id}">${role.title}</option>`).join("");
@@ -1492,7 +1548,16 @@ async function submitContribution() {
 }
 
 async function loadCommunityData() {
-  state.communityChannels = await fetchJson("/community/channels");
+  renderSurfaceState("community-feed", "loading", "Loading community", "Threads, channels, and discussion context are loading.");
+  renderSurfaceState("community-detail", "loading", "Loading thread detail", "Choose a discussion once the feed arrives.");
+  try {
+    state.communityChannels = await fetchJson("/community/channels");
+  } catch (error) {
+    renderSurfaceState("community-feed", "error", "Community is unavailable", error.message);
+    renderSurfaceState("community-detail", "error", "Thread detail unavailable", error.message);
+    setStatus("community-status", error.message, "error");
+    return;
+  }
   document.getElementById("community-channel-select").innerHTML = state.communityChannels.map((channel) => `<option value="${channel.channel_id}">${channel.name}</option>`).join("");
   document.getElementById("community-channel-select").value = state.selectedCommunityChannelId;
   if (window.PackGraphCommunityPage) {
@@ -1511,7 +1576,14 @@ async function loadCommunityPosts() {
   const params = new URLSearchParams({ channel_id: state.selectedCommunityChannelId });
   if (moderation) params.set("moderation_state", moderation);
   if (relatedEntityId) params.set("related_entity_id", relatedEntityId);
-  state.communityPosts = await fetchJson(`/community/posts?${params.toString()}`);
+  renderSurfaceState("community-feed", "loading", "Loading discussions", "PackGraph is gathering posts for the selected channel.");
+  try {
+    state.communityPosts = await fetchJson(`/community/posts?${params.toString()}`);
+  } catch (error) {
+    renderSurfaceState("community-feed", "error", "Discussions could not load", error.message);
+    setStatus("community-status", error.message, "error");
+    return;
+  }
   if (!state.selectedCommunityPostId && state.communityPosts.length) {
     state.selectedCommunityPostId = state.communityPosts[0].post_id;
   }

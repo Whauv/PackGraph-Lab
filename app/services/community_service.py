@@ -104,8 +104,10 @@ class CommunityService:
             ]
         )
 
-    def list_channels(self) -> list[dict[str, Any]]:
+    def list_channels(self, org_id: str | None = None) -> list[dict[str, Any]]:
         posts = self._read()
+        if org_id:
+            posts = [item for item in posts if item.get("org_id", "ORG-001") == org_id]
         counts = {item["channel_id"]: 0 for item in self.CHANNELS}
         last_activity = {item["channel_id"]: "" for item in self.CHANNELS}
         for post in posts:
@@ -118,8 +120,11 @@ class CommunityService:
         channel_id: str | None = None,
         moderation_state: str | None = None,
         related_entity_id: str | None = None,
+        org_id: str | None = None,
     ) -> list[dict[str, Any]]:
         posts = self._read()
+        if org_id:
+            posts = [item for item in posts if item.get("org_id", "ORG-001") == org_id]
         if channel_id:
             posts = [item for item in posts if item["channel_id"] == channel_id]
         if moderation_state:
@@ -128,14 +133,22 @@ class CommunityService:
             posts = [item for item in posts if any(entity.get("id") == related_entity_id for entity in item.get("related_entities", []))]
         return sorted(posts, key=lambda item: (not item.get("pinned", False), item.get("updated_at", item.get("created_at", ""))), reverse=False)
 
-    def get_post(self, post_id: str) -> dict[str, Any] | None:
-        return next((item for item in self._read() if item["post_id"] == post_id), None)
+    def get_post(self, post_id: str, org_id: str | None = None) -> dict[str, Any] | None:
+        return next(
+            (
+                item
+                for item in self._read()
+                if item["post_id"] == post_id and (org_id is None or item.get("org_id", "ORG-001") == org_id)
+            ),
+            None,
+        )
 
-    def create_post(self, payload: dict[str, Any], author_name: str, author_role: str = "Explorer", author_reputation: int = 60) -> dict[str, Any]:
+    def create_post(self, payload: dict[str, Any], author_name: str, author_role: str = "Explorer", author_reputation: int = 60, org_id: str = "ORG-001") -> dict[str, Any]:
         posts = self._read()
         now = datetime.now().isoformat(timespec="seconds")
         record = {
             "post_id": f"POST-{len(posts) + 1:03d}",
+            "org_id": org_id,
             "author_name": author_name,
             "author_role": author_role,
             "author_reputation": author_reputation,
@@ -160,11 +173,13 @@ class CommunityService:
         self._write(posts)
         return record
 
-    def upvote(self, post_id: str) -> dict[str, Any] | None:
+    def upvote(self, post_id: str, org_id: str | None = None) -> dict[str, Any] | None:
         posts = self._read()
         updated = None
         for post in posts:
             if post["post_id"] == post_id:
+                if org_id and post.get("org_id", "ORG-001") != org_id:
+                    return None
                 post["upvotes"] = int(post.get("upvotes", 0)) + 1
                 updated = post
                 break
@@ -173,11 +188,13 @@ class CommunityService:
         self._write(posts)
         return updated
 
-    def save_post(self, post_id: str) -> dict[str, Any] | None:
+    def save_post(self, post_id: str, org_id: str | None = None) -> dict[str, Any] | None:
         posts = self._read()
         updated = None
         for post in posts:
             if post["post_id"] == post_id:
+                if org_id and post.get("org_id", "ORG-001") != org_id:
+                    return None
                 post["saves"] = int(post.get("saves", 0)) + 1
                 updated = post
                 break
@@ -186,12 +203,14 @@ class CommunityService:
         self._write(posts)
         return updated
 
-    def add_reply(self, post_id: str, body: str, author_name: str, author_role: str = "Explorer") -> dict[str, Any] | None:
+    def add_reply(self, post_id: str, body: str, author_name: str, author_role: str = "Explorer", org_id: str | None = None) -> dict[str, Any] | None:
         posts = self._read()
         updated = None
         for post in posts:
             if post["post_id"] != post_id:
                 continue
+            if org_id and post.get("org_id", "ORG-001") != org_id:
+                return None
             comments = post.setdefault("comments", [])
             comments.append(
                 {
@@ -211,12 +230,14 @@ class CommunityService:
         self._write(posts)
         return updated
 
-    def moderate(self, post_id: str, state_value: str) -> dict[str, Any] | None:
+    def moderate(self, post_id: str, state_value: str, org_id: str | None = None) -> dict[str, Any] | None:
         posts = self._read()
         updated = None
         for post in posts:
             if post["post_id"] != post_id:
                 continue
+            if org_id and post.get("org_id", "ORG-001") != org_id:
+                return None
             post["moderation_state"] = state_value
             post["updated_at"] = datetime.now().isoformat(timespec="seconds")
             updated = post
@@ -226,12 +247,14 @@ class CommunityService:
         self._write(posts)
         return updated
 
-    def pin(self, post_id: str) -> dict[str, Any] | None:
+    def pin(self, post_id: str, org_id: str | None = None) -> dict[str, Any] | None:
         posts = self._read()
         updated = None
         for post in posts:
             if post["post_id"] != post_id:
                 continue
+            if org_id and post.get("org_id", "ORG-001") != org_id:
+                return None
             post["pinned"] = not bool(post.get("pinned"))
             post["updated_at"] = datetime.now().isoformat(timespec="seconds")
             updated = post

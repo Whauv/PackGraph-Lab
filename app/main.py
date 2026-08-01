@@ -23,8 +23,10 @@ from app.services.component_discovery_service import ComponentDiscoveryService
 from app.services.contribution_service import ContributionService
 from app.services.document_intelligence_service import DocumentIntelligenceService
 from app.services.export_service import ExportService
+from app.services.governance_service import GovernanceService
 from app.services.investigation_service import InvestigationService
 from app.services.job_service import JobService
+from app.services.lineage_service import LineageService
 from app.services.observability_service import ObservabilityService
 from app.services.private_data_service import PrivateDataService
 from app.services.query_engine import QueryEngine
@@ -52,6 +54,9 @@ class AppState:
         self.auth = AuthService(settings, self.runtime_db)
         self.auth.ensure_seed()
         self.review_store = ReviewCandidateStore(settings, self.runtime_db)
+        self.governance = GovernanceService(settings, self.runtime_db)
+        self.governance.ensure_seed()
+        self.lineage = LineageService(settings, self.runtime_db, self.governance)
         self.documents = DocumentIntelligenceService(settings.packgraph_runtime_dir, self.repository)
         self.documents.ensure_seed()
         self.components = ComponentDiscoveryService(settings.packgraph_runtime_dir, self.repository)

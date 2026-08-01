@@ -19,25 +19,37 @@ class ReviewCandidateStore:
         self.audit_path = settings.review_audit_path
         self.cache = MatchDecisionCache(settings.match_decision_cache_path)
 
-    def list(self, status: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
+    def list(self, status: str | None = None, org_id: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
         query = "SELECT * FROM review_candidates"
         params: tuple[Any, ...] = ()
+        conditions = []
         if status:
-            query += " WHERE status=?"
-            params = (status,)
+            conditions.append("status=?")
+            params = (*params, status)
+        if org_id:
+            conditions.append("org_id=?")
+            params = (*params, org_id)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY updated_at DESC LIMIT ?"
         params = (*params, limit)
         with self.db.connect() as connection:
             rows = connection.execute(query, params).fetchall()
         return [self._row_to_candidate(row) for row in rows]
 
-    def get(self, candidate_id: str) -> dict[str, Any] | None:
+    def get(self, candidate_id: str, org_id: str | None = None) -> dict[str, Any] | None:
         with self.db.connect() as connection:
-            row = connection.execute("SELECT * FROM review_candidates WHERE candidate_id=?", (candidate_id,)).fetchone()
+            if org_id:
+                row = connection.execute(
+                    "SELECT * FROM review_candidates WHERE candidate_id=? AND org_id=?",
+                    (candidate_id, org_id),
+                ).fetchone()
+            else:
+                row = connection.execute("SELECT * FROM review_candidates WHERE candidate_id=?", (candidate_id,)).fetchone()
         return self._row_to_candidate(row) if row else None
 
-    def summary(self) -> dict[str, Any]:
-        records = self.list(limit=1000)
+    def summary(self, org_id: str | None = None) -> dict[str, Any]:
+        records = self.list(org_id=org_id, limit=1000)
         by_status = Counter(record["status"] for record in records)
         by_type = Counter(record["candidate_type"] for record in records)
         by_assignee = Counter(record.get("assigned_reviewer_id") or "unassigned" for record in records if record["status"] != "closed")
@@ -49,10 +61,11 @@ class ReviewCandidateStore:
             "pending": sum(1 for record in records if record["status"] in {"pending_human_review", "assigned", "in_approval"}),
         }
 
-    def create(self, candidate_type: str, reason: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def create(self, candidate_type: str, reason: str, payload: dict[str, Any], org_id: str = "ORG-001") -> dict[str, Any]:
         now = datetime.now(UTC).isoformat()
         record = {
             "candidate_id": f"ARC-{uuid4().hex[:10].upper()}",
+            "org_id": org_id,
             "candidate_type": candidate_type,
             "reason": reason,
             "status": "pending_human_review",
@@ -68,50 +81,50 @@ class ReviewCandidateStore:
                 """
                 INSERT INTO review_candidates (
                     candidate_id, candidate_type, reason, status, review_before_writeback,
-                    payload_json, assigned_reviewer_id, decision_state, created_at, updated_at
+                    payload_json, assigned_reviewer_id, decision_state, created_at, updated_at, org_id
                 ) VALUES (
                     :candidate_id, :candidate_type, :reason, :status, :review_before_writeback,
-                    :payload_json, :assigned_reviewer_id, :decision_state, :created_at, :updated_at
+                    :payload_json, :assigned_reviewer_id, :decision_state, :created_at, :updated_at, :org_id
                 )
                 """,
                 record,
             )
-        self._history(record["candidate_id"], None, "created", "", {"reason": reason})
+        self._history(record["candidate_id"], org_id, None, "created", "", {"reason": reason})
         self._append_audit("created", record)
-        return self.get(record["candidate_id"])
+        return self.get(record["candidate_id"], org_id=org_id)
 
-    def assign(self, candidate_id: str, reviewer_id: str, actor_id: str | None) -> dict[str, Any] | None:
+    def assign(self, candidate_id: str, reviewer_id: str, actor_id: str | None, org_id: str) -> dict[str, Any] | None:
         now = datetime.now(UTC).isoformat()
         with self.db.connect() as connection:
             connection.execute(
-                "UPDATE review_candidates SET assigned_reviewer_id=?, status='assigned', decision_state='assigned', updated_at=? WHERE candidate_id=?",
-                (reviewer_id, now, candidate_id),
+                "UPDATE review_candidates SET assigned_reviewer_id=?, status='assigned', decision_state='assigned', updated_at=? WHERE candidate_id=? AND org_id=?",
+                (reviewer_id, now, candidate_id, org_id),
             )
-        candidate = self.get(candidate_id)
+        candidate = self.get(candidate_id, org_id=org_id)
         if candidate:
-            self._history(candidate_id, actor_id, "assigned", "", {"reviewer_id": reviewer_id})
+            self._history(candidate_id, org_id, actor_id, "assigned", "", {"reviewer_id": reviewer_id})
         return candidate
 
-    def comment(self, candidate_id: str, actor_id: str | None, comment: str) -> dict[str, Any] | None:
-        candidate = self.get(candidate_id)
+    def comment(self, candidate_id: str, actor_id: str | None, comment: str, org_id: str) -> dict[str, Any] | None:
+        candidate = self.get(candidate_id, org_id=org_id)
         if not candidate:
             return None
-        self._history(candidate_id, actor_id, "commented", comment, {})
+        self._history(candidate_id, org_id, actor_id, "commented", comment, {})
         return candidate
 
-    def decide(self, candidate_id: str, actor_id: str | None, status: str, comment: str, metadata: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    def decide(self, candidate_id: str, actor_id: str | None, status: str, comment: str, metadata: dict[str, Any] | None = None, org_id: str = "ORG-001") -> dict[str, Any] | None:
         now = datetime.now(UTC).isoformat()
         metadata = metadata or {}
         decision_state = "approved" if status == "approved" else "rejected" if status == "rejected" else "in_approval"
         stored_status = "closed" if status in {"approved", "rejected"} else status
         with self.db.connect() as connection:
             connection.execute(
-                "UPDATE review_candidates SET status=?, decision_state=?, updated_at=? WHERE candidate_id=?",
-                (stored_status, decision_state, now, candidate_id),
+                "UPDATE review_candidates SET status=?, decision_state=?, updated_at=? WHERE candidate_id=? AND org_id=?",
+                (stored_status, decision_state, now, candidate_id, org_id),
             )
-        candidate = self.get(candidate_id)
+        candidate = self.get(candidate_id, org_id=org_id)
         if candidate:
-            self._history(candidate_id, actor_id, status, comment, metadata)
+            self._history(candidate_id, org_id, actor_id, status, comment, metadata)
         if status == "approved" and metadata.get("match_pair_key") and metadata.get("resolution_decision"):
             self.cache.set(
                 metadata["match_pair_key"],
@@ -125,12 +138,18 @@ class ReviewCandidateStore:
             )
         return candidate
 
-    def history(self, candidate_id: str) -> list[dict[str, Any]]:
+    def history(self, candidate_id: str, org_id: str | None = None) -> list[dict[str, Any]]:
         with self.db.connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM review_history WHERE candidate_id=? ORDER BY created_at ASC",
-                (candidate_id,),
-            ).fetchall()
+            if org_id:
+                rows = connection.execute(
+                    "SELECT * FROM review_history WHERE candidate_id=? AND org_id=? ORDER BY created_at ASC",
+                    (candidate_id, org_id),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM review_history WHERE candidate_id=? ORDER BY created_at ASC",
+                    (candidate_id,),
+                ).fetchall()
         return [
             {
                 **dict(row),
@@ -139,19 +158,20 @@ class ReviewCandidateStore:
             for row in rows
         ]
 
-    def export_pending(self, destination: Path) -> dict[str, Any]:
-        pending = [record for record in self.list(limit=1000) if record["status"] in {"pending_human_review", "assigned", "in_approval"}]
+    def export_pending(self, destination: Path, org_id: str | None = None) -> dict[str, Any]:
+        pending = [record for record in self.list(org_id=org_id, limit=1000) if record["status"] in {"pending_human_review", "assigned", "in_approval"}]
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(pending, indent=2), encoding="utf-8")
         self._append_audit("exported_pending", {"destination": str(destination), "count": len(pending)})
         return {"destination": str(destination), "count": len(pending)}
 
-    def import_reviewed_decisions(self, source: Path, apply: bool = False) -> dict[str, Any]:
+    def import_reviewed_decisions(self, source: Path, apply: bool = False, org_id: str | None = None) -> dict[str, Any]:
         payload = json.loads(source.read_text(encoding="utf-8"))
         applied = 0
         for decision in payload:
             candidate_id = decision.get("candidate_id")
-            if not candidate_id or not self.get(candidate_id):
+            candidate_org_id = org_id or decision.get("org_id") or "ORG-001"
+            if not candidate_id or not self.get(candidate_id, org_id=candidate_org_id):
                 continue
             self.decide(
                 candidate_id=candidate_id,
@@ -159,21 +179,23 @@ class ReviewCandidateStore:
                 status=decision.get("status", "approved"),
                 comment=decision.get("review_notes", ""),
                 metadata=decision if apply else {},
+                org_id=candidate_org_id,
             )
             applied += 1
         self._append_audit("imported_reviewed_decisions", {"source": str(source), "applied": applied, "apply": apply})
         return {"source": str(source), "applied": applied, "apply": apply}
 
-    def _history(self, candidate_id: str, actor_id: str | None, action: str, comment: str, metadata: dict[str, Any]) -> None:
+    def _history(self, candidate_id: str, org_id: str, actor_id: str | None, action: str, comment: str, metadata: dict[str, Any]) -> None:
         with self.db.connect() as connection:
             connection.execute(
                 """
-                INSERT INTO review_history (history_id, candidate_id, actor_id, action, comment, metadata_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO review_history (history_id, candidate_id, org_id, actor_id, action, comment, metadata_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     f"RVH-{uuid4().hex[:10].upper()}",
                     candidate_id,
+                    org_id,
                     actor_id,
                     action,
                     comment,
@@ -188,7 +210,7 @@ class ReviewCandidateStore:
             **record,
             "review_before_writeback": bool(record["review_before_writeback"]),
             "payload": deserialize_json(record["payload_json"], {}),
-            "history": self.history(record["candidate_id"]),
+            "history": self.history(record["candidate_id"], org_id=record.get("org_id")),
         }
 
     def _append_audit(self, action: str, payload: dict[str, Any]) -> None:

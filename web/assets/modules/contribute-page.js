@@ -62,7 +62,8 @@ window.PackGraphContributePage = {
           <p>${this.escape(item.summary || "No summary captured.")}</p>
           <small>${this.escape(item.status)} | confidence ${this.escape(item.evidence_confidence || "n/a")} | ${this.escape(item.badge)} | ${this.escape(item.submitted_on)}</small>
         </div>`).join("")
-      : `<div class="row-card"><p>No submissions yet.</p></div>`;
+      : window.PackGraphUI?.emptyState("No submissions yet", "Start with a material insight, source note, or supplier/application link.")
+        || `<div class="row-card"><p>No submissions yet.</p></div>`;
     if (queue) {
       const reviewQueue = payload.review_queue || [];
       queue.innerHTML = reviewQueue.length
@@ -84,7 +85,8 @@ window.PackGraphContributePage = {
               <button type="button" class="mini-action secondary" data-review-id="${this.escape(item.contribution_id)}" data-review-status="rejected">Reject</button>
             </div>
           </div>`).join("")
-        : `<div class="row-card"><p>The queue is clear.</p></div>`;
+        : window.PackGraphUI?.emptyState("Queue is clear", "Nothing needs reviewer attention right now for this organization.")
+          || `<div class="row-card"><p>The queue is clear.</p></div>`;
     }
   },
 

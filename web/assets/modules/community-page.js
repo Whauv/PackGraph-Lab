@@ -18,7 +18,8 @@ window.PackGraphCommunityPage = {
     const container = document.getElementById("community-feed");
     if (!container) return;
     if (!posts.length) {
-      container.innerHTML = `<div class="row-card"><p>No threads yet in this channel.</p></div>`;
+      container.innerHTML = window.PackGraphUI?.emptyState("No threads yet", "This channel has no visible discussion yet. Start one with a grounded observation or source-backed question.")
+        || `<div class="row-card"><p>No threads yet in this channel.</p></div>`;
       return;
     }
     container.innerHTML = posts.map((post) => `
@@ -63,7 +64,8 @@ window.PackGraphCommunityPage = {
     const container = document.getElementById("community-detail");
     if (!container) return;
     if (!post) {
-      container.innerHTML = `<div class="detail-card"><p>Open a thread to review linked materials, sources, and replies.</p></div>`;
+      container.innerHTML = window.PackGraphUI?.emptyState("Open a thread", "Use the feed to inspect linked materials, source references, and replies in one place.")
+        || `<div class="detail-card"><p>Open a thread to review linked materials, sources, and replies.</p></div>`;
       return;
     }
     container.innerHTML = `

@@ -25,30 +25,41 @@ class InvestigationService:
         if not self.path.exists():
             self._write(seed_data)
 
-    def list(self, owner_id: str | None = None) -> list[dict[str, Any]]:
+    def list(self, owner_id: str | None = None, org_id: str | None = None) -> list[dict[str, Any]]:
         investigations = self._read()
+        if org_id:
+            investigations = [item for item in investigations if item.get("org_id", "ORG-001") == org_id]
         if owner_id:
             return [item for item in investigations if item.get("owner_id") in {None, owner_id}]
         return investigations
 
-    def get(self, investigation_id: str) -> dict[str, Any] | None:
-        return next((item for item in self._read() if item["investigation_id"] == investigation_id), None)
+    def get(self, investigation_id: str, org_id: str | None = None) -> dict[str, Any] | None:
+        return next(
+            (
+                item
+                for item in self._read()
+                if item["investigation_id"] == investigation_id and (org_id is None or item.get("org_id", "ORG-001") == org_id)
+            ),
+            None,
+        )
 
-    def create(self, payload: dict[str, Any], owner_id: str | None = None) -> dict[str, Any]:
+    def create(self, payload: dict[str, Any], owner_id: str | None = None, org_id: str = "ORG-001") -> dict[str, Any]:
         investigations = self._read()
-        record = {"investigation_id": f"INV-{uuid4().hex[:8].upper()}", "status": "open", "owner_id": owner_id, **payload}
+        record = {"investigation_id": f"INV-{uuid4().hex[:8].upper()}", "status": "open", "owner_id": owner_id, "org_id": org_id, **payload}
         investigations.append(record)
         self._write(investigations)
         return record
 
-    def update(self, investigation_id: str, payload: dict[str, Any], owner_id: str | None = None) -> dict[str, Any] | None:
+    def update(self, investigation_id: str, payload: dict[str, Any], owner_id: str | None = None, org_id: str | None = None) -> dict[str, Any] | None:
         investigations = self._read()
         for index, record in enumerate(investigations):
             if record["investigation_id"] != investigation_id:
                 continue
+            if org_id and record.get("org_id", "ORG-001") != org_id:
+                return None
             if owner_id and record.get("owner_id") not in {None, owner_id}:
                 return None
-            updated = {**record, **payload, "owner_id": record.get("owner_id", owner_id)}
+            updated = {**record, **payload, "owner_id": record.get("owner_id", owner_id), "org_id": record.get("org_id", org_id or "ORG-001")}
             investigations[index] = updated
             self._write(investigations)
             return updated

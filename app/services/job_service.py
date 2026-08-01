@@ -27,6 +27,7 @@ class JobService:
         *,
         job_type: str,
         payload: dict[str, Any],
+        org_id: str | None = None,
         owner_id: str | None = None,
         idempotency_key: str | None = None,
         max_attempts: int = 3,
@@ -45,6 +46,7 @@ class JobService:
                 "job_id": f"JOB-{uuid4().hex[:10].upper()}",
                 "job_type": job_type,
                 "status": "queued",
+                "org_id": org_id,
                 "owner_id": owner_id,
                 "payload_json": serialize_json(payload),
                 "result_json": None,
@@ -62,10 +64,10 @@ class JobService:
                 """
                 INSERT INTO jobs (
                     job_id, job_type, status, owner_id, payload_json, result_json, error_code, error_detail,
-                    idempotency_key, attempts, max_attempts, run_after, dead_lettered_at, created_at, updated_at
+                    idempotency_key, attempts, max_attempts, run_after, dead_lettered_at, created_at, updated_at, org_id
                 ) VALUES (
                     :job_id, :job_type, :status, :owner_id, :payload_json, :result_json, :error_code, :error_detail,
-                    :idempotency_key, :attempts, :max_attempts, :run_after, :dead_lettered_at, :created_at, :updated_at
+                    :idempotency_key, :attempts, :max_attempts, :run_after, :dead_lettered_at, :created_at, :updated_at, :org_id
                 )
                 """,
                 record,
@@ -77,12 +79,18 @@ class JobService:
             row = connection.execute("SELECT * FROM jobs WHERE job_id=?", (job_id,)).fetchone()
         return self._row_to_job(row) if row else None
 
-    def list(self, *, status: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    def list(self, *, status: str | None = None, org_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
         query = "SELECT * FROM jobs"
         params: tuple[Any, ...] = ()
+        conditions = []
         if status:
-            query += " WHERE status=?"
-            params = (status,)
+            conditions.append("status=?")
+            params = (*params, status)
+        if org_id:
+            conditions.append("org_id=?")
+            params = (*params, org_id)
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY created_at DESC LIMIT ?"
         params = (*params, limit)
         with self.db.connect() as connection:
@@ -120,9 +128,15 @@ class JobService:
             results.append(processed)
         return results
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self, org_id: str | None = None) -> dict[str, Any]:
         with self.db.connect() as connection:
-            rows = connection.execute("SELECT status, COUNT(*) AS count FROM jobs GROUP BY status").fetchall()
+            if org_id:
+                rows = connection.execute(
+                    "SELECT status, COUNT(*) AS count FROM jobs WHERE org_id=? GROUP BY status",
+                    (org_id,),
+                ).fetchall()
+            else:
+                rows = connection.execute("SELECT status, COUNT(*) AS count FROM jobs GROUP BY status").fetchall()
         counts = Counter({row["status"]: row["count"] for row in rows})
         return {"total": sum(counts.values()), "by_status": dict(sorted(counts.items()))}
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, UTC
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -23,6 +24,9 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=401, detail="No active user session")
         return user
 
+    def maybe_current_user(request: Request):
+        return state.auth.current_user(_session_token(request))
+
     def require_permission(request: Request, permission: str):
         user = current_user_or_401(request)
         if not state.auth.has_permission(user, permission):
@@ -33,14 +37,16 @@ def build_router(state) -> APIRouter:
         idem_key = request.headers.get("Idempotency-Key")
         if not idem_key:
             return action()
+        user = maybe_current_user(request)
+        org_id = user["org_id"] if user else "ORG-001"
         request_hash = state.idempotency.request_hash(request, str(payload).encode("utf-8"))
-        existing = state.idempotency.get(idem_key)
+        existing = state.idempotency.get(idem_key, org_id=org_id)
         if existing:
             if existing["request_hash"] != request_hash:
                 raise HTTPException(status_code=409, detail="Idempotency key reuse with a different payload.")
             return state.idempotency.load_response(existing)
         response_payload = action()
-        state.idempotency.store(idem_key, request.method, request.url.path, request_hash, response_payload)
+        state.idempotency.store(idem_key, request.method, request.url.path, request_hash, response_payload, org_id=org_id)
         return response_payload
 
     @router.get("/materials")
@@ -219,8 +225,16 @@ def build_router(state) -> APIRouter:
         results = state.repository.global_search(query)
         current_user = state.auth.current_user(_session_token(request))
         workspaces = state.auth.list_workspaces(current_user["user_id"]) if current_user else []
-        submissions = [item for item in state.contributions.list_submissions() if query.lower() in item.get("title", "").lower()]
-        posts = [item for item in state.community.list_posts() if query.lower() in item.get("title", "").lower() or query.lower() in item.get("body", "").lower()]
+        submissions = [
+            item
+            for item in state.contributions.list_submissions(org_id=current_user["org_id"] if current_user else None)
+            if query.lower() in item.get("title", "").lower()
+        ]
+        posts = [
+            item
+            for item in state.community.list_posts(org_id=current_user["org_id"] if current_user else None)
+            if query.lower() in item.get("title", "").lower() or query.lower() in item.get("body", "").lower()
+        ]
         payload = {
             "results": results[:10],
             "workspaces": [
@@ -249,19 +263,30 @@ def build_router(state) -> APIRouter:
     @router.get("/investigations")
     def list_investigations(request: Request):
         current_user = state.auth.current_user(_session_token(request))
-        return {"status": "ok", "data": state.investigations.list(current_user["user_id"] if current_user else None)}
+        return {
+            "status": "ok",
+            "data": state.investigations.list(
+                current_user["user_id"] if current_user else None,
+                org_id=current_user["org_id"] if current_user else None,
+            ),
+        }
 
     @router.post("/investigations")
     def create_investigation(payload: InvestigationCreate, request: Request):
         current_user = state.auth.current_user(_session_token(request))
         return {
             "status": "ok",
-            "data": state.investigations.create(payload.model_dump(), current_user["user_id"] if current_user else None),
+            "data": state.investigations.create(
+                payload.model_dump(),
+                current_user["user_id"] if current_user else None,
+                org_id=current_user["org_id"] if current_user else "ORG-001",
+            ),
         }
 
     @router.get("/investigations/{investigation_id}")
-    def get_investigation(investigation_id: str):
-        investigation = state.investigations.get(investigation_id)
+    def get_investigation(investigation_id: str, request: Request):
+        current_user = maybe_current_user(request)
+        investigation = state.investigations.get(investigation_id, org_id=current_user["org_id"] if current_user else None)
         if not investigation:
             raise HTTPException(status_code=404, detail="Investigation not found")
         return {"status": "ok", "data": investigation}
@@ -269,14 +294,20 @@ def build_router(state) -> APIRouter:
     @router.patch("/investigations/{investigation_id}")
     def update_investigation(investigation_id: str, payload: InvestigationUpdate, request: Request):
         current_user = state.auth.current_user(_session_token(request))
-        investigation = state.investigations.update(investigation_id, payload.model_dump(), current_user["user_id"] if current_user else None)
+        investigation = state.investigations.update(
+            investigation_id,
+            payload.model_dump(),
+            current_user["user_id"] if current_user else None,
+            org_id=current_user["org_id"] if current_user else None,
+        )
         if not investigation:
             raise HTTPException(status_code=404, detail="Investigation not found")
         return {"status": "ok", "data": investigation}
 
     @router.get("/investigations/{investigation_id}/export.csv")
-    def export_investigation_csv(investigation_id: str):
-        investigation = state.investigations.get(investigation_id)
+    def export_investigation_csv(investigation_id: str, request: Request):
+        current_user = maybe_current_user(request)
+        investigation = state.investigations.get(investigation_id, org_id=current_user["org_id"] if current_user else None)
         if not investigation:
             raise HTTPException(status_code=404, detail="Investigation not found")
         return Response(
@@ -286,8 +317,9 @@ def build_router(state) -> APIRouter:
         )
 
     @router.get("/investigations/{investigation_id}/export.pdf")
-    def export_investigation_pdf(investigation_id: str):
-        investigation = state.investigations.get(investigation_id)
+    def export_investigation_pdf(investigation_id: str, request: Request):
+        current_user = maybe_current_user(request)
+        investigation = state.investigations.get(investigation_id, org_id=current_user["org_id"] if current_user else None)
         if not investigation:
             raise HTTPException(status_code=404, detail="Investigation not found")
         return Response(
@@ -377,32 +409,35 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.query_engine.project_memory.load()}
 
     @router.get("/review-candidates")
-    def review_candidates(status: str | None = None, limit: int = 100):
-        return {"status": "ok", "data": state.review_store.list(status=status, limit=limit)}
+    def review_candidates(request: Request, status: str | None = None, limit: int = 100):
+        current_user = current_user_or_401(request)
+        return {"status": "ok", "data": state.review_store.list(status=status, org_id=current_user["org_id"], limit=limit)}
 
     @router.get("/review-candidates/summary")
-    def review_candidates_summary():
-        return {"status": "ok", "data": state.review_store.summary()}
+    def review_candidates_summary(request: Request):
+        current_user = current_user_or_401(request)
+        return {"status": "ok", "data": state.review_store.summary(org_id=current_user["org_id"])}
 
     @router.get("/review-candidates/{candidate_id}")
-    def review_candidate_detail(candidate_id: str):
-        candidate = state.review_store.get(candidate_id)
+    def review_candidate_detail(candidate_id: str, request: Request):
+        current_user = current_user_or_401(request)
+        candidate = state.review_store.get(candidate_id, org_id=current_user["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
         return {"status": "ok", "data": candidate}
 
     @router.get("/review-candidates/{candidate_id}/history")
     def review_candidate_history(candidate_id: str, request: Request):
-        require_permission(request, "review:assign")
-        candidate = state.review_store.get(candidate_id)
+        user = require_permission(request, "review:assign")
+        candidate = state.review_store.get(candidate_id, org_id=user["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
-        return {"status": "ok", "data": state.review_store.history(candidate_id)}
+        return {"status": "ok", "data": state.review_store.history(candidate_id, org_id=user["org_id"])}
 
     @router.post("/review-candidates/{candidate_id}/assign")
     def assign_review_candidate(candidate_id: str, payload: ReviewAssignmentRequest, request: Request):
         actor = require_permission(request, "review:assign")
-        candidate = state.review_store.assign(candidate_id, payload.reviewer_id, actor["user_id"])
+        candidate = state.review_store.assign(candidate_id, payload.reviewer_id, actor["user_id"], actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
         return {"status": "ok", "data": candidate}
@@ -410,7 +445,7 @@ def build_router(state) -> APIRouter:
     @router.post("/review-candidates/{candidate_id}/comment")
     def comment_review_candidate(candidate_id: str, payload: ReviewCommentRequest, request: Request):
         actor = current_user_or_401(request)
-        candidate = state.review_store.comment(candidate_id, actor["user_id"], payload.comment)
+        candidate = state.review_store.comment(candidate_id, actor["user_id"], payload.comment, actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
         return {"status": "ok", "data": candidate}
@@ -418,21 +453,22 @@ def build_router(state) -> APIRouter:
     @router.post("/review-candidates/{candidate_id}/decision")
     def decide_review_candidate(candidate_id: str, payload: ReviewDecisionRequest, request: Request):
         actor = require_permission(request, "review:approve")
-        candidate = state.review_store.decide(candidate_id, actor["user_id"], payload.status, payload.comment, payload.metadata)
+        candidate = state.review_store.decide(candidate_id, actor["user_id"], payload.status, payload.comment, payload.metadata, actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
         return {"status": "ok", "data": candidate}
 
     @router.get("/review-candidates/export")
     def export_review_candidates(output: str, request: Request):
-        require_permission(request, "review:assign")
-        return {"status": "ok", "data": state.review_store.export_pending(Path(output))}
+        user = require_permission(request, "review:assign")
+        return {"status": "ok", "data": state.review_store.export_pending(Path(output), org_id=user["org_id"])}
 
     @router.post("/review-candidates/import")
     def import_review_candidates(request: Request, input_path: str, apply: bool = False):
+        user = current_user_or_401(request)
         if apply:
             require_permission(request, "review:approve")
-        return {"status": "ok", "data": state.review_store.import_reviewed_decisions(Path(input_path), apply=apply)}
+        return {"status": "ok", "data": state.review_store.import_reviewed_decisions(Path(input_path), apply=apply, org_id=user["org_id"])}
 
     @router.post("/query/scenario")
     def scenario(request: ScenarioRequest, http_request: Request):
@@ -522,6 +558,19 @@ def build_router(state) -> APIRouter:
     ):
         content = await file.read()
         current_user = state.auth.current_user(_session_token(request))
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        uploaded_at = datetime.now(UTC).isoformat()
+        source = state.governance.register_source(
+            org_id=org_id,
+            source_type=document_type,
+            source_family="uploaded-document",
+            display_name=title or file.filename or "Uploaded evidence",
+            connector_name="local-upload",
+            parser_name=state.settings.ingest_parser_name,
+            parser_version=state.settings.ingest_parser_version,
+            trust_score=0.74,
+            pii_risk_level="medium",
+        )
         result = state.documents.upload(
             filename=file.filename or "uploaded-file",
             content=content,
@@ -530,6 +579,29 @@ def build_router(state) -> APIRouter:
             supplier_id=supplier_id,
             title=title,
             owner_id=current_user["user_id"] if current_user else None,
+            org_id=org_id,
+            provenance={"source_id": source["source_id"], "source_family": source["source_family"], "trust_score": source["trust_score"]},
+            retention=state.governance.retention_preview(org_id, uploaded_at),
+        )
+        field_payload = result["record"].get("field_confidence", [])
+        state.lineage.record_lineage(
+            org_id=org_id,
+            source_id=source["source_id"],
+            artifact_id=result["artifact"]["artifact_id"],
+            entity_type=result["kind"],
+            entity_id=result["record"].get("document_id") or result["record"].get("report_id"),
+            field_name="summary",
+            citation_span=result["record"].get("extraction_summary"),
+            field_confidence=result["record"].get("extraction_confidence"),
+            metadata={"material_id": material_id, "supplier_id": supplier_id, "field_payload": field_payload},
+        )
+        result["provenance_viewer"] = state.lineage.provenance_viewer_payload(
+            org_id=org_id,
+            source_id=source["source_id"],
+            artifact_id=result["artifact"]["artifact_id"],
+            extracted_fields=field_payload,
+            summary=result["record"].get("extraction_summary", ""),
+            uploaded_at=result["artifact"]["uploaded_at"],
         )
         return {"status": "ok", "data": result}
 
@@ -575,6 +647,10 @@ def build_router(state) -> APIRouter:
     def auth_roles():
         return {"status": "ok", "data": state.auth.list_roles()}
 
+    @router.get("/auth/organizations")
+    def auth_organizations():
+        return {"status": "ok", "data": state.auth.list_organizations()}
+
     @router.get("/workspaces")
     def list_workspaces(request: Request):
         user = state.auth.current_user(_session_token(request))
@@ -608,13 +684,15 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.contributions.list_roles()}
 
     @router.get("/contributions")
-    def list_contributions():
+    def list_contributions(request: Request):
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
         return {
             "status": "ok",
             "data": {
-                "submissions": state.contributions.list_submissions(),
-                "status_summary": state.contributions.status_summary(),
-                "review_queue": state.contributions.list_queue(),
+                "submissions": state.contributions.list_submissions(org_id=org_id),
+                "status_summary": state.contributions.status_summary(org_id=org_id),
+                "review_queue": state.contributions.list_queue(org_id=org_id),
             },
         }
 
@@ -629,27 +707,27 @@ def build_router(state) -> APIRouter:
         return maybe_idempotent(
             request,
             payload.model_dump(),
-            lambda: {"status": "ok", "data": state.contributions.create(payload.model_dump(), submitted_by)},
+            lambda: {"status": "ok", "data": state.contributions.create(payload.model_dump(), submitted_by, org_id=current_user["org_id"])},
         )
 
     @router.post("/contributions/{contribution_id}/review")
     def review_contribution(contribution_id: str, payload: ContributionReviewRequest, request: Request):
         reviewer = require_permission(request, "contributions:review")
-        record = state.contributions.review(contribution_id, payload.status, reviewer["name"], payload.reviewer_note)
+        record = state.contributions.review(contribution_id, payload.status, reviewer["name"], payload.reviewer_note, org_id=reviewer["org_id"])
         if not record:
             raise HTTPException(status_code=404, detail="Contribution not found")
         return {"status": "ok", "data": record}
 
     @router.get("/jobs")
     def list_jobs(request: Request, status: str | None = None, limit: int = 50):
-        require_permission(request, "jobs:view")
-        return {"status": "ok", "data": state.jobs.list(status=status, limit=limit), "meta": state.jobs.summary()}
+        user = require_permission(request, "jobs:view")
+        return {"status": "ok", "data": state.jobs.list(status=status, org_id=user["org_id"], limit=limit), "meta": state.jobs.summary(org_id=user["org_id"])}
 
     @router.get("/jobs/{job_id}")
     def get_job(job_id: str, request: Request):
-        require_permission(request, "jobs:view")
+        user = require_permission(request, "jobs:view")
         job = state.jobs.get(job_id)
-        if not job:
+        if not job or job.get("org_id") != user["org_id"]:
             raise HTTPException(status_code=404, detail="Job not found")
         return {"status": "ok", "data": job}
 
@@ -664,6 +742,7 @@ def build_router(state) -> APIRouter:
                 "data": state.jobs.enqueue(
                     job_type=payload.job_type,
                     payload=payload.payload,
+                    org_id=user["org_id"],
                     owner_id=user["user_id"],
                     idempotency_key=payload.idempotency_key or request.headers.get("Idempotency-Key"),
                     max_attempts=payload.max_attempts,
@@ -678,16 +757,19 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.jobs.process_all_available(limit=limit)}
 
     @router.get("/community/channels")
-    def community_channels():
-        return {"status": "ok", "data": state.community.list_channels()}
+    def community_channels(request: Request):
+        current_user = maybe_current_user(request)
+        return {"status": "ok", "data": state.community.list_channels(org_id=current_user["org_id"] if current_user else "ORG-001")}
 
     @router.get("/community/posts")
-    def community_posts(channel_id: str | None = None, moderation_state: str | None = None, related_entity_id: str | None = None):
-        return {"status": "ok", "data": state.community.list_posts(channel_id, moderation_state, related_entity_id)}
+    def community_posts(request: Request, channel_id: str | None = None, moderation_state: str | None = None, related_entity_id: str | None = None):
+        current_user = maybe_current_user(request)
+        return {"status": "ok", "data": state.community.list_posts(channel_id, moderation_state, related_entity_id, current_user["org_id"] if current_user else "ORG-001")}
 
     @router.get("/community/posts/{post_id}")
-    def community_post_detail(post_id: str):
-        post = state.community.get_post(post_id)
+    def community_post_detail(post_id: str, request: Request):
+        current_user = maybe_current_user(request)
+        post = state.community.get_post(post_id, current_user["org_id"] if current_user else "ORG-001")
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
@@ -698,19 +780,21 @@ def build_router(state) -> APIRouter:
         author_name = current_user["name"]
         return {
             "status": "ok",
-            "data": state.community.create_post(payload.model_dump(), author_name, current_user["role_title"], 68),
+            "data": state.community.create_post(payload.model_dump(), author_name, current_user["role_title"], 68, current_user["org_id"]),
         }
 
     @router.post("/community/posts/{post_id}/upvote")
-    def upvote_community_post(post_id: str):
-        post = state.community.upvote(post_id)
+    def upvote_community_post(post_id: str, request: Request):
+        current_user = current_user_or_401(request)
+        post = state.community.upvote(post_id, current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
 
     @router.post("/community/posts/{post_id}/save")
-    def save_community_post(post_id: str):
-        post = state.community.save_post(post_id)
+    def save_community_post(post_id: str, request: Request):
+        current_user = current_user_or_401(request)
+        post = state.community.save_post(post_id, current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
@@ -718,15 +802,15 @@ def build_router(state) -> APIRouter:
     @router.post("/community/posts/{post_id}/reply")
     def reply_community_post(post_id: str, payload: CommunityReplyCreate, request: Request):
         current_user = require_permission(request, "community:write")
-        post = state.community.add_reply(post_id, payload.body, current_user["name"], current_user["role_title"])
+        post = state.community.add_reply(post_id, payload.body, current_user["name"], current_user["role_title"], current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
 
     @router.post("/community/posts/{post_id}/pin")
     def pin_community_post(post_id: str, request: Request):
-        require_permission(request, "community:pin")
-        post = state.community.pin(post_id)
+        current_user = require_permission(request, "community:pin")
+        post = state.community.pin(post_id, current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
@@ -735,8 +819,8 @@ def build_router(state) -> APIRouter:
     def notifications(request: Request):
         user = state.auth.current_user(_session_token(request))
         alerts = state.repository.alerts()[:4]
-        queue = state.contributions.list_queue()[:4]
-        posts = [item for item in state.community.list_posts() if item.get("moderation_state") == "pending"][:4]
+        queue = state.contributions.list_queue(org_id=user["org_id"] if user else None)[:4]
+        posts = [item for item in state.community.list_posts(org_id=user["org_id"] if user else None) if item.get("moderation_state") == "pending"][:4]
         workspaces = state.auth.list_workspaces(user["user_id"])[:2] if user else []
         return {
             "status": "ok",
@@ -759,5 +843,15 @@ def build_router(state) -> APIRouter:
                 ],
             ],
         }
+
+    @router.get("/governance/sources")
+    def governance_sources(request: Request):
+        current_user = current_user_or_401(request)
+        return {"status": "ok", "data": state.governance.list_sources(current_user["org_id"])}
+
+    @router.get("/governance/lineage")
+    def governance_lineage(request: Request, entity_type: str, entity_id: str):
+        current_user = current_user_or_401(request)
+        return {"status": "ok", "data": state.lineage.list_for_entity(entity_type, entity_id, current_user["org_id"])}
 
     return router

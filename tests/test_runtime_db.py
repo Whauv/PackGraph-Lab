@@ -35,7 +35,12 @@ class RuntimeDatabaseTests(unittest.TestCase):
             settings.match_decision_cache_path.write_text("{}", encoding="utf-8")
             db = build_runtime_db(settings)
             health = db.health()
-            self.assertGreaterEqual(health["migrations"], 1)
+            self.assertGreaterEqual(health["migrations"], 2)
+            with db.connect() as connection:
+                source_registry = connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='source_registry'").fetchone()
+                lineage_edges = connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='lineage_edges'").fetchone()
+            self.assertIsNotNone(source_registry)
+            self.assertIsNotNone(lineage_edges)
 
 
 if __name__ == "__main__":

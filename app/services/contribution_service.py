@@ -137,25 +137,29 @@ class ContributionService:
     def list_roles(self) -> list[dict[str, Any]]:
         return self.ROLE_CONFIG
 
-    def list_submissions(self) -> list[dict[str, Any]]:
-        return sorted(self._read(), key=lambda item: item.get("submitted_on", ""), reverse=True)
+    def list_submissions(self, org_id: str | None = None) -> list[dict[str, Any]]:
+        records = self._read()
+        if org_id:
+            records = [item for item in records if item.get("org_id", "ORG-001") == org_id]
+        return sorted(records, key=lambda item: item.get("submitted_on", ""), reverse=True)
 
-    def list_queue(self) -> list[dict[str, Any]]:
-        return [item for item in self.list_submissions() if item.get("status") in {"queued", "under_review"}]
+    def list_queue(self, org_id: str | None = None) -> list[dict[str, Any]]:
+        return [item for item in self.list_submissions(org_id=org_id) if item.get("status") in {"queued", "under_review"}]
 
-    def status_summary(self) -> list[dict[str, Any]]:
+    def status_summary(self, org_id: str | None = None) -> list[dict[str, Any]]:
         counts: dict[str, int] = {"queued": 0, "under_review": 0, "accepted": 0, "rejected": 0}
-        for record in self._read():
+        for record in self.list_submissions(org_id=org_id):
             status = record.get("status", "queued")
             counts[status] = counts.get(status, 0) + 1
         return [{"label": key.replace("_", " ").title(), "value": value} for key, value in counts.items()]
 
-    def create(self, payload: dict[str, Any], submitted_by: str) -> dict[str, Any]:
+    def create(self, payload: dict[str, Any], submitted_by: str, org_id: str = "ORG-001") -> dict[str, Any]:
         role = next((item for item in self.ROLE_CONFIG if item["role_id"] == payload["role_id"]), self.ROLE_CONFIG[-1])
         records = self._read()
         record = {
             "contribution_id": f"CON-{len(records) + 1:03d}",
             **payload,
+            "org_id": org_id,
             "status": "queued",
             "verification_level": role["verification_level"],
             "badge": role["badge"],
@@ -172,12 +176,14 @@ class ContributionService:
         self._write(records)
         return record
 
-    def review(self, contribution_id: str, status: str, reviewer_name: str, reviewer_note: str) -> dict[str, Any] | None:
+    def review(self, contribution_id: str, status: str, reviewer_name: str, reviewer_note: str, org_id: str | None = None) -> dict[str, Any] | None:
         records = self._read()
         updated = None
         for record in records:
             if record["contribution_id"] != contribution_id:
                 continue
+            if org_id and record.get("org_id", "ORG-001") != org_id:
+                return None
             record["status"] = status
             record["reviewer_name"] = reviewer_name
             record["reviewed_on"] = datetime.now().isoformat(timespec="seconds")

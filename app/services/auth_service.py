@@ -132,23 +132,41 @@ class AuthService:
             "is_active": bool(row_dict.get("is_active", 1)),
         }
 
+    def list_organizations(self) -> list[dict[str, Any]]:
+        with self.db.connect() as connection:
+            rows = connection.execute("SELECT * FROM organizations ORDER BY slug").fetchall()
+        return [dict(row) for row in rows]
+
+    def organization_by_slug(self, slug: str) -> dict[str, Any] | None:
+        with self.db.connect() as connection:
+            row = connection.execute("SELECT * FROM organizations WHERE slug=?", (slug,)).fetchone()
+        return dict(row) if row else None
+
     def ensure_seed(self) -> None:
         with self.db.connect() as connection:
             org_count = connection.execute("SELECT COUNT(*) AS count FROM organizations").fetchone()["count"]
             if org_count == 0:
-                connection.execute(
+                now = datetime.now(UTC).isoformat()
+                seed_orgs = [
+                    ("ORG-001", "PackGraph Demo Org", "demo-org", now),
+                    ("ORG-002", "Customer A Sandbox", "customer-a", now),
+                    ("ORG-003", "Customer B Sandbox", "customer-b", now),
+                ]
+                connection.executemany(
                     "INSERT INTO organizations (org_id, name, slug, created_at) VALUES (?, ?, ?, ?)",
-                    ("ORG-001", "PackGraph Demo Org", "packgraph-demo", datetime.now(UTC).isoformat()),
+                    seed_orgs,
                 )
             user_count = connection.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
             if user_count == 0:
                 seed_users = [
-                    ("USR-001", "Demo Analyst", "analyst@packgraph.local", "packgraph-demo", "materials_strategist"),
-                    ("USR-002", "Compliance Lead", "compliance@packgraph.local", "packgraph-demo", "compliance_lead"),
-                    ("USR-003", "Community Curator", "curator@packgraph.local", "packgraph-demo", "curator"),
-                    ("USR-004", "PackGraph Admin", "admin@packgraph.local", "packgraph-demo", "admin"),
+                    ("USR-001", "ORG-001", "Demo Analyst", "analyst@packgraph.local", "packgraph-demo", "materials_strategist"),
+                    ("USR-002", "ORG-001", "Compliance Lead", "compliance@packgraph.local", "packgraph-demo", "compliance_lead"),
+                    ("USR-003", "ORG-001", "Community Curator", "curator@packgraph.local", "packgraph-demo", "curator"),
+                    ("USR-004", "ORG-001", "PackGraph Admin", "admin@packgraph.local", "packgraph-demo", "admin"),
+                    ("USR-005", "ORG-002", "Customer A Analyst", "analyst@customer-a.packgraph.local", "packgraph-demo", "materials_strategist"),
+                    ("USR-006", "ORG-003", "Customer B Analyst", "analyst@customer-b.packgraph.local", "packgraph-demo", "materials_strategist"),
                 ]
-                for user_id, name, email, password, role_id in seed_users:
+                for user_id, org_id, name, email, password, role_id in seed_users:
                     connection.execute(
                         """
                         INSERT INTO users (user_id, org_id, name, email, password_hash, role_id, is_active, created_at)
@@ -156,7 +174,7 @@ class AuthService:
                         """,
                         (
                             user_id,
-                            "ORG-001",
+                            org_id,
                             name,
                             email,
                             self._password_hash(password),
@@ -213,12 +231,15 @@ class AuthService:
         created_at = datetime.now(UTC)
         expires_at = created_at + timedelta(hours=self.settings.session_ttl_hours)
         with self.db.connect() as connection:
+            user = connection.execute("SELECT org_id FROM users WHERE user_id=?", (user_id,)).fetchone()
+            org_id = user["org_id"] if user else "ORG-001"
+        with self.db.connect() as connection:
             connection.execute(
                 """
-                INSERT INTO sessions (session_token, user_id, created_at, expires_at, revoked_at, last_seen_at)
-                VALUES (?, ?, ?, ?, NULL, ?)
+                INSERT INTO sessions (session_token, user_id, org_id, created_at, expires_at, revoked_at, last_seen_at)
+                VALUES (?, ?, ?, ?, ?, NULL, ?)
                 """,
-                (token, user_id, created_at.isoformat(), expires_at.isoformat(), created_at.isoformat()),
+                (token, user_id, org_id, created_at.isoformat(), expires_at.isoformat(), created_at.isoformat()),
             )
         self.session_path.write_text(json.dumps({"session_token": token}), encoding="utf-8")
         return {"session_token": token, "expires_at": expires_at.isoformat()}
@@ -273,15 +294,19 @@ class AuthService:
     def list_workspaces(self, user_id: str | None) -> list[dict[str, Any]]:
         if not user_id:
             return []
+        user = self.user_by_id(user_id)
+        if not user:
+            return []
         with self.db.connect() as connection:
             rows = connection.execute(
-                "SELECT * FROM workspaces WHERE user_id=? ORDER BY updated_at DESC",
-                (user_id,),
+                "SELECT * FROM workspaces WHERE user_id=? AND org_id=? ORDER BY updated_at DESC",
+                (user_id, user["org_id"]),
             ).fetchall()
         return [
             {
                 "workspace_id": row["workspace_id"],
                 "user_id": row["user_id"],
+                "org_id": row["org_id"],
                 "name": row["name"],
                 "filters": deserialize_json(row["filters_json"], {}),
                 "selected_material_ids": deserialize_json(row["selected_material_ids_json"], []),
@@ -293,11 +318,15 @@ class AuthService:
         ]
 
     def save_workspace(self, user_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        user = self.user_by_id(user_id)
+        if not user:
+            raise ValueError("Unknown user.")
         now = datetime.now(UTC).isoformat()
         workspace_id = f"WKS-{uuid4().hex[:8].upper()}"
         record = {
             "workspace_id": workspace_id,
             "user_id": user_id,
+            "org_id": user["org_id"],
             "name": payload["name"],
             "filters_json": serialize_json(payload.get("filters", {})),
             "selected_material_ids_json": serialize_json(payload.get("selected_material_ids", [])),
@@ -308,22 +337,29 @@ class AuthService:
         with self.db.connect() as connection:
             connection.execute(
                 """
-                INSERT INTO workspaces (workspace_id, user_id, name, filters_json, selected_material_ids_json, active_tab, created_at, updated_at)
-                VALUES (:workspace_id, :user_id, :name, :filters_json, :selected_material_ids_json, :active_tab, :created_at, :updated_at)
+                INSERT INTO workspaces (workspace_id, user_id, org_id, name, filters_json, selected_material_ids_json, active_tab, created_at, updated_at)
+                VALUES (:workspace_id, :user_id, :org_id, :name, :filters_json, :selected_material_ids_json, :active_tab, :created_at, :updated_at)
                 """,
                 record,
             )
-        return {**payload, "workspace_id": workspace_id, "user_id": user_id, "created_at": now, "updated_at": now}
+        return {**payload, "workspace_id": workspace_id, "user_id": user_id, "org_id": user["org_id"], "created_at": now, "updated_at": now}
 
     def list_saved_searches(self, user_id: str | None) -> list[dict[str, Any]]:
         if not user_id:
             return []
+        user = self.user_by_id(user_id)
+        if not user:
+            return []
         with self.db.connect() as connection:
-            rows = connection.execute("SELECT * FROM saved_searches WHERE user_id=? ORDER BY saved_at DESC", (user_id,)).fetchall()
+            rows = connection.execute(
+                "SELECT * FROM saved_searches WHERE user_id=? AND org_id=? ORDER BY saved_at DESC",
+                (user_id, user["org_id"]),
+            ).fetchall()
         return [
             {
                 "saved_search_id": row["saved_search_id"],
                 "user_id": row["user_id"],
+                "org_id": row["org_id"],
                 "saved_at": row["saved_at"],
                 **deserialize_json(row["payload_json"], {}),
             }
@@ -331,21 +367,30 @@ class AuthService:
         ]
 
     def save_search(self, user_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        user = self.user_by_id(user_id)
+        if not user:
+            raise ValueError("Unknown user.")
         record = {
             "saved_search_id": f"SRCH-{uuid4().hex[:8].upper()}",
             "user_id": user_id,
+            "org_id": user["org_id"],
             "payload_json": serialize_json(payload),
             "saved_at": datetime.now(UTC).isoformat(),
         }
         with self.db.connect() as connection:
             connection.execute(
                 """
-                INSERT INTO saved_searches (saved_search_id, user_id, payload_json, saved_at)
-                VALUES (:saved_search_id, :user_id, :payload_json, :saved_at)
+                INSERT INTO saved_searches (saved_search_id, user_id, org_id, payload_json, saved_at)
+                VALUES (:saved_search_id, :user_id, :org_id, :payload_json, :saved_at)
                 """,
                 record,
             )
-        return {"saved_search_id": record["saved_search_id"], "user_id": user_id, "saved_at": record["saved_at"], **payload}
+        return {"saved_search_id": record["saved_search_id"], "user_id": user_id, "org_id": user["org_id"], "saved_at": record["saved_at"], **payload}
+
+    def user_by_id(self, user_id: str) -> dict[str, Any] | None:
+        with self.db.connect() as connection:
+            row = connection.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
+        return self._decorate_user(row) if row else None
 
     def _active_session_token(self) -> str | None:
         if not self.session_path.exists():
