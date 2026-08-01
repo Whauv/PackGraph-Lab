@@ -34,6 +34,9 @@ class DocumentIntelligenceService:
         supplier_id: str | None = None,
         title: str | None = None,
         owner_id: str | None = None,
+        org_id: str = "ORG-001",
+        provenance: dict[str, Any] | None = None,
+        retention: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         uploaded_at = datetime.now(timezone.utc).isoformat()
         safe_name = re.sub(r"[^a-zA-Z0-9._-]+", "-", filename).strip("-") or "uploaded-file"
@@ -52,6 +55,7 @@ class DocumentIntelligenceService:
         checksum = hashlib.sha256(content).hexdigest()[:16]
         artifact_record = {
             "artifact_id": artifact_id,
+            "org_id": org_id,
             "filename": filename,
             "storage_path": str(storage_path),
             "document_type": document_type,
@@ -61,6 +65,8 @@ class DocumentIntelligenceService:
             "uploaded_at": uploaded_at,
             "checksum": checksum,
             "extracted_fields": extracted,
+            "provenance": provenance or {},
+            "retention": retention or {},
         }
         artifacts = self._read_json(self.artifacts_path, [])
         artifacts.append(artifact_record)
@@ -71,6 +77,7 @@ class DocumentIntelligenceService:
                 "report_id": f"RPT-UP-{uuid4().hex[:8].upper()}",
                 "title": title or extracted["title"],
                 "material_id": material_id,
+                "org_id": org_id,
                 "lab": extracted.get("lab") or "Uploaded Lab Source",
                 "migration_status": extracted.get("migration_status") or "review-required",
                 "test_date": extracted.get("issued_on") or uploaded_at[:10],
@@ -81,6 +88,8 @@ class DocumentIntelligenceService:
                 "extraction_confidence": extracted["extraction_confidence"],
                 "missing_fields": extracted["missing_fields"],
                 "detected_certification": extracted.get("certification_name"),
+                "field_confidence": extracted.get("field_confidence", []),
+                "pii_flags": extracted.get("pii_flags", []),
             }
             reports = self._read_json(self.reports_path, [])
             reports.append(record)
@@ -93,6 +102,7 @@ class DocumentIntelligenceService:
             "title": title or extracted["title"],
             "document_type": document_type,
             "material_id": material_id,
+            "org_id": org_id,
             "supplier_id": supplier_id or extracted.get("supplier_id"),
             "issued_on": extracted.get("issued_on") or uploaded_at[:10],
             "checksum": checksum,
@@ -104,6 +114,8 @@ class DocumentIntelligenceService:
             "extraction_confidence": extracted["extraction_confidence"],
             "missing_fields": extracted["missing_fields"],
             "detected_certification": extracted.get("certification_name"),
+            "field_confidence": extracted.get("field_confidence", []),
+            "pii_flags": extracted.get("pii_flags", []),
         }
         documents = self._read_json(self.documents_path, [])
         documents.append(record)
@@ -202,6 +214,14 @@ class DocumentIntelligenceService:
             extraction_confidence += 0.04
         extraction_confidence -= min(len(missing_fields) * 0.06, 0.18)
         extraction_confidence = round(max(0.55, min(0.98, extraction_confidence)), 2)
+        pii_flags = [field for field in ["email", "phone", "address"] if field in lower]
+        field_confidence = [
+            {"field_name": "issued_on", "confidence": 0.94 if issued_on else 0.45},
+            {"field_name": "supplier_id", "confidence": 0.91 if (supplier or supplier_id) else 0.41},
+            {"field_name": "migration_status", "confidence": 0.88 if migration_status else 0.38},
+            {"field_name": "certification_name", "confidence": 0.86 if cert_name else 0.35},
+            {"field_name": "lab", "confidence": 0.85 if lab else 0.34},
+        ]
 
         return {
             "title": title,
@@ -215,6 +235,8 @@ class DocumentIntelligenceService:
             "summary": " / ".join(summary_bits),
             "missing_fields": missing_fields,
             "extraction_confidence": extraction_confidence,
+            "field_confidence": field_confidence,
+            "pii_flags": pii_flags,
         }
 
     def _read_json(self, path: Path, default: Any) -> Any:

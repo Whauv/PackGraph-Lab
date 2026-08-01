@@ -91,6 +91,11 @@ It includes:
 - Safe query-planning layer that uses reviewed intent routing instead of unconstrained Cypher generation
 - Hybrid reasoning pipeline with router, classifier metadata, reviewed template retrieval, parameter extraction, scoring details, pipeline trace, and human-review gate metadata
 - Controlled agentic orchestration with explicit tools, strict state-machine output, evidence profiling, local project memory, review-candidate staging, and entity-resolution checks
+- Runtime SQLite control plane with schema migrations for auth, sessions, workspaces, saved searches, jobs, idempotency records, review candidates, and review history
+- Real login/session handling with org-aware users, hashed passwords, scoped role permissions, and audit-ready review actions
+- Durable background job flow for ingest, ER evaluation, review imports, and other heavy operations with retries, status tracking, and dead-letter behavior
+- API hardening through stronger request validation, rate limiting, idempotent mutation endpoints, structured error envelopes, and readiness/live health endpoints
+- Observability support for JSONL event logs, request metrics snapshots, runtime health checks, and job backlog summaries
 - Flexible local-source ingest support for recursive JSON folders and optional SQLite sources selected from CLI or `.env`
 - Ingest profiling with schema/source summaries, duplicate-content reporting, provenance metadata, and per-domain metrics
 - Review workflow support for summaries, pending export, reviewed-decision import, and structured audit logging
@@ -201,6 +206,7 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env
 python scripts/generate_data.py
+python scripts/migrate_runtime.py
 python scripts/ingest_graph.py
 python -m uvicorn app.main:app --reload
 ```
@@ -216,6 +222,14 @@ Notes:
 - If Neo4j is unavailable, the app can still fall back to the local JSON-backed repository for UI review and non-live demo flows.
 
 ## Ingest and verification commands
+
+### Initialize runtime state
+
+Create or upgrade the runtime control-plane database before starting operational flows:
+
+```bash
+python scripts/migrate_runtime.py
+```
 
 ### Profile local sources before ingest
 
@@ -267,6 +281,22 @@ Import reviewed decisions and optionally apply them to the persistent match cach
 
 ```bash
 python scripts/review_workflow.py import --input .\\review-exports\\reviewed-decisions.json --apply
+```
+
+### Background jobs
+
+Queue long-running operational work:
+
+```bash
+python scripts/run_jobs.py --limit 10
+```
+
+Or enqueue jobs through the API with an authenticated user:
+
+```bash
+POST /jobs
+GET /jobs
+POST /jobs/process
 ```
 
 ### Resolve / matching evaluation
@@ -330,6 +360,22 @@ The chat backend now behaves like a controlled graph assistant without becoming 
 - Human-review candidates are stored in `data/staging/agent_review_candidates.json`.
 - Agent audit records are appended to `data/runtime/agent_audit.jsonl`.
 - Any merge suggestion, evidence gap, or potential write-back remains staged for human review first.
+
+## Access control and runtime operations
+
+- Users are stored in the runtime SQLite control-plane database rather than only local JSON.
+- Passwords are hashed and sessions are issued with expiry windows.
+- Role permissions are enforced for review assignment, approval, workspace writes, search saving, contribution review, and job operations.
+- Idempotency keys are supported for mutation endpoints such as registration, workspace saves, saved searches, contributions, and job enqueue operations.
+- Review decisions now keep immutable history rows in addition to the current candidate state.
+- Runtime operational data is separated from graph/domain data so auth, review, and jobs can evolve independently.
+
+## Observability and health
+
+- `GET /health` returns backend mode, private-data activity, runtime DB state, and job summary.
+- `GET /health/live` and `GET /health/ready` support container and orchestrator checks.
+- `GET /metrics` returns request counters and per-route latency aggregates.
+- Structured runtime events are written to `data/runtime/app_events.jsonl`.
 
 ## Optional Google ADK scaffold
 
@@ -442,9 +488,9 @@ Open Intelligence, inspect a node, filter the graph by relationship type, and tr
 ## Current limitations
 
 - The dataset is synthetic and intended for product demonstration, not production decisioning.
-- Some persistence flows are local runtime files rather than multi-user infrastructure.
-- Neo4j-backed execution is present, but the system is still a prototype rather than a production deployment.
-- Authentication and collaboration behaviors are product-like but not yet full enterprise-grade implementations.
+- Some domain services still persist portions of demo collaboration state as local runtime JSON while the control plane now uses SQLite.
+- The review queue, job workers, and observability layer are local-first operational scaffolds rather than a distributed production platform.
+- Neo4j-backed execution is present, but document parsing, alerts, and export workers still have room to become more fully asynchronous and infrastructure-backed.
 
 ## Roadmap direction
 

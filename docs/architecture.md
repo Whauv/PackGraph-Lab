@@ -20,6 +20,14 @@ PackGraph Lab is now oriented around Neo4j as the primary graph runtime, with sy
   Provides reviewed intent routing and parameter extraction.
 - `app/services/query_engine.py`
   Runs the hybrid reasoning pipeline and returns trace metadata, scoring details, review-gate state, explicit agent tool traces, evidence profiling, project memory, and review staging metadata.
+- `app/core/runtime_db.py`
+  Provides the migrated SQLite control-plane database used for auth, sessions, jobs, review state, workspaces, saved searches, and idempotency records.
+- `app/services/auth_service.py`
+  Manages hashed-password login, expiring sessions, role permissions, and org/user access state against the runtime DB.
+- `app/services/job_service.py`
+  Provides durable local background job orchestration with retries, status transitions, and dead-letter handling.
+- `app/services/observability_service.py`
+  Emits structured runtime logs and lightweight metrics snapshots for request and operational visibility.
 - `app/services/agent_tools.py`
   Defines the explicit toolbelt used by the controlled graph assistant.
 - `app/services/agent_state_machine.py`
@@ -109,11 +117,38 @@ This keeps the runtime deterministic, inspectable, and safer to extend without u
 - Review is the human-in-the-loop checkpoint before new private records become graph write-backs.
 - Resolution is the product workflow for cross-graph entity matching, duplicate handling, and merge decisions.
 - Schema migration should move through PR-based review and staged approval rather than direct ad hoc graph edits.
-- Review candidates are staged in `data/staging/agent_review_candidates.json`.
+- Review candidates are stored in the runtime DB with immutable history and can still be exported/imported as JSON artifacts for local review loops.
 - Lightweight project memory is stored in `data/staging/project_memory.json`.
 - Agent audits are written to `data/runtime/agent_audit.jsonl`.
 - Review exports/imports are handled through `scripts/review_workflow.py`.
 - Entity-resolution audit and cached match decisions are stored under `data/runtime/`.
+
+## Runtime control plane
+
+The product now separates operational state from graph state:
+
+1. Neo4j stores graph-domain entities and graph relationships.
+2. The runtime SQLite database stores product-operational state such as:
+   - organizations
+   - users
+   - sessions
+   - workspaces
+   - saved searches
+   - jobs
+   - idempotency keys
+   - review candidates
+   - review history
+
+This split keeps graph writes controlled while letting product operations evolve through reversible schema migrations.
+
+## API hardening and observability
+
+- Request models now enforce stronger validation for auth, query, contribution, workspace, and review payloads.
+- Mutation endpoints can use idempotency keys backed by the runtime DB.
+- Rate limiting is enforced in middleware for request bursts.
+- `GET /health`, `GET /health/live`, and `GET /health/ready` expose operational state.
+- `GET /metrics` returns lightweight counters and latency aggregates.
+- Structured JSONL logs are written to `data/runtime/app_events.jsonl`.
 
 ## Product flow
 

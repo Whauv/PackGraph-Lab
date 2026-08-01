@@ -14,6 +14,7 @@ class Settings:
     private_data_dir: Path = Path("./private_data")
     json_ingest_dir: Path = Path("./private_data")
     sqlite_ingest_path: Path | None = None
+    runtime_db_path: Path = Path("./data/runtime/packgraph_runtime.db")
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_username: str = "neo4j"
     neo4j_password: str = "packgraph123"
@@ -29,6 +30,12 @@ class Settings:
     match_decision_cache_path: Path = Path("./data/runtime/match_decision_cache.json")
     er_review_threshold: float = 0.68
     er_auto_accept_threshold: float = 0.9
+    auth_secret: str = "packgraph-dev-secret"
+    session_ttl_hours: int = 12
+    rate_limit_requests: int = 120
+    rate_limit_window_seconds: int = 60
+    observability_log_path: Path = Path("./data/runtime/app_events.jsonl")
+    metrics_path: Path = Path("./data/runtime/metrics_snapshot.json")
 
 
 @lru_cache
@@ -41,6 +48,7 @@ def get_settings() -> Settings:
         private_data_dir=Path(os.getenv("PACKGRAPH_PRIVATE_DATA_DIR", "./private_data")),
         json_ingest_dir=Path(os.getenv("PACKGRAPH_JSON_INGEST_DIR", "./private_data")),
         sqlite_ingest_path=Path(os.getenv("PACKGRAPH_SQLITE_INGEST_PATH")) if os.getenv("PACKGRAPH_SQLITE_INGEST_PATH") else None,
+        runtime_db_path=Path(os.getenv("PACKGRAPH_RUNTIME_DB_PATH", "./data/runtime/packgraph_runtime.db")),
         neo4j_uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         neo4j_username=os.getenv("NEO4J_USERNAME", "neo4j"),
         neo4j_password=os.getenv("NEO4J_PASSWORD", "packgraph123"),
@@ -56,12 +64,21 @@ def get_settings() -> Settings:
         match_decision_cache_path=Path(os.getenv("PACKGRAPH_MATCH_DECISION_CACHE_PATH", "./data/runtime/match_decision_cache.json")),
         er_review_threshold=float(os.getenv("PACKGRAPH_ER_REVIEW_THRESHOLD", "0.68")),
         er_auto_accept_threshold=float(os.getenv("PACKGRAPH_ER_AUTO_ACCEPT_THRESHOLD", "0.9")),
+        auth_secret=os.getenv("PACKGRAPH_AUTH_SECRET", "packgraph-dev-secret"),
+        session_ttl_hours=int(os.getenv("PACKGRAPH_SESSION_TTL_HOURS", "12")),
+        rate_limit_requests=int(os.getenv("PACKGRAPH_RATE_LIMIT_REQUESTS", "120")),
+        rate_limit_window_seconds=int(os.getenv("PACKGRAPH_RATE_LIMIT_WINDOW_SECONDS", "60")),
+        observability_log_path=Path(os.getenv("PACKGRAPH_OBSERVABILITY_LOG_PATH", "./data/runtime/app_events.jsonl")),
+        metrics_path=Path(os.getenv("PACKGRAPH_METRICS_PATH", "./data/runtime/metrics_snapshot.json")),
     )
     settings.packgraph_data_dir.mkdir(parents=True, exist_ok=True)
     settings.packgraph_runtime_dir.mkdir(parents=True, exist_ok=True)
     settings.packgraph_staging_dir.mkdir(parents=True, exist_ok=True)
     settings.private_data_dir.mkdir(parents=True, exist_ok=True)
     settings.json_ingest_dir.mkdir(parents=True, exist_ok=True)
+    settings.runtime_db_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.observability_log_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.metrics_path.parent.mkdir(parents=True, exist_ok=True)
     if not settings.project_memory_path.exists():
         settings.project_memory_path.write_text(
             '{"saved_entities":[],"saved_suppliers":[],"prior_questions":[],"compared_entities":[],"user_assumptions":[],"uploaded_file_references":[],"investigation_notes":[]}',

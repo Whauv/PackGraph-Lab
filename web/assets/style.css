@@ -2330,6 +2330,19 @@ body[data-theme="light"] .overview-compliance {
   gap: 10px;
 }
 
+.technical-details-block {
+  display: grid;
+  gap: 10px;
+}
+
+.technical-details-toggle {
+  justify-self: start;
+}
+
+.technical-details-content[hidden] {
+  display: none;
+}
+
 .prompt-diary-group strong {
   display: block;
   margin-bottom: 8px;

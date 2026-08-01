@@ -24,6 +24,15 @@ window.PackGraphUI = {
       </div>`;
   },
 
+  loadingState(title, text = "Loading…") {
+    return `
+      <div class="table-empty">
+        <span class="table-empty-illustration" aria-hidden="true"></span>
+        <strong>${this.escape(title)}</strong>
+        <p>${this.escape(text)}</p>
+      </div>`;
+  },
+
   badge(text, className = "tag") {
     return `<span class="${className}">${this.escape(text)}</span>`;
   },
