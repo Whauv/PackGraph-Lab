@@ -18,5 +18,12 @@ dependencies = [
   "httpx==0.28.1",
 ]
 
+[project.scripts]
+packgraph-ingest = "scripts.ingest_graph:cli_main"
+packgraph-er-eval = "scripts.evaluate_entity_resolution:main"
+packgraph-review = "scripts.review_workflow:main"
+packgraph-status = "scripts.status_dashboard:main"
+packgraph-graph-schema = "scripts.migrate_graph_schema:main"
+
 [tool.setuptools.packages.find]
 include = ["app*", "agents*", "scripts*"]

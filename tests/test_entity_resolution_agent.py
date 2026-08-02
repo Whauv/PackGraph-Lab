@@ -47,9 +47,12 @@ class EntityResolutionAgentTests(unittest.TestCase):
     def test_cache_is_persisted(self):
         left = {"entity_type": "material", "label": "Polyethylene film", "recyclability": "82 %"}
         right = {"entity_type": "material", "label": "PE film", "recyclability": "81 %"}
-        self.agent.compare_records(left, right)
+        result = self.agent.compare_records(left, right)
         cache = json.loads(self.settings.match_decision_cache_path.read_text(encoding="utf-8"))
         self.assertTrue(cache)
+        self.assertIn(result["pair_key"], cache)
+        self.assertNotIn("Polyethylene film", json.dumps(cache))
+        self.assertIn("score_breakdown", result)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.ingest_graph import normalize_neo4j_properties
+from scripts.ingest_graph import _deduplicate_rows, _redact_connection, normalize_neo4j_properties
 
 
 class IngestGraphTests(unittest.TestCase):
@@ -19,6 +19,20 @@ class IngestGraphTests(unittest.TestCase):
         self.assertEqual(normalized["cost_range_high"], 4.66)
         self.assertEqual(normalized["cost_range_currency"], "USD/kg")
         self.assertEqual(normalized["regions_available"], ["Europe", "North America"])
+
+    def test_prewrite_deduplication_reports_removed_rows(self):
+        rows, summary = _deduplicate_rows(
+            [
+                {"private_record_id": "PR-1", "content_hash": "abc"},
+                {"private_record_id": "PR-1", "content_hash": "abc"},
+                {"private_record_id": "PR-2", "content_hash": "def"},
+            ]
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(summary["duplicates_removed"], 1)
+
+    def test_redact_connection_hides_credentials(self):
+        self.assertEqual(_redact_connection("bolt://neo4j:secret@localhost:7687"), "bolt://localhost:7687")
 
 
 if __name__ == "__main__":

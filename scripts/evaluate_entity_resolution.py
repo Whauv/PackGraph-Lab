@@ -14,10 +14,11 @@ from app.services.entity_resolution_agent import EntityResolutionAgent
 
 
 def build_parser() -> argparse.ArgumentParser:
+    settings = get_settings()
     parser = argparse.ArgumentParser(description="Evaluate PackGraph entity-resolution precision and recall.")
     parser.add_argument(
         "--dataset",
-        default="tests/fixtures/entity_resolution_eval.json",
+        default=str(settings.er_eval_dataset_path),
         help="Path to the labeled entity-resolution evaluation dataset.",
     )
     return parser
@@ -42,6 +43,7 @@ def main(argv: list[str] | None = None) -> dict:
     recall = tp / (tp + fn) if (tp + fn) else 0.0
     payload = {
         "dataset": args.dataset,
+        "backend": agent.active_backend,
         "examples": len(dataset),
         "true_positive": tp,
         "false_positive": fp,
