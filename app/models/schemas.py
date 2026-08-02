@@ -28,6 +28,16 @@ class QueryRequest(BaseModel):
     options: dict[str, Any] = Field(default_factory=dict)
 
 
+class ProjectMemoryPatchRequest(BaseModel):
+    saved_entities: list[Any] = Field(default_factory=list)
+    saved_suppliers: list[Any] = Field(default_factory=list)
+    prior_questions: list[Any] = Field(default_factory=list)
+    compared_entities: list[Any] = Field(default_factory=list)
+    user_assumptions: list[Any] = Field(default_factory=list)
+    uploaded_file_references: list[Any] = Field(default_factory=list)
+    investigation_notes: list[Any] = Field(default_factory=list)
+
+
 class ScenarioRequest(BaseModel):
     material_id: str | None = None
     supplier_id: str | None = None
@@ -42,6 +52,11 @@ class InvestigationCreate(BaseModel):
     shortlisted_material_ids: list[str] = Field(default_factory=list)
     comparison_material_ids: list[str] = Field(default_factory=list)
     decision_rationale: str = ""
+    owner_name: str = ""
+    due_date: str | None = None
+    project_status: str = "active"
+    archived: bool = False
+    decision_history: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class InvestigationUpdate(InvestigationCreate):
@@ -117,6 +132,12 @@ class ReviewDecisionRequest(BaseModel):
 
 class ReviewCommentRequest(BaseModel):
     comment: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+
+
+class ManualReviewCandidateRequest(BaseModel):
+    candidate_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=120)]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=240)]
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class JobEnqueueRequest(BaseModel):

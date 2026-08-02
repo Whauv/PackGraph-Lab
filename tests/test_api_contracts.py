@@ -59,6 +59,42 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(job.status_code, 200)
         listed = self.client.get("/jobs", headers={"Authorization": f"Bearer {token}"})
         self.assertEqual(listed.status_code, 200)
+        memory = self.client.patch(
+            "/project-memory",
+            json={"saved_entities": ["MAT-001"], "prior_questions": ["Recommend a food-safe recyclable film."]},
+        )
+        self.assertEqual(memory.status_code, 200)
+        self.assertIn("MAT-001", memory.json()["data"]["saved_entities"])
+        search = self.client.get("/search/command", params={"query": "snack"}, headers={"Authorization": f"Bearer {token}"})
+        self.assertEqual(search.status_code, 200)
+        self.assertIn("results", search.json()["data"])
+        review = self.client.post(
+            "/review-candidates/manual",
+            json={"candidate_type": "material_decision", "reason": "Manual UI review", "payload": {"entity_id": "MAT-001"}},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(review.status_code, 200)
+        self.assertEqual(review.json()["data"]["candidate_type"], "material_decision")
+        investigation = self.client.post(
+            "/investigations",
+            json={
+                "title": "Case workspace",
+                "focus_material_id": "MAT-001",
+                "notes": "Case note",
+                "shortlisted_material_ids": ["MAT-001"],
+                "comparison_material_ids": ["MAT-001"],
+                "decision_rationale": "Initial recommendation.",
+                "owner_name": "Demo Analyst",
+                "due_date": "2026-09-12",
+                "project_status": "active",
+                "archived": False,
+                "decision_history": [],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        self.assertEqual(investigation.status_code, 200)
+        self.assertEqual(investigation.json()["data"]["owner_name"], "Demo Analyst")
+        self.assertEqual(investigation.json()["data"]["project_status"], "active")
 
 
 if __name__ == "__main__":

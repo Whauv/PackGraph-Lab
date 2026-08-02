@@ -20,8 +20,20 @@ window.PackGraphAuthShell = {
     const container = document.getElementById("notification-list");
     if (!container) return;
     if (!items.length) {
+      const summary = document.getElementById("notification-summary");
+      if (summary) summary.innerHTML = "";
       container.innerHTML = window.PackGraphUI.emptyState("No new notifications", "Alerts, reviews, saved workspaces, and discussion updates will surface here.");
       return;
+    }
+    const summary = document.getElementById("notification-summary");
+    if (summary) {
+      const counts = items.reduce((acc, item) => {
+        acc[item.type] = (acc[item.type] || 0) + 1;
+        return acc;
+      }, {});
+      summary.innerHTML = `
+        <div class="metric"><div class="value">${window.PackGraphUI.escape(items.length)}</div><div>visible</div></div>
+        <div class="metric"><div class="value">${window.PackGraphUI.escape((counts.alert || 0) + (counts.review_request || 0))}</div><div>urgent</div></div>`;
     }
     container.innerHTML = items.map((item) => `
       <div class="row-card notification-card">

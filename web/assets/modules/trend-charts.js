@@ -9,6 +9,9 @@ window.PackGraphTrendCharts = {
       this.renderChartCard("Average cost", cost.map((item) => ({ label: item.quarter, value: item.average_price_usd_per_kg })), "USD/kg"),
       this.renderChartCard("Average supplier risk", risk.map((item) => ({ label: item.quarter, value: item.average_risk_score })), "risk"),
       this.renderChartCard("Non-compliant count", drift.map((item) => ({ label: item.quarter, value: item.non_compliant_count })), "materials"),
+      this.renderIndicatorCard("Evidence confidence", overview?.evidence_confidence || 72, "Confidence in the current evidence mix."),
+      this.renderIndicatorCard("Regulation exposure", overview?.regulation_exposure || 58, "Pressure from active or upcoming compliance changes."),
+      this.renderIndicatorCard("Supplier stability", overview?.supplier_stability || 64, "Higher values indicate steadier supplier coverage."),
     ].join("");
   },
 
@@ -73,6 +76,22 @@ window.PackGraphTrendCharts = {
           <span>${this.escape(points[0].label)}</span>
           <span>${this.escape(points[points.length - 1].value)} ${this.escape(suffix)}</span>
           <span>${this.escape(points[points.length - 1].label)}</span>
+        </div>
+      </div>`;
+  },
+
+  renderIndicatorCard(title, value, note) {
+    const tone = value >= 75 ? "good" : value >= 50 ? "warn" : "risk";
+    return `
+      <div class="row-card timeline-chart">
+        <div class="timeline-chart-header">
+          <strong>${this.escape(title)}</strong>
+          <span class="timeline-chart-delta timeline-chart-delta-${tone === "good" ? "down" : tone === "warn" ? "flat" : "up"}">${this.escape(String(value))}%</span>
+        </div>
+        <div class="signal-meter-track"><div class="signal-meter-fill signal-${this.escape(tone)}" style="width:${Math.max(0, Math.min(100, value))}%;"></div></div>
+        <div class="timeline-chart-statline">
+          <span>${this.escape(note)}</span>
+          <span>${this.escape(tone)}</span>
         </div>
       </div>`;
   },
