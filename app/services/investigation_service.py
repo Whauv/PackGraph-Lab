@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -23,10 +24,34 @@ class InvestigationService:
 
     def ensure_seed(self, seed_data: list[dict[str, Any]]) -> None:
         if not self.path.exists():
-            self._write(seed_data)
+            self._write([self._normalize_record(item) for item in seed_data])
+
+    def _normalize_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        now = datetime.now(UTC).isoformat()
+        history = list(record.get("decision_history") or [])
+        if not history:
+            history = [
+                {
+                    "event": "created",
+                    "status": record.get("status", "open"),
+                    "summary": "Case created",
+                    "at": record.get("created_at", now),
+                }
+            ]
+        return {
+            "status": "open",
+            "owner_name": "",
+            "due_date": None,
+            "project_status": "active",
+            "archived": False,
+            "decision_history": history,
+            "created_at": record.get("created_at", now),
+            "updated_at": record.get("updated_at", now),
+            **record,
+        }
 
     def list(self, owner_id: str | None = None, org_id: str | None = None) -> list[dict[str, Any]]:
-        investigations = self._read()
+        investigations = [self._normalize_record(item) for item in self._read()]
         if org_id:
             investigations = [item for item in investigations if item.get("org_id", "ORG-001") == org_id]
         if owner_id:
@@ -37,7 +62,7 @@ class InvestigationService:
         return next(
             (
                 item
-                for item in self._read()
+                for item in [self._normalize_record(row) for row in self._read()]
                 if item["investigation_id"] == investigation_id and (org_id is None or item.get("org_id", "ORG-001") == org_id)
             ),
             None,
@@ -45,7 +70,18 @@ class InvestigationService:
 
     def create(self, payload: dict[str, Any], owner_id: str | None = None, org_id: str = "ORG-001") -> dict[str, Any]:
         investigations = self._read()
-        record = {"investigation_id": f"INV-{uuid4().hex[:8].upper()}", "status": "open", "owner_id": owner_id, "org_id": org_id, **payload}
+        now = datetime.now(UTC).isoformat()
+        record = self._normalize_record(
+            {
+                "investigation_id": f"INV-{uuid4().hex[:8].upper()}",
+                "status": "open",
+                "owner_id": owner_id,
+                "org_id": org_id,
+                "created_at": now,
+                "updated_at": now,
+                **payload,
+            }
+        )
         investigations.append(record)
         self._write(investigations)
         return record
@@ -59,7 +95,29 @@ class InvestigationService:
                 return None
             if owner_id and record.get("owner_id") not in {None, owner_id}:
                 return None
-            updated = {**record, **payload, "owner_id": record.get("owner_id", owner_id), "org_id": record.get("org_id", org_id or "ORG-001")}
+            updated = self._normalize_record(
+                {
+                    **record,
+                    **payload,
+                    "owner_id": record.get("owner_id", owner_id),
+                    "org_id": record.get("org_id", org_id or "ORG-001"),
+                    "updated_at": datetime.now(UTC).isoformat(),
+                }
+            )
+            if (
+                payload.get("status") and payload.get("status") != record.get("status")
+            ) or (
+                payload.get("decision_rationale") and payload.get("decision_rationale") != record.get("decision_rationale")
+            ):
+                updated["decision_history"] = [
+                    *(record.get("decision_history") or updated.get("decision_history") or []),
+                    {
+                        "event": "updated",
+                        "status": updated.get("status", "open"),
+                        "summary": payload.get("decision_rationale") or f"Status changed to {updated.get('status', 'open')}",
+                        "at": updated["updated_at"],
+                    },
+                ]
             investigations[index] = updated
             self._write(investigations)
             return updated

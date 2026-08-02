@@ -14,6 +14,9 @@ class ExportService:
                 ["title", investigation["title"]],
                 ["focus_material_id", investigation.get("focus_material_id", "")],
                 ["status", investigation.get("status", "")],
+                ["project_status", investigation.get("project_status", "")],
+                ["owner_name", investigation.get("owner_name", "")],
+                ["due_date", investigation.get("due_date", "") or ""],
                 ["notes", investigation.get("notes", "")],
                 ["decision_rationale", investigation.get("decision_rationale", "")],
                 ["shortlisted_material_ids", ", ".join(investigation.get("shortlisted_material_ids", []))],
@@ -29,6 +32,9 @@ class ExportService:
             f"Title: {investigation['title']}",
             f"Focus material: {investigation.get('focus_material_id', '')}",
             f"Status: {investigation.get('status', '')}",
+            f"Project status: {investigation.get('project_status', '')}",
+            f"Owner: {investigation.get('owner_name', '')}",
+            f"Due date: {investigation.get('due_date', '') or ''}",
             "",
             "Notes:",
             investigation.get("notes", ""),
@@ -41,6 +47,12 @@ class ExportService:
             "",
             "Comparison materials:",
             ", ".join(investigation.get("comparison_material_ids", [])),
+            "",
+            "Decision history:",
+            *[
+                f"- {item.get('at', '')}: {item.get('summary', '')}"
+                for item in investigation.get("decision_history", [])[-6:]
+            ],
         ]
         return self._simple_pdf(lines)
 

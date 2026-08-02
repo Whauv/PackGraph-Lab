@@ -14,7 +14,7 @@ window.PackGraphCommunityPage = {
     });
   },
 
-  renderPosts(posts, selectedPostId, onOpen, onUpvote, onSave, onPin) {
+  renderPosts(posts, selectedPostId, onOpen, onUpvote, onSave, onPin, onReview, onInvestigate) {
     const container = document.getElementById("community-feed");
     if (!container) return;
     if (!posts.length) {
@@ -42,6 +42,8 @@ window.PackGraphCommunityPage = {
           <button type="button" class="mini-action" data-open-post="${this.escape(post.post_id)}">Open thread</button>
           <button type="button" class="mini-action secondary" data-upvote-post="${this.escape(post.post_id)}">Upvote</button>
           <button type="button" class="mini-action secondary" data-save-post="${this.escape(post.post_id)}">Save</button>
+          <button type="button" class="mini-action secondary" data-review-post="${this.escape(post.post_id)}">Send to review</button>
+          <button type="button" class="mini-action secondary" data-investigate-post="${this.escape(post.post_id)}">Use in case</button>
           <button type="button" class="mini-action secondary" data-pin-post="${this.escape(post.post_id)}">${post.pinned ? "Unpin" : "Pin"}</button>
         </div>
       </article>
@@ -54,6 +56,12 @@ window.PackGraphCommunityPage = {
     });
     container.querySelectorAll("[data-save-post]").forEach((button) => {
       button.addEventListener("click", () => onSave(button.dataset.savePost));
+    });
+    container.querySelectorAll("[data-review-post]").forEach((button) => {
+      button.addEventListener("click", () => onReview(button.dataset.reviewPost));
+    });
+    container.querySelectorAll("[data-investigate-post]").forEach((button) => {
+      button.addEventListener("click", () => onInvestigate(button.dataset.investigatePost));
     });
     container.querySelectorAll("[data-pin-post]").forEach((button) => {
       button.addEventListener("click", () => onPin(button.dataset.pinPost));

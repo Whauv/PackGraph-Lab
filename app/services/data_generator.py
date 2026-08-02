@@ -350,6 +350,17 @@ def generate_dataset(data_dir: Path) -> dict[str, Any]:
             "comparison_material_ids": [materials[0]["material_id"], materials[1]["material_id"], materials[2]["material_id"]],
             "decision_rationale": "Prioritize recyclable mono-material options with stable supplier coverage in North America.",
             "status": "open",
+            "project_status": "active",
+            "owner_name": "Demo Analyst",
+            "due_date": "2026-09-15",
+            "decision_history": [
+                {
+                    "event": "created",
+                    "status": "open",
+                    "summary": "Seeded redesign case for shortlist evaluation.",
+                    "at": "2026-07-01T09:00:00+00:00",
+                }
+            ],
         }
     ]
 

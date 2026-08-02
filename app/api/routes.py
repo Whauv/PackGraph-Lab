@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, MaterialCompareRequest, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -225,6 +225,11 @@ def build_router(state) -> APIRouter:
         results = state.repository.global_search(query)
         current_user = state.auth.current_user(_session_token(request))
         workspaces = state.auth.list_workspaces(current_user["user_id"]) if current_user else []
+        investigations = state.investigations.list(
+            current_user["user_id"] if current_user else None,
+            org_id=current_user["org_id"] if current_user else None,
+        )
+        scenarios = state.scenario_history.list(current_user["user_id"] if current_user else None) if current_user else []
         submissions = [
             item
             for item in state.contributions.list_submissions(org_id=current_user["org_id"] if current_user else None)
@@ -240,6 +245,26 @@ def build_router(state) -> APIRouter:
             "workspaces": [
                 {"entity_type": "workspace", "entity_id": item["workspace_id"], "title": item["name"], "subtitle": item.get("active_tab", "workspace")}
                 for item in workspaces[:5]
+            ],
+            "investigations": [
+                {
+                    "entity_type": "investigation",
+                    "entity_id": item["investigation_id"],
+                    "title": item["title"],
+                    "subtitle": f"{item.get('project_status', item.get('status', 'open'))} | due {item.get('due_date') or 'not set'}",
+                }
+                for item in investigations[:5]
+                if query.lower() in item.get("title", "").lower() or query.lower() in item.get("notes", "").lower()
+            ],
+            "scenarios": [
+                {
+                    "entity_type": "scenario",
+                    "entity_id": item["scenario_id"],
+                    "title": item.get("scenario_type", "scenario").replace("_", " ").title(),
+                    "subtitle": item.get("created_at", ""),
+                }
+                for item in scenarios[:5]
+                if query.lower() in str(item.get("scenario_type", "")).lower()
             ],
             "contributions": [
                 {"entity_type": "contribution", "entity_id": item["contribution_id"], "title": item["title"], "subtitle": item.get("status", "queued")}
@@ -408,6 +433,10 @@ def build_router(state) -> APIRouter:
     def project_memory():
         return {"status": "ok", "data": state.query_engine.project_memory.load()}
 
+    @router.patch("/project-memory")
+    def update_project_memory(payload: ProjectMemoryPatchRequest):
+        return {"status": "ok", "data": state.query_engine.project_memory.update(payload.model_dump())}
+
     @router.get("/review-candidates")
     def review_candidates(request: Request, status: str | None = None, limit: int = 100):
         current_user = current_user_or_401(request)
@@ -456,6 +485,21 @@ def build_router(state) -> APIRouter:
         candidate = state.review_store.decide(candidate_id, actor["user_id"], payload.status, payload.comment, payload.metadata, actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
+        return {"status": "ok", "data": candidate}
+
+    @router.post("/review-candidates/manual")
+    def create_manual_review_candidate(payload: ManualReviewCandidateRequest, request: Request):
+        actor = current_user_or_401(request)
+        candidate = state.review_store.create(
+            payload.candidate_type,
+            payload.reason,
+            {
+                **payload.payload,
+                "submitted_by": actor["user_id"],
+                "submitted_by_name": actor["name"],
+            },
+            org_id=actor["org_id"],
+        )
         return {"status": "ok", "data": candidate}
 
     @router.get("/review-candidates/export")
@@ -819,15 +863,26 @@ def build_router(state) -> APIRouter:
     def notifications(request: Request):
         user = state.auth.current_user(_session_token(request))
         alerts = state.repository.alerts()[:4]
+        reviews = state.review_store.list(
+            status="pending_human_review",
+            org_id=user["org_id"] if user else None,
+            limit=4,
+        )
         queue = state.contributions.list_queue(org_id=user["org_id"] if user else None)[:4]
         posts = [item for item in state.community.list_posts(org_id=user["org_id"] if user else None) if item.get("moderation_state") == "pending"][:4]
         workspaces = state.auth.list_workspaces(user["user_id"])[:2] if user else []
+        scenarios = state.scenario_history.list(user["user_id"])[:2] if user else []
+        investigations = state.investigations.list(user["user_id"], org_id=user["org_id"])[:2] if user else []
         return {
             "status": "ok",
             "data": [
                 *[
                     {"type": "alert", "title": item["title"], "detail": item["detail"], "tone": item["severity"]}
                     for item in alerts
+                ],
+                *[
+                    {"type": "review_request", "title": item["reason"], "detail": f"{item['candidate_type'].replace('_', ' ')} needs approval.", "tone": "warning"}
+                    for item in reviews
                 ],
                 *[
                     {"type": "review", "title": item["title"], "detail": f"Contribution is {item['status'].replace('_', ' ')}.", "tone": "info"}
@@ -840,6 +895,14 @@ def build_router(state) -> APIRouter:
                 *[
                     {"type": "workspace", "title": item["name"], "detail": f"Saved for {item.get('active_tab', 'dashboard')}.", "tone": "success"}
                     for item in workspaces
+                ],
+                *[
+                    {"type": "scenario", "title": item.get("scenario_type", "Scenario").replace("_", " ").title(), "detail": "Scenario result saved to history.", "tone": "info"}
+                    for item in scenarios
+                ],
+                *[
+                    {"type": "project", "title": item["title"], "detail": f"{item.get('project_status', 'active')} | due {item.get('due_date') or 'not set'}", "tone": "neutral"}
+                    for item in investigations
                 ],
             ],
         }

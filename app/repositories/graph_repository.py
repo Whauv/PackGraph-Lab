@@ -839,6 +839,7 @@ class LocalGraphRepository:
     def document_detail(self, document_id: str) -> dict[str, Any] | None:
         document = next((item for item in self.all_documents() if item.get("document_id") == document_id), None)
         if document:
+            field_confidence = document.get("field_confidence", [])
             return {
                 **document,
                 "preview_text": document.get("extraction_summary") or "Synthetic document preview for the selected source.",
@@ -847,9 +848,15 @@ class LocalGraphRepository:
                     {"label": "Issued on", "value": document.get("issued_on", "Unknown")},
                     {"label": "Provenance score", "value": document.get("provenance_score", "n/a")},
                 ],
+                "field_confidence": field_confidence,
+                "confidence_summary": f"{round((document.get('extraction_confidence', 0) or 0) * 100)}%",
+                "missing_fields": document.get("missing_fields", []),
+                "pii_flags": document.get("pii_flags", []),
+                "citation_spans": [document.get("extraction_summary")] if document.get("extraction_summary") else [],
             }
         report = next((item for item in self.all_test_reports() if item.get("report_id") == document_id), None)
         if report:
+            field_confidence = report.get("field_confidence", [])
             return {
                 **report,
                 "preview_text": report.get("extraction_summary") or "Synthetic test report preview for the selected evidence.",
@@ -858,6 +865,11 @@ class LocalGraphRepository:
                     {"label": "Migration", "value": report.get("migration_status", "Unknown")},
                     {"label": "Test date", "value": report.get("test_date", "Unknown")},
                 ],
+                "field_confidence": field_confidence,
+                "confidence_summary": f"{round((report.get('extraction_confidence', 0) or 0) * 100)}%",
+                "missing_fields": report.get("missing_fields", []),
+                "pii_flags": report.get("pii_flags", []),
+                "citation_spans": [report.get("extraction_summary")] if report.get("extraction_summary") else [],
             }
         return None
 

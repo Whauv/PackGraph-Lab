@@ -34,6 +34,7 @@ const state = {
   currentGraph: null,
   theme: "light",
   currentUser: null,
+  sessionToken: window.localStorage.getItem("packgraph-session-token") || "",
   currentPage: "overview",
   notifications: [],
   savedSearches: [],
@@ -42,6 +43,23 @@ const state = {
   latestSupplierId: null,
   supplierRegionSummary: [],
   privateDataStatus: { private_data_active: false, dataset_count: 0, record_count: 0 },
+  projectMemory: null,
+  reviewQueue: [],
+  reviewSummary: { total: 0, pending: 0 },
+  selectedReviewCandidateId: null,
+  activeCase: null,
+  commandCenterResults: null,
+  notificationFilter: "all",
+  graphCollapsedTypes: [],
+  graphPinnedNodeIds: [],
+  scenarioComparisons: [],
+  roleDashboardProfile: null,
+  personalWorkspace: {
+    bookmarks: [],
+    recent_entities: [],
+    quick_note: "",
+    reminders: [],
+  },
 };
 
 function applyTheme(theme) {
@@ -59,8 +77,125 @@ function setupThemeToggle() {
   document.getElementById("theme-toggle").addEventListener("click", () => applyTheme(state.theme === "dark" ? "light" : "dark"));
 }
 
+function authHeaders(extra = {}) {
+  const headers = { ...extra };
+  if (state.sessionToken) {
+    headers.Authorization = `Bearer ${state.sessionToken}`;
+  }
+  return headers;
+}
+
+function setSessionToken(token) {
+  state.sessionToken = token || "";
+  if (state.sessionToken) {
+    window.localStorage.setItem("packgraph-session-token", state.sessionToken);
+  } else {
+    window.localStorage.removeItem("packgraph-session-token");
+  }
+}
+
+function defaultActiveCase() {
+  return {
+    case_id: `CASE-${Date.now()}`,
+    name: "Active packaging case",
+    status: "discover",
+    focus_material_id: null,
+    shortlist_material_ids: [],
+    latest_question: "",
+    latest_search: "",
+    scenario_type: "",
+    evidence_strength: "unknown",
+    review_state: "not_requested",
+    note: "",
+    workflow_step: "Discover",
+  };
+}
+
+function loadActiveCase() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem("packgraph-active-case") || "null");
+    state.activeCase = stored ? { ...defaultActiveCase(), ...stored } : defaultActiveCase();
+  } catch {
+    state.activeCase = defaultActiveCase();
+  }
+}
+
+function persistActiveCase() {
+  window.localStorage.setItem("packgraph-active-case", JSON.stringify(state.activeCase));
+}
+
+function loadUiWorkspaceState() {
+  try {
+    state.graphPinnedNodeIds = JSON.parse(window.localStorage.getItem("packgraph-graph-pins") || "[]");
+  } catch {
+    state.graphPinnedNodeIds = [];
+  }
+  try {
+    state.graphCollapsedTypes = JSON.parse(window.localStorage.getItem("packgraph-graph-collapsed") || "[]");
+  } catch {
+    state.graphCollapsedTypes = [];
+  }
+}
+
+function persistGraphUiState() {
+  window.localStorage.setItem("packgraph-graph-pins", JSON.stringify(state.graphPinnedNodeIds || []));
+  window.localStorage.setItem("packgraph-graph-collapsed", JSON.stringify(state.graphCollapsedTypes || []));
+}
+
+function loadPersonalWorkspace() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem("packgraph-personal-workspace") || "null");
+    if (stored) {
+      state.personalWorkspace = {
+        bookmarks: stored.bookmarks || [],
+        recent_entities: stored.recent_entities || [],
+        quick_note: stored.quick_note || "",
+        reminders: stored.reminders || [],
+      };
+    }
+  } catch {
+    state.personalWorkspace = { bookmarks: [], recent_entities: [], quick_note: "", reminders: [] };
+  }
+}
+
+function persistPersonalWorkspace() {
+  window.localStorage.setItem("packgraph-personal-workspace", JSON.stringify(state.personalWorkspace));
+}
+
+async function syncProjectMemory(patch = {}) {
+  try {
+    state.projectMemory = await fetchJson("/project-memory", {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(patch),
+    });
+  } catch {
+    // Keep the UI local-first even if memory sync is unavailable.
+  }
+}
+
+function syncActiveCase(patch = {}, { syncMemory = false } = {}) {
+  state.activeCase = { ...(state.activeCase || defaultActiveCase()), ...patch };
+  persistActiveCase();
+  renderCaseWorkspace();
+  renderWorkflowMap();
+  renderCrossPageContext();
+  if (syncMemory) {
+    syncProjectMemory({
+      saved_entities: [state.activeCase.focus_material_id],
+      compared_entities: state.activeCase.shortlist_material_ids || [],
+      prior_questions: [state.activeCase.latest_question],
+      investigation_notes: [state.activeCase.note],
+      user_assumptions: [state.activeCase.workflow_step],
+    });
+  }
+}
+
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, {
+    ...options,
+    headers: authHeaders(options.headers || {}),
+  });
   const payload = await response.json();
   if (!response.ok || payload.status === "error") {
     throw new Error(payload.detail || payload.error || "Request failed");
@@ -288,6 +423,314 @@ function renderSurfaceState(containerId, mode, title, text) {
   }
 }
 
+function setNotificationFilter(filter) {
+  state.notificationFilter = filter || "all";
+  document.querySelectorAll("[data-notification-filter]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.notificationFilter === state.notificationFilter);
+  });
+  if (window.PackGraphAuthShell) {
+    const visible = state.notificationFilter === "all"
+      ? state.notifications
+      : state.notifications.filter((item) => item.type === state.notificationFilter);
+    window.PackGraphAuthShell.renderNotifications(visible);
+  }
+}
+
+function openCommandCenter() {
+  const panel = document.getElementById("command-center-panel");
+  if (panel) panel.hidden = false;
+}
+
+function closeCommandCenter() {
+  const panel = document.getElementById("command-center-panel");
+  if (panel) panel.hidden = true;
+}
+
+async function runCommandCenter(queryOverride = "") {
+  const input = document.getElementById("command-center-input");
+  const query = queryOverride || input?.value.trim() || "";
+  if (!query) {
+    setStatus("command-center-status", "Type a query to search across the product.", "error");
+    return;
+  }
+  openCommandCenter();
+  setStatus("command-center-status", "Searching across PackGraph surfaces...", "info");
+  state.commandCenterResults = await fetchJson(`/search/command?query=${encodeURIComponent(query)}`);
+  renderCommandCenterResults();
+  clearStatus("command-center-status");
+}
+
+async function openCommandResult(entityType, entityId) {
+  if (entityType === "workspace") {
+    await resumeWorkspace(entityId);
+    setSection("dashboard");
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "investigation") {
+    await resumeInvestigation(entityId);
+    setPage("workbench");
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "community_post") {
+    setSection("community");
+    state.selectedCommunityPostId = entityId;
+    await loadCommunityData();
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "scenario") {
+    setPage("workbench");
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "material") {
+    await openMaterial(entityId, "overview");
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "supplier") {
+    await openSupplierProfile(entityId);
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "regulation") {
+    await openRegulationDetail(entityId);
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "document" || entityType === "report" || entityType === "test_report") {
+    setPage("workbench");
+    await loadDocumentPreview(entityId);
+    closeCommandCenter();
+    return;
+  }
+  if (entityType === "product" || entityType === "component") {
+    const searchInput = document.getElementById("global-search-input");
+    if (searchInput) {
+      searchInput.value = entityId;
+    }
+    setPage("overview");
+    await runGlobalSearch();
+    closeCommandCenter();
+  }
+}
+
+function renderCommandCenterResults() {
+  const container = document.getElementById("command-center-results");
+  if (!container) return;
+  const payload = state.commandCenterResults || {};
+  const groups = [
+    ["Core graph", payload.results || []],
+    ["Workspaces", payload.workspaces || []],
+    ["Cases", payload.investigations || []],
+    ["Scenarios", payload.scenarios || []],
+    ["Contributions", payload.contributions || []],
+    ["Posts", payload.posts || []],
+  ].filter(([, items]) => items.length);
+  if (!groups.length) {
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No global matches", "Try a material, supplier, regulation, scenario type, workspace, or discussion keyword.")
+      : `<div class="row-card"><p>No global matches.</p></div>`;
+    return;
+  }
+  container.innerHTML = groups.map(([title, items]) => `
+    <div class="command-center-group">
+      <h4>${escapeHtml(title)}</h4>
+      <div class="card-list compact-list">
+        ${items.map((item) => `
+          <button type="button" class="row-card saved-search-card" data-command-open="${escapeHtml(item.entity_type)}::${escapeHtml(item.entity_id)}">
+            <strong>${escapeHtml(item.title)}</strong>
+            <small>${escapeHtml(item.subtitle || item.entity_type || "")}</small>
+          </button>`).join("")}
+      </div>
+    </div>
+  `).join("");
+  container.querySelectorAll("[data-command-open]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [entityType, entityId] = button.dataset.commandOpen.split("::");
+      await openCommandResult(entityType, entityId);
+    });
+  });
+}
+
+function renderCaseWorkspace() {
+  const container = document.getElementById("case-workspace-panel");
+  if (!container) return;
+  const activeCase = state.activeCase || defaultActiveCase();
+  const material = state.materials.find((item) => item.material_id === activeCase.focus_material_id);
+  const shortlist = (activeCase.shortlist_material_ids || [])
+    .map((id) => state.materials.find((item) => item.material_id === id)?.name)
+    .filter(Boolean);
+  container.innerHTML = `
+    <div class="status-card case-workspace-card">
+      <span>Workflow</span>
+      <strong>${escapeHtml(activeCase.workflow_step)}</strong>
+      <small>${escapeHtml(activeCase.status.replaceAll("_", " "))}</small>
+    </div>
+    <div class="status-card case-workspace-card">
+      <span>Focus material</span>
+      <strong>${escapeHtml(material?.name || "Not selected yet")}</strong>
+      <small>${escapeHtml(activeCase.latest_question || "Ask a question or pick a material to begin.")}</small>
+    </div>
+    <div class="status-card case-workspace-card">
+      <span>Shortlist</span>
+      <strong>${shortlist.length ? escapeHtml(shortlist.join(", ")) : "No candidates yet"}</strong>
+      <small>Evidence ${escapeHtml(activeCase.evidence_strength)} | Review ${escapeHtml(activeCase.review_state.replaceAll("_", " "))}</small>
+    </div>`;
+}
+
+function roleDashboardProfile() {
+  const roleId = state.currentUser?.role_id || "explorer";
+  const profiles = {
+    admin: {
+      label: "Operations overview",
+      summary: "Start from workflow health, review backlog, and graph activity before you inspect a single case.",
+      focus: "Review backlog and ingest health",
+      next: "Open Workbench review queue",
+    },
+    compliance: {
+      label: "Compliance workspace",
+      summary: "Start from regulations, evidence gaps, and approvals before you move into supplier or material comparisons.",
+      focus: "Regulation pressure and evidence gaps",
+      next: "Inspect approval and evidence surfaces",
+    },
+    procurement: {
+      label: "Procurement workspace",
+      summary: "Start from supplier exposure, lead time, and alternates before you commit to a material path.",
+      focus: "Supplier stability and cost pressure",
+      next: "Compare fallback suppliers and substitutes",
+    },
+    strategist: {
+      label: "Packaging strategy workspace",
+      summary: "Start from fit, shortlist quality, and tradeoffs before you move into final approval.",
+      focus: "Candidate quality and portfolio fit",
+      next: "Use Workbench for direct comparison",
+    },
+    fellow: {
+      label: "R&D workspace",
+      summary: "Start from technical fit, document evidence, and substitution logic before you lock a recommendation.",
+      focus: "Performance and evidence strength",
+      next: "Open Intelligence for graph and provenance",
+    },
+    explorer: {
+      label: "Explorer workspace",
+      summary: "Start from search and discovery, then promote only promising candidates into deeper decision work.",
+      focus: "Search, shortlist, and learn",
+      next: "Use Overview and Explore together",
+    },
+  };
+  return profiles[roleId] || profiles.explorer;
+}
+
+function renderRoleDashboard() {
+  state.roleDashboardProfile = roleDashboardProfile();
+  const heroNote = document.getElementById("overview-selected-material-note");
+  const onboarding = document.querySelector("#overview-onboarding .onboarding-hint-copy p");
+  const workflowSummary = document.getElementById("workflow-summary");
+  if (heroNote && state.selectedMaterialDetail) {
+    heroNote.textContent = `${state.roleDashboardProfile.label}. ${state.roleDashboardProfile.summary}`;
+  }
+  if (onboarding) {
+    onboarding.textContent = `${state.roleDashboardProfile.summary} Focus on ${state.roleDashboardProfile.focus.toLowerCase()} first.`;
+  }
+  if (workflowSummary) {
+    workflowSummary.textContent = `${state.roleDashboardProfile.focus}. Next: ${state.roleDashboardProfile.next}.`;
+  }
+}
+
+function pushRecentEntity(entity) {
+  if (!entity?.id || !entity?.label) return;
+  state.personalWorkspace.recent_entities = [
+    entity,
+    ...(state.personalWorkspace.recent_entities || []).filter((item) => item.id !== entity.id),
+  ].slice(0, 8);
+  persistPersonalWorkspace();
+  renderPersonalWorkspace();
+}
+
+function addBookmark(entity) {
+  if (!entity?.id || !entity?.label) return;
+  if (state.personalWorkspace.bookmarks.some((item) => item.id === entity.id)) return;
+  state.personalWorkspace.bookmarks = [entity, ...(state.personalWorkspace.bookmarks || [])].slice(0, 10);
+  persistPersonalWorkspace();
+  renderPersonalWorkspace();
+}
+
+function renderPersonalWorkspace() {
+  const container = document.getElementById("productivity-panel");
+  const note = document.getElementById("productivity-note");
+  if (!container) return;
+  if (note) note.value = state.personalWorkspace.quick_note || "";
+  const bookmarks = state.personalWorkspace.bookmarks || [];
+  const recent = state.personalWorkspace.recent_entities || [];
+  const reminders = state.personalWorkspace.reminders || [];
+  container.innerHTML = `
+    <div class="row-card">
+      <strong>Bookmarks</strong>
+      <div class="tags">${bookmarks.length ? bookmarks.map((item) => `<span class="tag">${escapeHtml(item.label)}</span>`).join("") : `<span class="tag">No bookmarks</span>`}</div>
+    </div>
+    <div class="row-card">
+      <strong>Recently viewed</strong>
+      <div class="tags">${recent.length ? recent.map((item) => `<span class="tag">${escapeHtml(item.label)}</span>`).join("") : `<span class="tag">No recent entities</span>`}</div>
+    </div>
+    <div class="row-card">
+      <strong>Reminders</strong>
+      <div class="card-list compact-list">${reminders.length ? reminders.map((item, index) => `<div class="row-card"><p>${escapeHtml(item)}</p><button type="button" class="mini-action secondary" data-remove-reminder="${index}">Done</button></div>`).join("") : `<div class="row-card"><p>No reminders yet.</p></div>`}</div>
+    </div>`;
+  container.querySelectorAll("[data-remove-reminder]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.personalWorkspace.reminders.splice(Number(button.dataset.removeReminder), 1);
+      persistPersonalWorkspace();
+      renderPersonalWorkspace();
+    });
+  });
+}
+
+function renderActivityTimeline() {
+  const container = document.getElementById("activity-timeline");
+  if (!container) return;
+  const timeline = [
+    ...(state.notifications || []).slice(0, 4).map((item) => ({ title: item.title, detail: item.detail, type: item.type })),
+    ...(state.scenarioHistory || []).slice(0, 3).map((item) => ({ title: titleCase(item.scenario_type), detail: item.after?.summary || "Scenario completed", type: "scenario" })),
+    ...(state.investigations || []).slice(0, 3).map((item) => ({ title: item.title, detail: `${item.project_status || item.status} | due ${item.due_date || "not set"}`, type: "case" })),
+  ].slice(0, 8);
+  container.innerHTML = timeline.length
+    ? timeline.map((item) => `<div class="row-card"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.type)}</small><p>${escapeHtml(item.detail)}</p></div>`).join("")
+    : `<div class="row-card"><p>No activity yet.</p></div>`;
+}
+
+function workflowSteps() {
+  return [
+    { id: "discover", label: "Discover", description: "Browse, search, and find the material worth evaluating." },
+    { id: "evaluate", label: "Evaluate", description: "Ask the workspace for a structured recommendation." },
+    { id: "compare", label: "Compare", description: "Shortlist and rank the real candidate set." },
+    { id: "validate", label: "Validate", description: "Review documents, extracted fields, and evidence gaps." },
+    { id: "approve", label: "Approve", description: "Move the decision through assignment and sign-off." },
+    { id: "export", label: "Export", description: "Package the current case for stakeholders." },
+  ];
+}
+
+function renderWorkflowMap() {
+  const container = document.getElementById("workflow-map");
+  const summary = document.getElementById("workflow-summary");
+  if (!container) return;
+  const activeStep = (state.activeCase?.status || "discover").toLowerCase();
+  const stepIndex = workflowSteps().findIndex((step) => step.id === activeStep);
+  container.innerHTML = workflowSteps().map((step, index) => `
+    <div class="workflow-map-step ${index === stepIndex ? "active" : index < stepIndex ? "complete" : ""}">
+      <span>${escapeHtml(step.label)}</span>
+      <strong>${index + 1}</strong>
+      <small>${escapeHtml(step.description)}</small>
+    </div>`).join("");
+  if (summary) {
+    summary.textContent = state.activeCase?.latest_question
+      ? `${state.activeCase.workflow_step}: ${state.activeCase.latest_question}`
+      : "Start in Overview, then move to Workbench only when the answer is strong enough.";
+  }
+}
+
 function setupOverviewOnboardingHint() {
   const panel = document.getElementById("overview-onboarding");
   const dismissButton = document.getElementById("dismiss-overview-hint");
@@ -325,6 +768,10 @@ function updateGraphContextBar(graph, edges) {
     <div class="graph-context-item">
       <span>Visible relationships</span>
       <strong>${escapeHtml(relationshipSet.length ? relationshipSet.join(", ") : "None")}</strong>
+    </div>
+    <div class="graph-context-item">
+      <span>Pinned / collapsed</span>
+      <strong>${escapeHtml(`${state.graphPinnedNodeIds.length} pinned | ${state.graphCollapsedTypes.length} collapsed`)}</strong>
     </div>`;
 }
 
@@ -481,6 +928,9 @@ function normalizeGraphEdges(graph, selectedNodeId) {
     let type = edge.type;
     if (type === "SUPPLIES") {
       type = "SUPPLIED_BY";
+    }
+    if (state.graphCollapsedTypes.includes(type) && !state.graphPinnedNodeIds.includes(neighborId)) {
+      return;
     }
 
     const key = `${type}:${neighborId}`;
@@ -643,6 +1093,50 @@ function renderGraphCanvas(graph) {
 
   applyGraphZoom();
   updateGraphContextBar(graph, normalizedEdges);
+  updateGraphActionBar();
+}
+
+function selectedGraphNodeRecord() {
+  return state.currentGraph?.nodes?.find((node) => node.id === state.selectedGraphNodeId) || null;
+}
+
+function selectedGraphBranchType() {
+  const selectedId = state.selectedGraphNodeId;
+  if (!selectedId || !state.currentGraph) return null;
+  const edge = (state.currentGraph.edges || []).find((item) => item.source === selectedId || item.target === selectedId);
+  if (!edge) return null;
+  return edge.type === "SUPPLIES" ? "SUPPLIED_BY" : edge.type;
+}
+
+function updateGraphActionBar() {
+  const branchType = selectedGraphBranchType();
+  const selectedNode = selectedGraphNodeRecord();
+  const collapse = document.getElementById("graph-collapse-branch");
+  const expand = document.getElementById("graph-expand-branch");
+  const pin = document.getElementById("graph-pin-node");
+  const evidence = document.getElementById("graph-open-evidence");
+  const compare = document.getElementById("graph-compare-node");
+  if (collapse) collapse.disabled = !branchType || state.graphCollapsedTypes.includes(branchType);
+  if (expand) expand.disabled = !branchType || !state.graphCollapsedTypes.includes(branchType);
+  if (pin) pin.textContent = state.graphPinnedNodeIds.includes(state.selectedGraphNodeId) ? "Unpin node" : "Pin node";
+  if (evidence) evidence.disabled = !selectedNode;
+  if (compare) compare.disabled = !selectedNode || selectedNode.type !== "material";
+}
+
+async function sendEntityToReview(candidateType, reason, payload = {}) {
+  if (!state.currentUser) {
+    setStatus("review-status", "Sign in before sending an item to review.", "error");
+    return;
+  }
+  await fetchJson("/review-candidates/manual", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ candidate_type: candidateType, reason, payload }),
+  });
+  setPage("workbench");
+  setStatus("review-status", "Moved the current context into the review queue.", "success");
+  syncActiveCase({ review_state: "pending_human_review", status: "approve", workflow_step: "Approve" });
+  await Promise.all([loadReviewQueue(), loadNotifications()]);
 }
 
 async function openMaterial(materialId, page = "overview") {
@@ -653,13 +1147,22 @@ async function openMaterial(materialId, page = "overview") {
   if (select) select.value = materialId;
   setPage(page);
   await refreshMaterialContext();
-  renderCrossPageContext();
+  const material = state.materials.find((item) => item.material_id === materialId);
+  if (material) {
+    pushRecentEntity({ id: materialId, label: material.name, type: "material" });
+  }
+  syncActiveCase({
+    focus_material_id: materialId,
+    status: page === "overview" ? "discover" : page === "workbench" ? "compare" : "validate",
+    workflow_step: page === "overview" ? "Discover" : page === "workbench" ? "Compare" : "Validate",
+  });
 }
 
 async function openSupplierProfile(supplierId) {
   state.latestSupplierId = supplierId;
   const supplier = await fetchJson(`/suppliers/${encodeURIComponent(supplierId)}`);
   renderSupplierDetail(supplier);
+  pushRecentEntity({ id: supplierId, label: supplier.name, type: "supplier" });
   setPage("intelligence");
   renderCrossPageContext();
 }
@@ -667,6 +1170,7 @@ async function openSupplierProfile(supplierId) {
 async function openRegulationDetail(regulationId) {
   const regulation = await fetchJson(`/regulations/${encodeURIComponent(regulationId)}`);
   renderRegulationDetail(regulation);
+  pushRecentEntity({ id: regulationId, label: regulation.name, type: "regulation" });
   setPage("intelligence");
   renderCrossPageContext();
 }
@@ -678,6 +1182,11 @@ function addMaterialToShortlist(materialId) {
   if (!option) return;
   option.selected = true;
   renderCompareSelectionSummary();
+  syncActiveCase({
+    shortlist_material_ids: selectedMaterialsFromCompare(),
+    status: "compare",
+    workflow_step: "Compare",
+  });
 }
 
 function bindInlineActions() {
@@ -737,6 +1246,26 @@ function bindInlineActions() {
     button.addEventListener("click", () => {
       const materialId = button.dataset.exportMaterial;
       window.open(`/exports/executive-summary.pdf?material_id=${encodeURIComponent(materialId)}`, "_blank", "noopener");
+    });
+  });
+  document.querySelectorAll("[data-send-review]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await sendEntityToReview(
+        button.dataset.reviewType || "material_decision",
+        button.dataset.reviewReason || "Manual review requested from the UI.",
+        {
+          entity_id: button.dataset.sendReview,
+          entity_type: button.dataset.reviewType || "material",
+          display_name: button.dataset.reviewLabel || button.dataset.sendReview,
+          provenance_snippets: [button.dataset.reviewContext || "Sent from PackGraph UI."],
+        }
+      );
+    });
+  });
+  document.querySelectorAll("[data-open-evidence]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      setPage("workbench");
+      await loadDocumentPreview(button.dataset.openEvidence);
     });
   });
 }
@@ -799,9 +1328,9 @@ function updatePageContextCard() {
     return;
   }
   const descriptions = {
-    overview: "Core decision flow: filters, material detail, chat, compliance.",
-    workbench: "Shortlist workflow: ranking, provenance, investigations, workspaces.",
-    intelligence: "Support layer: graph, alerts, analytics, and benchmarks.",
+    overview: "Discover and evaluate: search, structured answer, compliance, and candidate triage.",
+    workbench: "Compare and validate: shortlist, evidence, scenarios, review, and case trail.",
+    intelligence: "Context and monitoring: graph, analytics, alerts, and supporting detail.",
   };
   pageCard.innerHTML = `<span>Current page</span><strong>${titleCase(state.currentPage)}</strong><small>${descriptions[state.currentPage]}</small>`;
 }
@@ -812,12 +1341,16 @@ function renderCrossPageContext() {
   const material = state.materials.find((item) => item.material_id === state.selectedMaterialId);
   const shortlist = selectedMaterialRecordsFromCompare();
   const supplier = state.suppliers.find((item) => item.supplier_id === state.latestSupplierId);
+  const activeCase = state.activeCase || defaultActiveCase();
   const chips = [
+    `<span class="pill">Case step: ${escapeHtml(activeCase.workflow_step)}</span>`,
     material ? `<span class="pill">Material: ${escapeHtml(material.name)}</span>` : "",
     supplier ? `<span class="pill">Supplier: ${escapeHtml(supplier.name)}</span>` : "",
     state.latestQuestion ? `<span class="pill">Question: ${escapeHtml(state.latestQuestion)}</span>` : "",
     state.latestGlobalSearch ? `<span class="pill">Search: ${escapeHtml(state.latestGlobalSearch)}</span>` : "",
     shortlist.length ? `<span class="pill">Shortlist: ${escapeHtml(shortlist.map((item) => item.name).join(", "))}</span>` : "",
+    `<span class="pill">Evidence: ${escapeHtml(activeCase.evidence_strength)}</span>`,
+    `<span class="pill">Review: ${escapeHtml(activeCase.review_state.replaceAll("_", " "))}</span>`,
   ].filter(Boolean);
   container.innerHTML = chips.length ? chips.join("") : `<span class="pill">No cross-page context captured yet</span>`;
 }
@@ -843,6 +1376,11 @@ function renderRecommendedNextAction(panel) {
     action = "Refine on Overview";
     target = "overview";
   }
+
+  syncActiveCase({
+    status: target === "workbench" ? "compare" : target === "intelligence" ? "validate" : "discover",
+    workflow_step: target === "workbench" ? "Compare" : target === "intelligence" ? "Validate" : "Discover",
+  });
 
   container.innerHTML = `
     <span class="section-label">Recommended next action</span>
@@ -883,6 +1421,10 @@ function setPage(pageName) {
   currentUrl.searchParams.set("section", "dashboard");
   currentUrl.searchParams.set("page", pageName);
   window.history.replaceState({}, "", currentUrl);
+  syncActiveCase({
+    status: pageName === "overview" ? "discover" : pageName === "workbench" ? "compare" : "validate",
+    workflow_step: pageName === "overview" ? "Discover" : pageName === "workbench" ? "Compare" : "Validate",
+  });
 }
 
 function setSection(sectionName) {
@@ -896,12 +1438,42 @@ function setSection(sectionName) {
     currentUrl.searchParams.delete("page");
   }
   window.history.replaceState({}, "", currentUrl);
+  if (sectionName === "explore") {
+    syncActiveCase({ status: "discover", workflow_step: "Discover" });
+  } else if (sectionName === "contribute" || sectionName === "community") {
+    syncActiveCase({ status: "approve", workflow_step: "Approve" });
+  }
 }
 
 async function loadSession() {
-  state.currentUser = await fetchJson("/auth/session");
+  try {
+    state.currentUser = await fetchJson("/auth/session");
+  } catch {
+    state.currentUser = null;
+  }
+  if (!state.currentUser) {
+    setSessionToken("");
+  }
   if (window.PackGraphAuthShell) {
     window.PackGraphAuthShell.renderUser(state.currentUser);
+  }
+  renderRoleDashboard();
+}
+
+async function loadProjectMemory() {
+  try {
+    state.projectMemory = await fetchJson("/project-memory");
+    const memory = state.projectMemory || {};
+    const savedEntities = memory.saved_entities || [];
+    const comparedEntities = memory.compared_entities || [];
+    syncActiveCase({
+      focus_material_id: state.activeCase?.focus_material_id || savedEntities[0] || null,
+      shortlist_material_ids: state.activeCase?.shortlist_material_ids?.length ? state.activeCase.shortlist_material_ids : comparedEntities,
+      latest_question: state.activeCase?.latest_question || (memory.prior_questions || []).slice(-1)[0] || "",
+      note: state.activeCase?.note || (memory.investigation_notes || []).slice(-1)[0] || "",
+    });
+  } catch {
+    state.projectMemory = null;
   }
 }
 
@@ -924,7 +1496,7 @@ async function loadMaterials() {
   state.applications = await fetchJson("/applications");
   state.regulations = await fetchJson("/regulations");
   state.filteredMaterials = [...state.materials];
-  state.selectedMaterialId = state.materials[0]?.material_id;
+  state.selectedMaterialId = state.activeCase?.focus_material_id || state.materials[0]?.material_id;
   state.selectedGraphNodeId = state.selectedMaterialId;
   populateMaterialControls(state.materials);
   populateFilterOptions();
@@ -936,6 +1508,8 @@ async function loadMaterials() {
     await refreshMaterialContext();
   });
   await refreshMaterialContext();
+  renderCaseWorkspace();
+  renderWorkflowMap();
 }
 
 function populateFilterOptions() {
@@ -1041,13 +1615,19 @@ async function loadMaterialDetail() {
     </div>`;
   updateExportLinks(material);
   populateScenarioControls(material);
+  renderRoleDashboard();
+  syncActiveCase({
+    focus_material_id: material.material_id,
+  });
 }
 
 async function loadProvenance(searchQuery = "") {
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
   const previewPanel = document.getElementById("document-preview-panel");
   if (previewPanel) {
-    previewPanel.innerHTML = `<div class="row-card"><p>Select a document or report to preview extracted fields and source context.</p></div>`;
+    previewPanel.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("Choose a source document", "Preview extracted fields, confidence, citation spans, and missing evidence here.")
+      : `<div class="row-card"><p>Select a document or report to preview extracted fields and source context.</p></div>`;
   }
   document.getElementById("provenance-panel").innerHTML = `
     <div class="detail-card">
@@ -1084,11 +1664,18 @@ async function loadProvenance(searchQuery = "") {
       window.PackGraphWorkbenchPanels.renderEvidenceExtraction(results);
     }
   } else {
-    document.getElementById("document-search-results").innerHTML = `<div class="table-empty">Search evidence to narrow the proof set for the selected material.</div>`;
+    document.getElementById("document-search-results").innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("Search the proof set", "Search evidence to narrow declarations, reports, and certifications for the selected material.")
+      : `<div class="table-empty">Search evidence to narrow the proof set for the selected material.</div>`;
     if (window.PackGraphWorkbenchPanels) {
       window.PackGraphWorkbenchPanels.renderEvidenceExtraction([...(material.documents || []), ...(material.test_reports || [])]);
     }
   }
+  syncActiveCase({
+    evidence_strength: material.documents?.length || material.test_reports?.length ? "moderate" : "weak",
+    status: "validate",
+    workflow_step: "Validate",
+  });
   bindDocumentPreviewActions();
 }
 
@@ -1109,10 +1696,18 @@ async function loadDocumentPreview(documentId) {
       <h5>${escapeHtml(detail.document_type || detail.lab || "Evidence")}</h5>
       <h4>${escapeHtml(detail.title || documentId)}</h4>
       <p>${escapeHtml(detail.preview_text || "No preview text available.")}</p>
+      <div class="tags">
+        <span class="tag">Confidence ${escapeHtml(detail.confidence_summary || "n/a")}</span>
+        ${(detail.missing_fields || []).map((field) => `<span class="tag">Missing ${escapeHtml(field)}</span>`).join("")}
+        ${(detail.pii_flags || []).map((field) => `<span class="tag">PII ${escapeHtml(field)}</span>`).join("")}
+      </div>
       <div class="key-facts">
         ${(detail.extracted_fields || []).map((field) => `<div class="fact"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(field.value)}</strong></div>`).join("")}
       </div>
+      ${(detail.field_confidence || []).length ? `<div class="subsection"><div class="subsection-heading">Field confidence</div>${detail.field_confidence.map((field) => `<div class="score-row"><span>${escapeHtml(field.field_name)}</span><strong>${escapeHtml(Math.round((field.confidence || 0) * 100))}%</strong></div>`).join("")}</div>` : ""}
+      ${(detail.citation_spans || []).length ? `<div class="subsection"><div class="subsection-heading">Citation spans</div>${detail.citation_spans.map((item) => `<div class="row-card"><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
     </div>`;
+  syncActiveCase({ evidence_strength: "strong", status: "validate", workflow_step: "Validate" });
 }
 
 async function loadCompliance() {
@@ -1197,6 +1792,7 @@ async function loadInvestigations() {
   if (window.PackGraphWorkbenchPanels) {
     window.PackGraphWorkbenchPanels.renderInvestigations(investigations, resumeInvestigation);
   }
+  renderActivityTimeline();
 }
 
 async function loadWorkspaces() {
@@ -1214,8 +1810,9 @@ async function loadNotifications() {
     state.notifications = [];
   }
   if (window.PackGraphAuthShell) {
-    window.PackGraphAuthShell.renderNotifications(state.notifications);
+    setNotificationFilter(state.notificationFilter);
   }
+  renderActivityTimeline();
 }
 
 async function loadSavedSearches() {
@@ -1225,6 +1822,109 @@ async function loadSavedSearches() {
     state.savedSearches = [];
   }
   renderSavedSearches();
+}
+
+async function loadReviewQueue() {
+  if (!state.currentUser) {
+    state.reviewQueue = [];
+    state.reviewSummary = { total: 0, pending: 0 };
+    state.selectedReviewCandidateId = null;
+    renderReviewQueue();
+    return;
+  }
+  try {
+    state.reviewQueue = await fetchJson("/review-candidates?limit=12");
+    state.reviewSummary = await fetchJson("/review-candidates/summary");
+    if (!state.selectedReviewCandidateId && state.reviewQueue.length) {
+      state.selectedReviewCandidateId = state.reviewQueue[0].candidate_id;
+    }
+  } catch {
+    state.reviewQueue = [];
+    state.reviewSummary = { total: 0, pending: 0 };
+    state.selectedReviewCandidateId = null;
+  }
+  renderReviewQueue();
+}
+
+function renderReviewQueue() {
+  if (window.PackGraphWorkbenchPanels) {
+    window.PackGraphWorkbenchPanels.renderReviewQueue(
+      state.reviewSummary,
+      state.reviewQueue,
+      state.selectedReviewCandidateId,
+      (candidateId) => {
+        state.selectedReviewCandidateId = candidateId;
+        renderReviewQueue();
+      }
+    );
+  }
+  const detailContainer = document.getElementById("review-detail-panel");
+  if (!detailContainer) return;
+  const selected = state.reviewQueue.find((item) => item.candidate_id === state.selectedReviewCandidateId);
+  if (!selected) {
+    detailContainer.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No review item selected", "Approval detail will appear here once a review candidate is available.")
+      : `<div class="row-card"><p>No review item selected.</p></div>`;
+    return;
+  }
+  const payload = selected.payload || {};
+  detailContainer.innerHTML = `
+    <div class="detail-card">
+      <h5>${escapeHtml(selected.candidate_type.replaceAll("_", " "))}</h5>
+      <h4>${escapeHtml(selected.reason)}</h4>
+      <p>${escapeHtml(selected.status.replaceAll("_", " "))} | reviewer ${escapeHtml(selected.assigned_reviewer_id || "unassigned")}</p>
+      <div class="tags">
+        <span class="tag">Decision ${escapeHtml(selected.decision_state || "new")}</span>
+        <span class="tag">Review before writeback ${selected.review_before_writeback ? "yes" : "no"}</span>
+      </div>
+      ${(payload.missing_evidence || []).length ? `<div class="subsection"><div class="subsection-heading">Missing evidence</div>${payload.missing_evidence.map((item) => `<div class="row-card"><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
+      ${(payload.top_rows || []).length ? `<div class="subsection"><div class="subsection-heading">Top rows</div>${payload.top_rows.map((row) => `<div class="row-card"><strong>${escapeHtml(row.label || row.material_id || row.entity_id || "Candidate")}</strong><p>Score ${escapeHtml(String(row.score ?? ""))}</p></div>`).join("")}</div>` : ""}
+    </div>`;
+}
+
+async function assignSelectedReviewToCurrentUser() {
+  const selected = state.reviewQueue.find((item) => item.candidate_id === state.selectedReviewCandidateId);
+  if (!selected || !state.currentUser) {
+    setStatus("review-status", "Sign in and choose a review item first.", "error");
+    return;
+  }
+  try {
+    await fetchJson(`/review-candidates/${encodeURIComponent(selected.candidate_id)}/assign`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewer_id: state.currentUser.user_id }),
+    });
+    setStatus("review-status", "Assigned the review item to your account.", "success");
+    await Promise.all([loadReviewQueue(), loadNotifications()]);
+  } catch (error) {
+    setStatus("review-status", error.message, "error");
+  }
+}
+
+async function applyReviewDecision(status) {
+  const selected = state.reviewQueue.find((item) => item.candidate_id === state.selectedReviewCandidateId);
+  if (!selected) {
+    setStatus("review-status", "Choose a review item first.", "error");
+    return;
+  }
+  const comment = document.getElementById("review-comment").value.trim();
+  try {
+    await fetchJson(`/review-candidates/${encodeURIComponent(selected.candidate_id)}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, comment, metadata: selected.payload || {} }),
+    });
+    document.getElementById("review-comment").value = "";
+    setStatus("review-status", `Review item moved to ${status.replaceAll("_", " ")}.`, "success");
+    syncActiveCase({
+      review_state: status,
+      status: "approve",
+      workflow_step: "Approve",
+    });
+    await Promise.all([loadReviewQueue(), loadNotifications()]);
+  } catch (error) {
+    setStatus("review-status", error.message, "error");
+  }
 }
 
 function renderSavedSearches() {
@@ -1583,13 +2283,13 @@ async function loadCommunityPosts() {
     renderSurfaceState("community-feed", "error", "Discussions could not load", error.message);
     setStatus("community-status", error.message, "error");
     return;
-  }
-  if (!state.selectedCommunityPostId && state.communityPosts.length) {
-    state.selectedCommunityPostId = state.communityPosts[0].post_id;
-  }
-  if (window.PackGraphCommunityPage) {
-    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost);
-  }
+    }
+    if (!state.selectedCommunityPostId && state.communityPosts.length) {
+      state.selectedCommunityPostId = state.communityPosts[0].post_id;
+    }
+    if (window.PackGraphCommunityPage) {
+      window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost, sendCommunityPostToReview, useCommunityPostInCase);
+    }
   if (state.selectedCommunityPostId) {
     await openCommunityPost(state.selectedCommunityPostId);
   } else if (window.PackGraphCommunityPage) {
@@ -1601,9 +2301,41 @@ async function openCommunityPost(postId) {
   state.selectedCommunityPostId = postId;
   const post = await fetchJson(`/community/posts/${encodeURIComponent(postId)}`);
   if (window.PackGraphCommunityPage) {
-    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost);
+    window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost, sendCommunityPostToReview, useCommunityPostInCase);
     window.PackGraphCommunityPage.renderDetail(post);
   }
+  pushRecentEntity({ id: postId, label: post.title, type: "community_post" });
+}
+
+async function sendCommunityPostToReview(postId) {
+  const post = state.communityPosts.find((item) => item.post_id === postId);
+  if (!post) return;
+  await sendEntityToReview("community_finding", `Community finding requires review: ${post.title}`, {
+    entity_id: post.post_id,
+    display_name: post.title,
+    provenance_snippets: [post.body, ...(post.source_refs || []).slice(0, 2)],
+  });
+}
+
+async function useCommunityPostInCase(postId) {
+  const post = state.communityPosts.find((item) => item.post_id === postId);
+  if (!post) return;
+  const linkedMaterial = post.related_material_id || state.selectedMaterialId;
+  if (linkedMaterial) {
+    await openMaterial(linkedMaterial, "workbench");
+  } else {
+    setPage("workbench");
+  }
+  const notes = document.getElementById("investigation-notes");
+  if (notes) {
+    notes.value = `${notes.value ? `${notes.value}\n\n` : ""}Community finding: ${post.title}\n${post.body}`;
+  }
+  syncActiveCase({
+    note: `Community finding added: ${post.title}`,
+    workflow_step: "Compare",
+    status: "compare",
+  }, { syncMemory: true });
+  setStatus("investigation-status", `Added ${post.title} into the current case draft.`, "success");
 }
 
 async function upvoteCommunityPost(postId) {
@@ -1672,6 +2404,25 @@ async function loadScenarioHistory() {
     history.slice(0, 8),
     "Run a scenario to build a history of before/after outcomes."
   );
+  renderScenarioComparison();
+  renderActivityTimeline();
+}
+
+function renderScenarioComparison() {
+  const container = document.getElementById("scenario-comparison");
+  if (!container) return;
+  if (!state.scenarioComparisons.length) {
+    container.innerHTML = `<div class="row-card"><p>Run two scenarios to compare their impacts side by side.</p></div>`;
+    return;
+  }
+  container.innerHTML = state.scenarioComparisons.map((item, index) => `
+    <div class="row-card">
+      <strong>${escapeHtml(titleCase(item.scenario))}</strong>
+      <p>${escapeHtml(item.summary || "Scenario completed")}</p>
+      <small>${escapeHtml(index === 0 ? "Earlier comparison slot" : "Latest comparison slot")}</small>
+      <div class="tags">${Object.entries(item.metrics || {}).slice(0, 4).map(([key, value]) => `<span class="tag">${escapeHtml(titleCase(key))}: ${escapeHtml(String(value))}</span>`).join("")}</div>
+    </div>
+  `).join("");
 }
 
 async function loadGraph() {
@@ -1748,6 +2499,7 @@ async function runComparison() {
           <button type="button" class="mini-action" data-select-material="${escapeHtml(item.material_id)}">Open</button>
           <button type="button" class="mini-action" data-open-graph="${escapeHtml(item.material_id)}">Open in graph</button>
           <button type="button" class="mini-action" data-run-scenario="supplier_outage">Run scenario</button>
+          <button type="button" class="mini-action" data-send-review="${escapeHtml(item.material_id)}" data-review-type="material_decision" data-review-label="${escapeHtml(item.name)}" data-review-reason="Comparison result needs human approval." data-review-context="Weighted score ${escapeHtml(String(item.weighted_score))}">Send to review</button>
           <button type="button" class="mini-action" data-export-material="${escapeHtml(item.material_id)}">Export</button>
         </div>
       </div>`).join("")
@@ -1755,6 +2507,12 @@ async function runComparison() {
   if (window.PackGraphWorkbenchPanels) {
     window.PackGraphWorkbenchPanels.renderComparisonMatrix(results);
   }
+  syncActiveCase({
+    shortlist_material_ids: payload.material_ids,
+    status: "compare",
+    workflow_step: "Compare",
+    note: results[0] ? `Leading option ${results[0].name} at weighted score ${results[0].weighted_score}.` : state.activeCase?.note || "",
+  }, { syncMemory: true });
   bindInlineActions();
 }
 
@@ -1781,6 +2539,23 @@ function renderGraphNodeInsight(insight) {
   document.getElementById("analytics-summary").innerHTML = (insight.metrics || [])
     .map((item) => `<div class="metric"><div class="value">${escapeHtml(item.value)}</div><div>${escapeHtml(item.label)}</div></div>`)
     .join("");
+  const visuals = document.getElementById("analytics-visuals");
+  if (visuals) {
+    const confidence = Number((insight.metrics || []).find((item) => /confidence/i.test(item.label))?.value || 72);
+    const exposure = Number((insight.metrics || []).find((item) => /risk|exposure/i.test(item.label))?.value || 48);
+    const evidence = Number((insight.related || []).length ? Math.min(100, 32 + insight.related.length * 9) : 24);
+    visuals.innerHTML = [
+      { label: "Confidence", value: confidence, tone: confidence >= 75 ? "good" : confidence >= 50 ? "warn" : "risk", note: "Decision confidence from current graph context." },
+      { label: "Exposure", value: exposure, tone: exposure >= 70 ? "risk" : exposure >= 45 ? "warn" : "good", note: "Higher values indicate more decision pressure." },
+      { label: "Evidence", value: evidence, tone: evidence >= 70 ? "good" : evidence >= 45 ? "warn" : "risk", note: "Coverage signal based on nearby connected context." },
+    ].map((item) => `
+      <div class="signal-meter">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(String(item.value))}%</strong>
+        <div class="signal-meter-track"><div class="signal-meter-fill signal-${escapeHtml(item.tone)}" style="width:${Math.max(0, Math.min(100, item.value))}%;"></div></div>
+        <small>${escapeHtml(item.note)}</small>
+      </div>`).join("");
+  }
 
   document.getElementById("analytics-details").innerHTML = (insight.facts || []).length
     ? insight.facts.map((item) => `<div class="row-card"><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.value)}</p></div>`).join("")
@@ -1828,6 +2603,10 @@ async function selectGraphNode(nodeId) {
   document.querySelectorAll(".graph-node").forEach((button) => {
     button.classList.toggle("active", button.dataset.nodeId === nodeId);
   });
+  const node = state.currentGraph?.nodes?.find((item) => item.id === nodeId);
+  if (node) {
+    pushRecentEntity({ id: nodeId, label: node.label, type: node.type });
+  }
   await loadGraphNodeInsight(nodeId);
 }
 
@@ -1850,7 +2629,11 @@ async function runGlobalSearch() {
   }
   setStatus("global-search-status", hasImage ? "Identifying the uploaded image and checking the product knowledge base..." : "Searching the portfolio...", "info");
   state.latestGlobalSearch = query || imageInput.files[0]?.name || "";
-  renderCrossPageContext();
+  syncActiveCase({
+    latest_search: state.latestGlobalSearch,
+    status: "discover",
+    workflow_step: "Discover",
+  });
   let results = [];
   let related = null;
   let identification = null;
@@ -1897,10 +2680,11 @@ async function runGlobalSearch() {
                 <button type="button" class="mini-action" data-compare-material="${escapeHtml(item.entity_id)}">Compare</button>
                 <button type="button" class="mini-action" data-shortlist-material="${escapeHtml(item.entity_id)}">Shortlist</button>
                 <button type="button" class="mini-action" data-open-graph="${escapeHtml(item.entity_id)}">Graph</button>
+                <button type="button" class="mini-action" data-send-review="${escapeHtml(item.entity_id)}" data-review-type="material_decision" data-review-label="${escapeHtml(item.title)}" data-review-reason="Global search surfaced a candidate for human review." data-review-context="${escapeHtml(item.meta || "")}">Review</button>
               </div>`;
           }
           if (item.entity_type === "supplier") {
-            return `<div class="action-row"><button type="button" class="mini-action" data-open-supplier="${escapeHtml(item.entity_id)}">Open supplier</button></div>`;
+            return `<div class="action-row"><button type="button" class="mini-action" data-open-supplier="${escapeHtml(item.entity_id)}">Open supplier</button><button type="button" class="mini-action" data-send-review="${escapeHtml(item.entity_id)}" data-review-type="supplier_review" data-review-label="${escapeHtml(item.title)}" data-review-reason="Supplier surfaced from global search for review." data-review-context="${escapeHtml(item.meta || "")}">Review</button></div>`;
           }
           if (item.entity_type === "regulation") {
             return `<div class="action-row"><button type="button" class="mini-action" data-open-regulation="${escapeHtml(item.entity_id)}">Open regulation</button></div>`;
@@ -1913,7 +2697,7 @@ async function runGlobalSearch() {
               </div>`;
           }
           const fallbackMaterial = item.entity_type === "report" || item.entity_type === "document" ? state.selectedMaterialId : "";
-          return `<div class="action-row"><button type="button" class="mini-action" data-open-graph="${escapeHtml(fallbackMaterial)}">Open context</button></div>`;
+          return `<div class="action-row"><button type="button" class="mini-action" data-open-graph="${escapeHtml(fallbackMaterial)}">Open context</button>${item.entity_id ? `<button type="button" class="mini-action" data-open-evidence="${escapeHtml(item.entity_id)}">Open evidence</button>` : ""}</div>`;
         },
       },
     ],
@@ -2085,24 +2869,30 @@ function renderSupplierDetail(supplier) {
     container.innerHTML = skeletonBlock("detail");
     return;
   }
+  const watchTone = supplier.disruption_risk_score >= 70 ? "risk" : supplier.disruption_risk_score >= 50 ? "warn" : "good";
   container.innerHTML = `
-    <div class="detail-card">
-      <h5>${escapeHtml(supplier.name)}</h5>
-      <h4>${escapeHtml(supplier.country)} supplier profile</h4>
-      <p class="panel-helper compact-helper">Use this view to understand whether the supplier is stable enough to support the current material path.</p>
+      <div class="detail-card">
+        <h5>${escapeHtml(supplier.name)}</h5>
+        <h4>${escapeHtml(supplier.country)} supplier profile</h4>
+        <p class="panel-helper compact-helper">Use this view to understand whether the supplier is stable enough to support the current material path.</p>
       <div class="key-facts">
         <div class="fact"><span>Lead time</span><strong>${escapeHtml(supplier.lead_time_days)} days</strong></div>
         <div class="fact"><span>Risk</span><strong>${escapeHtml(supplier.disruption_risk_score)}</strong></div>
         <div class="fact"><span>ESG</span><strong>${escapeHtml(supplier.esg_score)}</strong></div>
         <div class="fact"><span>Materials</span><strong>${escapeHtml(supplier.supplied_materials.length)}</strong></div>
       </div>
-      <div class="trend-chip-grid">
-        ${(supplier.certifications_detail || []).map((item) => `<span class="trend-chip">${escapeHtml(item.name)}</span>`).join("")}
+        <div class="trend-chip-grid">
+          ${(supplier.certifications_detail || []).map((item) => `<span class="trend-chip">${escapeHtml(item.name)}</span>`).join("")}
+        </div>
+        <div class="analytics-visuals">
+          <div class="signal-meter"><span>Risk score</span><strong>${escapeHtml(String(supplier.disruption_risk_score))}</strong><div class="signal-meter-track"><div class="signal-meter-fill signal-${watchTone}" style="width:${Math.min(100, supplier.disruption_risk_score)}%;"></div></div><small>Watchlist state for the current supplier profile.</small></div>
+          <div class="signal-meter"><span>Lead time</span><strong>${escapeHtml(String(supplier.lead_time_days))}d</strong><div class="signal-meter-track"><div class="signal-meter-fill signal-${supplier.lead_time_days > 45 ? "risk" : supplier.lead_time_days > 28 ? "warn" : "good"}" style="width:${Math.min(100, supplier.lead_time_days)}%;"></div></div><small>Operational responsiveness indicator.</small></div>
+          <div class="signal-meter"><span>ESG</span><strong>${escapeHtml(String(supplier.esg_score))}</strong><div class="signal-meter-track"><div class="signal-meter-fill signal-${supplier.esg_score >= 75 ? "good" : supplier.esg_score >= 55 ? "warn" : "risk"}" style="width:${Math.min(100, supplier.esg_score)}%;"></div></div><small>Sustainability and governance signal.</small></div>
+        </div>
       </div>
-    </div>
-    <div class="detail-card">
-      <h5>Trend signal</h5>
-      <h4>Risk and lead-time movement</h4>
+      <div class="detail-card">
+        <h5>Trend signal</h5>
+        <h4>Risk and lead-time movement</h4>
       <div class="timeline-chart-footer">
         <span>${(supplier.risk_trend || []).map((item) => `${item.quarter}: risk ${item.risk_score}`).join(" | ") || "No risk trend available."}</span>
       </div>
@@ -2128,19 +2918,25 @@ function renderRegulationDetail(regulation) {
     container.innerHTML = skeletonBlock("detail");
     return;
   }
+  const exposureScore = Math.min(100, (regulation.affected_materials?.length || 0) * 18);
   container.innerHTML = `
-    <div class="detail-card">
-      <h5>${escapeHtml(regulation.name)}</h5>
-      <h4>${regulation.active ? "Active" : "Upcoming"} regulation</h4>
-      <p class="panel-helper compact-helper">Use this panel to understand which materials are exposed, what evidence is missing, and what action should happen next.</p>
+      <div class="detail-card">
+        <h5>${escapeHtml(regulation.name)}</h5>
+        <h4>${regulation.active ? "Active" : "Upcoming"} regulation</h4>
+        <p class="panel-helper compact-helper">Use this panel to understand which materials are exposed, what evidence is missing, and what action should happen next.</p>
       <div class="key-facts">
-        <div class="fact"><span>Effective date</span><strong>${escapeHtml(regulation.effective_date)}</strong></div>
-        <div class="fact"><span>Focus</span><strong>${escapeHtml(titleCase(regulation.focus))}</strong></div>
-        <div class="fact"><span>Affected materials</span><strong>${escapeHtml(regulation.affected_materials.length)}</strong></div>
+          <div class="fact"><span>Effective date</span><strong>${escapeHtml(regulation.effective_date)}</strong></div>
+          <div class="fact"><span>Focus</span><strong>${escapeHtml(titleCase(regulation.focus))}</strong></div>
+          <div class="fact"><span>Affected materials</span><strong>${escapeHtml(regulation.affected_materials.length)}</strong></div>
+        </div>
+        <div class="analytics-visuals">
+          <div class="signal-meter"><span>Exposure</span><strong>${escapeHtml(String(exposureScore))}%</strong><div class="signal-meter-track"><div class="signal-meter-fill signal-${exposureScore >= 70 ? "risk" : exposureScore >= 45 ? "warn" : "good"}" style="width:${exposureScore}%;"></div></div><small>Exposure estimate based on linked materials.</small></div>
+          <div class="signal-meter"><span>Evidence gaps</span><strong>${escapeHtml(String((regulation.evidence_gaps || []).length))}</strong><div class="signal-meter-track"><div class="signal-meter-fill signal-${(regulation.evidence_gaps || []).length > 2 ? "risk" : (regulation.evidence_gaps || []).length ? "warn" : "good"}" style="width:${Math.min(100, ((regulation.evidence_gaps || []).length * 25))}%;"></div></div><small>Missing support before final approval.</small></div>
+          <div class="signal-meter"><span>Watchlist</span><strong>${regulation.active ? "Active" : "Upcoming"}</strong><div class="signal-meter-track"><div class="signal-meter-fill signal-${regulation.active ? "risk" : "warn"}" style="width:${regulation.active ? 90 : 60}%;"></div></div><small>Urgency relative to the current decision window.</small></div>
+        </div>
       </div>
-    </div>
-    <div class="detail-card">
-      <h5>Action context</h5>
+      <div class="detail-card">
+        <h5>Action context</h5>
       <h4>Evidence gaps and next actions</h4>
       <div class="card-list compact-list">
         ${(regulation.evidence_gaps || []).length
@@ -2175,6 +2971,14 @@ async function runScenario() {
     body: JSON.stringify(payload),
   });
   renderScenarioResult(result);
+  state.scenarioComparisons = [...state.scenarioComparisons.slice(-1), { scenario: payload.scenario, summary: result.summary, metrics: result.metrics || {} }];
+  renderScenarioComparison();
+  syncActiveCase({
+    scenario_type: payload.scenario,
+    status: "validate",
+    workflow_step: "Validate",
+    note: result.summary || state.activeCase?.note || "",
+  }, { syncMemory: true });
   await loadScenarioHistory();
 }
 
@@ -2207,6 +3011,9 @@ async function saveInvestigation() {
     comparison_material_ids: state.compareResults.map((item) => item.material_id),
     decision_rationale: document.getElementById("investigation-rationale").value.trim(),
     status: "open",
+    project_status: document.getElementById("investigation-project-status").value,
+    owner_name: document.getElementById("investigation-owner").value.trim(),
+    due_date: document.getElementById("investigation-due-date").value || null,
   };
   const method = state.currentInvestigationId ? "PATCH" : "POST";
   const url = state.currentInvestigationId ? `/investigations/${state.currentInvestigationId}` : "/investigations";
@@ -2217,6 +3024,13 @@ async function saveInvestigation() {
   });
   state.currentInvestigationId = result.investigation_id;
   setStatus("investigation-status", `Saved ${result.title} with ${result.shortlisted_material_ids.length} shortlisted materials.`, "success");
+  syncActiveCase({
+    name: result.title,
+    note: result.decision_rationale || result.notes || state.activeCase?.note || "",
+    status: "approve",
+    workflow_step: "Approve",
+    review_state: result.project_status || "active",
+  }, { syncMemory: true });
   await loadInvestigations();
 }
 
@@ -2224,6 +3038,9 @@ async function resumeInvestigation(investigationId) {
   const investigation = await fetchJson(`/investigations/${investigationId}`);
   state.currentInvestigationId = investigation.investigation_id;
   document.getElementById("investigation-title").value = investigation.title || "";
+  document.getElementById("investigation-project-status").value = investigation.project_status || "active";
+  document.getElementById("investigation-owner").value = investigation.owner_name || "";
+  document.getElementById("investigation-due-date").value = investigation.due_date || "";
   document.getElementById("investigation-notes").value = investigation.notes || "";
   document.getElementById("investigation-rationale").value = investigation.decision_rationale || "";
   if (investigation.focus_material_id) {
@@ -2237,6 +3054,15 @@ async function resumeInvestigation(investigationId) {
   renderCompareSelectionSummary();
   await refreshMaterialContext();
   await runComparison();
+  syncActiveCase({
+    name: investigation.title,
+    note: investigation.decision_rationale || investigation.notes || "",
+    shortlist_material_ids: investigation.shortlisted_material_ids || [],
+    focus_material_id: investigation.focus_material_id || state.selectedMaterialId,
+    status: "compare",
+    workflow_step: "Compare",
+    review_state: investigation.project_status || investigation.status || "active",
+  });
   setStatus("investigation-status", `Resumed ${investigation.title}.`, "success");
 }
 
@@ -2266,6 +3092,12 @@ async function resumeWorkspace(workspaceId) {
     const element = document.getElementById(id);
     if (element) element.value = value;
   });
+  state.graphFilter = filters.graph_filter || "all";
+  state.graphPreset = filters.graph_preset || "full";
+  state.graphIsolateSelection = Boolean(filters.graph_isolate_selection);
+  state.graphCollapsedTypes = Array.isArray(filters.graph_collapsed_types) ? filters.graph_collapsed_types : [];
+  state.graphPinnedNodeIds = Array.isArray(filters.graph_pinned_node_ids) ? filters.graph_pinned_node_ids : [];
+  persistGraphUiState();
   await applyFilters();
   const compare = document.getElementById("compare-materials");
   Array.from(compare.options).forEach((option) => {
@@ -2273,6 +3105,13 @@ async function resumeWorkspace(workspaceId) {
   });
   renderCompareSelectionSummary();
   await runComparison();
+  syncActiveCase({
+    name: workspace.name || "Saved workspace",
+    shortlist_material_ids: workspace.selected_material_ids || [],
+    focus_material_id: state.selectedMaterialId,
+    status: "discover",
+    workflow_step: "Discover",
+  });
 }
 
 function setupPageNavigation() {
@@ -2392,6 +3231,12 @@ function setupGraphFilters() {
   const preset = document.getElementById("graph-preset");
   const isolate = document.getElementById("graph-isolate-selection");
   const reset = document.getElementById("graph-reset-view");
+  const collapse = document.getElementById("graph-collapse-branch");
+  const expand = document.getElementById("graph-expand-branch");
+  const pin = document.getElementById("graph-pin-node");
+  const evidence = document.getElementById("graph-open-evidence");
+  const compare = document.getElementById("graph-compare-node");
+  const saveView = document.getElementById("graph-save-view");
   if (relationshipFilter) {
     relationshipFilter.addEventListener("change", () => {
       state.graphFilter = relationshipFilter.value;
@@ -2418,10 +3263,13 @@ function setupGraphFilters() {
       state.graphFilter = "all";
       state.graphPreset = "full";
       state.graphIsolateSelection = false;
+      state.graphCollapsedTypes = [];
+      state.graphPinnedNodeIds = [];
       if (relationshipFilter) relationshipFilter.value = "all";
       if (preset) preset.value = "full";
       if (isolate) isolate.textContent = "Isolate branch";
       if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+      persistGraphUiState();
       applyGraphZoom();
     });
   }
@@ -2434,9 +3282,79 @@ function setupGraphFilters() {
       if (state.currentGraph) renderGraphCanvas(state.currentGraph);
     });
   });
+  collapse?.addEventListener("click", () => {
+    const type = selectedGraphBranchType();
+    if (!type || state.graphCollapsedTypes.includes(type)) return;
+    state.graphCollapsedTypes = [...state.graphCollapsedTypes, type];
+    persistGraphUiState();
+    if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+  });
+  expand?.addEventListener("click", () => {
+    const type = selectedGraphBranchType();
+    if (!type) return;
+    state.graphCollapsedTypes = state.graphCollapsedTypes.filter((item) => item !== type);
+    persistGraphUiState();
+    if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+  });
+  pin?.addEventListener("click", () => {
+    if (!state.selectedGraphNodeId) return;
+    if (state.graphPinnedNodeIds.includes(state.selectedGraphNodeId)) {
+      state.graphPinnedNodeIds = state.graphPinnedNodeIds.filter((item) => item !== state.selectedGraphNodeId);
+    } else {
+      state.graphPinnedNodeIds = [...state.graphPinnedNodeIds, state.selectedGraphNodeId];
+    }
+    persistGraphUiState();
+    updateGraphActionBar();
+    if (state.currentGraph) renderGraphCanvas(state.currentGraph);
+  });
+  evidence?.addEventListener("click", async () => {
+    const node = selectedGraphNodeRecord();
+    if (!node) return;
+    if (node.type === "document" || node.type === "test_report" || node.type === "report") {
+      setPage("workbench");
+      await loadDocumentPreview(node.id);
+      return;
+    }
+    if (node.type === "supplier") {
+      await openSupplierProfile(node.id);
+      return;
+    }
+    if (node.type === "regulation") {
+      await openRegulationDetail(node.id);
+      return;
+    }
+    setPage("workbench");
+    await loadProvenance();
+  });
+  compare?.addEventListener("click", async () => {
+    const node = selectedGraphNodeRecord();
+    if (!node || node.type !== "material") return;
+    addMaterialToShortlist(node.id);
+    setPage("workbench");
+    await runComparison();
+  });
+  saveView?.addEventListener("click", async () => {
+    const workspaceName = document.getElementById("workspace-name");
+    if (workspaceName && !workspaceName.value.trim()) {
+      workspaceName.value = `Graph view ${new Date().toISOString().slice(0, 10)}`;
+    }
+    document.getElementById("workspace-form")?.requestSubmit();
+  });
 }
 
 function setupForms() {
+  document.addEventListener("keydown", (event) => {
+    const isCommandShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
+    if (isCommandShortcut) {
+      event.preventDefault();
+      openCommandCenter();
+      document.getElementById("command-center-input")?.focus();
+    }
+    if (event.key === "Escape") {
+      closeCommandCenter();
+    }
+  });
+
   document.getElementById("auth-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
@@ -2449,11 +3367,12 @@ function setupForms() {
         }),
       });
       state.currentUser = user;
+      setSessionToken(user.session_token);
       if (window.PackGraphAuthShell) {
         window.PackGraphAuthShell.renderUser(user);
       }
       setStatus("auth-status", `Signed in as ${user.name}.`, "success");
-      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces()]);
+      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces(), loadReviewQueue()]);
     } catch (error) {
       setStatus("auth-status", error.message, "error");
     }
@@ -2472,11 +3391,12 @@ function setupForms() {
         }),
       });
       state.currentUser = user;
+      setSessionToken(user.session_token);
       if (window.PackGraphAuthShell) {
         window.PackGraphAuthShell.renderUser(user);
       }
       setStatus("auth-status", `Created local account for ${user.name}.`, "success");
-      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces()]);
+      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces(), loadReviewQueue()]);
     } catch (error) {
       setStatus("auth-status", error.message, "error");
     }
@@ -2485,10 +3405,14 @@ function setupForms() {
   document.getElementById("auth-logout").addEventListener("click", async () => {
     await fetchJson("/auth/logout", { method: "POST" });
     state.currentUser = null;
+    setSessionToken("");
     if (window.PackGraphAuthShell) {
       window.PackGraphAuthShell.renderUser(null);
       window.PackGraphAuthShell.renderNotifications([]);
     }
+    state.reviewQueue = [];
+    state.reviewSummary = { total: 0, pending: 0 };
+    renderReviewQueue();
     setStatus("auth-status", "Signed out of the local session.", "info");
   });
 
@@ -2497,7 +3421,6 @@ function setupForms() {
     const question = document.getElementById("question-input").value.trim();
     if (!question) return;
     state.latestQuestion = question;
-    renderCrossPageContext();
     const response = await fetchJson("/query/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2505,9 +3428,26 @@ function setupForms() {
     });
     addMessage("Question", question);
     addMessage("PackGraph", response.message);
-    renderStructuredAnswer(response.panel);
+    renderStructuredAnswer({
+      panel: response.panel,
+      meta: {
+        confidence: `${Math.round((response.classifier?.confidence || 0) * 100)}%`,
+        evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
+        review_state: response.review_candidate ? response.review_gate?.status || "review_required" : response.review_gate?.status || "cleared",
+        workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
+      },
+    });
     renderQueryRows(response.rows || []);
     renderExecutionDebug(response);
+    syncActiveCase({
+      latest_question: question,
+      evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
+      review_state: response.review_candidate ? "pending_human_review" : response.review_gate?.status || "cleared",
+      status: response.review_candidate ? "approve" : response.evidence_profile?.evidence_strength === "weak" ? "validate" : "evaluate",
+      workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
+      note: response.panel?.summary || "",
+    }, { syncMemory: true });
+    await Promise.all([loadReviewQueue(), loadNotifications()]);
   });
 
   document.querySelectorAll("[data-prompt]").forEach((button) => {
@@ -2529,6 +3469,11 @@ function setupForms() {
 
   document.getElementById("compare-materials").addEventListener("change", () => {
     renderCompareSelectionSummary();
+    syncActiveCase({
+      shortlist_material_ids: selectedMaterialsFromCompare(),
+      status: "compare",
+      workflow_step: "Compare",
+    });
   });
 
   document.getElementById("document-search-form").addEventListener("submit", async (event) => {
@@ -2565,9 +3510,32 @@ function setupForms() {
   document.getElementById("investigation-clear").addEventListener("click", () => {
     state.currentInvestigationId = null;
     document.getElementById("investigation-title").value = "";
+    document.getElementById("investigation-project-status").value = "active";
+    document.getElementById("investigation-owner").value = "";
+    document.getElementById("investigation-due-date").value = "";
     document.getElementById("investigation-notes").value = "";
     document.getElementById("investigation-rationale").value = "";
     setStatus("investigation-status", "Cleared the current investigation draft.", "info");
+  });
+
+  document.getElementById("case-sync").addEventListener("click", async () => {
+    await syncProjectMemory({
+      saved_entities: [state.activeCase?.focus_material_id],
+      compared_entities: state.activeCase?.shortlist_material_ids || [],
+      prior_questions: [state.activeCase?.latest_question],
+      investigation_notes: [state.activeCase?.note],
+      user_assumptions: [state.activeCase?.workflow_step],
+    });
+    setStatus("case-status", "Synced the active case to project memory.", "success");
+  });
+
+  document.getElementById("case-reset").addEventListener("click", () => {
+    state.activeCase = defaultActiveCase();
+    persistActiveCase();
+    renderCaseWorkspace();
+    renderWorkflowMap();
+    renderCrossPageContext();
+    setStatus("case-status", "Reset the active case workspace.", "info");
   });
 
   document.getElementById("workspace-form").addEventListener("submit", async (event) => {
@@ -2578,7 +3546,7 @@ function setupForms() {
       return;
     }
     setStatus("workspace-status", "Saving workspace context...", "info");
-    await fetchJson("/workspaces", {
+  await fetchJson("/workspaces", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -2595,6 +3563,12 @@ function setupForms() {
           min_performance_score: document.getElementById("filter-performance-score").value,
           supplier_capability: document.getElementById("filter-supplier-capability").value.trim(),
           min_sustainability: document.getElementById("filter-sustainability").value,
+          graph_filter: state.graphFilter,
+          graph_preset: state.graphPreset,
+          graph_isolate_selection: state.graphIsolateSelection,
+          graph_collapsed_types: state.graphCollapsedTypes,
+          graph_pinned_node_ids: state.graphPinnedNodeIds,
+          active_case_name: state.activeCase?.name || "",
         },
         selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
         active_tab: state.currentPage,
@@ -2603,6 +3577,69 @@ function setupForms() {
     document.getElementById("workspace-name").value = "";
     await Promise.all([loadWorkspaces(), loadNotifications()]);
     setStatus("workspace-status", `Saved workspace ${name}.`, "success");
+    syncActiveCase({
+      name,
+      shortlist_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
+      focus_material_id: state.selectedMaterialId,
+      status: "discover",
+      workflow_step: "Discover",
+    }, { syncMemory: true });
+  });
+
+  document.getElementById("command-center-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await runCommandCenter();
+  });
+
+  document.getElementById("command-center-close").addEventListener("click", () => {
+    closeCommandCenter();
+  });
+
+  document.getElementById("command-center-notifications").addEventListener("click", () => {
+    openCommandCenter();
+    document.getElementById("command-center-results").innerHTML = `
+      <div class="command-center-group">
+        <h4>Notification center</h4>
+        <div id="command-center-notification-list" class="card-list compact-list"></div>
+      </div>`;
+    const list = document.getElementById("command-center-notification-list");
+    list.innerHTML = (state.notifications || []).length
+      ? state.notifications.map((item) => `<div class="row-card"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></div>`).join("")
+      : `<div class="row-card"><p>No notifications right now.</p></div>`;
+  });
+
+  document.querySelectorAll("[data-notification-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setNotificationFilter(button.dataset.notificationFilter);
+    });
+  });
+
+  document.getElementById("bookmark-current-entity").addEventListener("click", () => {
+    const graphNode = selectedGraphNodeRecord();
+    if (graphNode) {
+      addBookmark({ id: graphNode.id, label: graphNode.label, type: graphNode.type });
+      return;
+    }
+    const material = state.materials.find((item) => item.material_id === state.selectedMaterialId);
+    if (material) {
+      addBookmark({ id: material.material_id, label: material.name, type: "material" });
+    }
+  });
+
+  document.getElementById("productivity-note").addEventListener("change", (event) => {
+    state.personalWorkspace.quick_note = event.target.value.trim();
+    persistPersonalWorkspace();
+    renderPersonalWorkspace();
+  });
+
+  document.getElementById("add-productivity-reminder").addEventListener("click", () => {
+    const input = document.getElementById("productivity-reminder");
+    const value = input.value.trim();
+    if (!value) return;
+    state.personalWorkspace.reminders = [...(state.personalWorkspace.reminders || []), value].slice(-8);
+    input.value = "";
+    persistPersonalWorkspace();
+    renderPersonalWorkspace();
   });
 
   document.getElementById("global-search-form").addEventListener("submit", async (event) => {
@@ -2618,6 +3655,18 @@ function setupForms() {
     const label = document.getElementById("global-search-image-label");
     const file = event.target.files?.[0];
     label.textContent = file ? `Selected image: ${file.name}` : "No image selected.";
+  });
+
+  document.getElementById("review-assign-self").addEventListener("click", async () => {
+    await assignSelectedReviewToCurrentUser();
+  });
+
+  document.getElementById("review-approve").addEventListener("click", async () => {
+    await applyReviewDecision("approved");
+  });
+
+  document.getElementById("review-reject").addEventListener("click", async () => {
+    await applyReviewDecision("rejected");
   });
 
   document.getElementById("save-explore-search").addEventListener("click", async () => {
@@ -2739,13 +3788,16 @@ function setupForms() {
     link.addEventListener("click", () => {
       const format = link.textContent.trim();
       const materialName = link.dataset.materialName || "selected material";
-      setStatus("export-studio-status", `Preparing ${format} for ${materialName}.`, "success");
+      setStatus("export-studio-status", `Preparing branded ${format} deliverable for ${materialName}.`, "success");
     });
   });
 
 }
 
 async function init() {
+  loadActiveCase();
+  loadUiWorkspaceState();
+  loadPersonalWorkspace();
   setupThemeToggle();
   setupShellNavigation();
   setupPageNavigation();
@@ -2755,14 +3807,21 @@ async function init() {
   setupGraphFilters();
   setupForms();
   setupOverviewOnboardingHint();
+  setNotificationFilter("all");
+  renderCaseWorkspace();
+  renderWorkflowMap();
+  renderPersonalWorkspace();
+  renderActivityTimeline();
   await loadPrivateDataStatus();
+  await loadSession();
   await Promise.all([
-    loadSession(),
     loadMaterials(),
     loadCompliance(),
     loadAlerts(),
     loadInvestigations(),
     loadWorkspaces(),
+    loadProjectMemory(),
+    loadReviewQueue(),
     loadSavedSearches(),
     loadNotifications(),
     loadScenarioHistory(),
@@ -2799,6 +3858,7 @@ async function init() {
     window.PackGraphCommunityPage.renderDetail(null);
   }
   renderCrossPageContext();
+  renderRoleDashboard();
   addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
   const requestedSection = new URLSearchParams(window.location.search).get("section");
   const requestedPage = new URLSearchParams(window.location.search).get("page");

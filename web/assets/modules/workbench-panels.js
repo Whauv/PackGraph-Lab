@@ -62,7 +62,8 @@ window.PackGraphWorkbenchPanels = {
         <div class="row-card">
           <strong>${this.escape(item.title)}</strong>
           <p>${this.escape(item.notes || "No notes captured yet.")}</p>
-          <small>Shortlist ${this.escape((item.shortlisted_material_ids || []).length)} | Status ${this.escape(item.status || "open")}</small>
+          <small>Shortlist ${this.escape((item.shortlisted_material_ids || []).length)} | Status ${this.escape(item.project_status || item.status || "open")} | Owner ${this.escape(item.owner_name || "unassigned")} | Due ${this.escape(item.due_date || "not set")}</small>
+          ${(item.decision_history || []).length ? `<div class="tags">${item.decision_history.slice(-2).map((entry) => `<span class="tag">${this.escape(entry.summary || entry.status || "update")}</span>`).join("")}</div>` : ""}
           <div class="row-actions">
             <button type="button" class="mini-action" data-resume-investigation="${item.investigation_id}">Resume</button>
             <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.csv" target="_blank">CSV</a>
@@ -91,6 +92,30 @@ window.PackGraphWorkbenchPanels = {
       : `<div class="row-card"><p>No workspaces saved yet.</p></div>`;
     container.querySelectorAll("[data-resume-workspace]").forEach((button) => {
       button.addEventListener("click", () => onResume(button.dataset.resumeWorkspace));
+    });
+  },
+
+  renderReviewQueue(summary, records, selectedId, onSelect) {
+    const summaryContainer = document.getElementById("review-queue-summary");
+    const listContainer = document.getElementById("review-queue-list");
+    if (summaryContainer) {
+      summaryContainer.innerHTML = `
+        <div class="metric"><div class="value">${this.escape(summary?.pending ?? 0)}</div><div>pending</div></div>
+        <div class="metric"><div class="value">${this.escape(summary?.total ?? 0)}</div><div>total items</div></div>`;
+    }
+    if (!listContainer) return;
+    if (!records?.length) {
+      listContainer.innerHTML = `<div class="row-card"><p>No review candidates are waiting right now.</p></div>`;
+      return;
+    }
+    listContainer.innerHTML = records.map((item) => `
+      <button type="button" class="row-card review-queue-card ${selectedId === item.candidate_id ? "is-selected" : ""}" data-review-candidate="${item.candidate_id}">
+        <strong>${this.escape(item.reason || item.candidate_type)}</strong>
+        <p>${this.escape(item.candidate_type.replaceAll("_", " "))} | ${this.escape(item.status.replaceAll("_", " "))}</p>
+        <small>${this.escape(item.assigned_reviewer_id || "Unassigned")}</small>
+      </button>`).join("");
+    listContainer.querySelectorAll("[data-review-candidate]").forEach((button) => {
+      button.addEventListener("click", () => onSelect(button.dataset.reviewCandidate));
     });
   },
 

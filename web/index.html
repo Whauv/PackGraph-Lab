@@ -35,7 +35,7 @@
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label">Session</div>
+          <div class="section-label">Current context</div>
           <div class="status-stack">
             <div class="status-card">
               <span>Selected material</span>
@@ -50,6 +50,16 @@
               <strong id="context-alerts">Loading</strong>
             </div>
           </div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">Active case</div>
+          <div id="case-workspace-panel" class="case-workspace-panel"></div>
+          <div class="row-actions">
+            <button type="button" id="case-sync" class="secondary">Sync case</button>
+            <button type="button" id="case-reset" class="secondary">Reset case</button>
+          </div>
+          <div id="case-status" class="upload-status"></div>
         </section>
 
         <section class="sidebar-section">
@@ -68,7 +78,32 @@
 
         <section class="sidebar-section">
           <div class="section-label">Activity</div>
+          <div id="notification-summary" class="metric-grid notification-summary-grid"></div>
+          <div id="notification-filters" class="prompt-row notification-filter-row">
+            <button type="button" class="mini-action active" data-notification-filter="all">All</button>
+            <button type="button" class="mini-action" data-notification-filter="alert">Alerts</button>
+            <button type="button" class="mini-action" data-notification-filter="review_request">Reviews</button>
+            <button type="button" class="mini-action" data-notification-filter="project">Projects</button>
+          </div>
           <div id="notification-list" class="card-list compact-list"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">Timeline</div>
+          <div id="activity-timeline" class="card-list compact-list"></div>
+        </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">My workspace</div>
+          <div class="row-actions">
+            <button type="button" id="bookmark-current-entity" class="secondary">Bookmark current</button>
+          </div>
+          <textarea id="productivity-note" rows="3" placeholder="Quick note for this case"></textarea>
+          <div class="row-actions">
+            <input id="productivity-reminder" type="text" placeholder="Add a reminder" />
+            <button type="button" id="add-productivity-reminder" class="secondary">Add</button>
+          </div>
+          <div id="productivity-panel" class="card-list compact-list"></div>
         </section>
       </aside>
 
@@ -85,7 +120,24 @@
               <button type="button" class="shell-link" data-section="contribute">Contribute</button>
               <button type="button" class="shell-link" data-section="community">Community</button>
             </nav>
+            <form id="command-center-form" class="inline-form shell-command-form">
+              <input id="command-center-input" type="text" placeholder="Search everywhere: materials, suppliers, docs, scenarios, posts" />
+              <button type="submit">Search everywhere</button>
+              <button type="button" id="command-center-notifications" class="secondary">Notifications</button>
+            </form>
           </div>
+        </section>
+
+        <section id="command-center-panel" class="panel command-center-panel" hidden>
+          <div class="panel-header compact-panel-header">
+            <div>
+              <p class="eyebrow">Global search</p>
+              <h3>Search across the whole product</h3>
+            </div>
+            <button type="button" id="command-center-close" class="secondary">Close</button>
+          </div>
+          <div id="command-center-status" class="upload-status"></div>
+          <div id="command-center-results" class="command-center-results"></div>
         </section>
 
         <section class="panel context-ribbon-panel">
@@ -96,6 +148,17 @@
             </div>
           </div>
           <div id="cross-page-context" class="context-ribbon"></div>
+        </section>
+
+        <section class="panel workflow-map-panel">
+          <div class="panel-header compact-panel-header">
+            <div>
+              <p class="eyebrow">Product flow</p>
+              <h3>Discover -> Evaluate -> Compare -> Validate -> Approve -> Export</h3>
+            </div>
+            <div id="workflow-summary" class="panel-kicker">Overview drives discovery. Workbench validates and packages the decision.</div>
+          </div>
+          <div id="workflow-map" class="workflow-map"></div>
         </section>
 
         <section class="product-section active" data-section="dashboard">
@@ -245,6 +308,7 @@
                   <h4 id="answer-panel-title">Decision output</h4>
                   <p id="answer-panel-summary">Run a question to see structured recommendations, reasons, risk flags, and next steps.</p>
                 </div>
+                <div id="answer-panel-meta" class="structured-answer-meta"></div>
                 <div class="structured-answer-priority">
                   <div>
                     <span class="section-label">Decision guidance</span>
@@ -489,6 +553,11 @@
               <div class="workbench-evidence-grid">
                 <form id="investigation-form" class="stack-form">
                   <input id="investigation-title" type="text" placeholder="Investigation title" />
+                  <div class="compare-layout case-meta-layout">
+                    <label><span class="field-label">Project status</span><select id="investigation-project-status"><option value="active">Active</option><option value="needs_review">Needs review</option><option value="approved">Approved</option><option value="archived">Archived</option></select></label>
+                    <label><span class="field-label">Owner</span><input id="investigation-owner" type="text" placeholder="Owner name" /></label>
+                    <label><span class="field-label">Due date</span><input id="investigation-due-date" type="date" /></label>
+                  </div>
                   <textarea id="investigation-notes" rows="4" placeholder="Why are we evaluating this candidate set?"></textarea>
                   <textarea id="investigation-rationale" rows="4" placeholder="Decision rationale and tradeoffs"></textarea>
                   <div class="row-actions">
@@ -506,6 +575,34 @@
                     <div class="subsection-heading">Saved workspaces</div>
                     <div id="workspace-list" class="card-list compact-list"></div>
                   </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel workbench-review-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Approval</p>
+                  <h3>Review and approval flow</h3>
+                </div>
+                <div class="panel-kicker">Assign, comment, approve, reject.</div>
+              </div>
+              <div id="review-queue-summary" class="metric-grid"></div>
+              <div class="workbench-review-layout">
+                <div>
+                  <div class="subsection-heading">Queue</div>
+                  <div id="review-queue-list" class="card-list compact-list"></div>
+                </div>
+                <div class="stack-form">
+                  <div class="subsection-heading">Selected review item</div>
+                  <div id="review-detail-panel" class="detail-layout"></div>
+                  <textarea id="review-comment" rows="3" placeholder="Add a reviewer comment or approval note"></textarea>
+                  <div class="row-actions">
+                    <button type="button" id="review-assign-self" class="secondary">Assign to me</button>
+                    <button type="button" id="review-approve">Approve</button>
+                    <button type="button" id="review-reject" class="secondary">Reject</button>
+                  </div>
+                  <div id="review-status" class="upload-status"></div>
                 </div>
               </div>
             </article>
@@ -593,6 +690,10 @@
                 <div class="subsection-heading">History</div>
                 <div id="scenario-history" class="table-card"></div>
               </div>
+              <div class="subsection">
+                <div class="subsection-heading">Scenario comparison</div>
+                <div id="scenario-comparison" class="card-list compact-list"></div>
+              </div>
             </article>
             </aside>
           </section>
@@ -647,7 +748,7 @@
                     </div>
                     </div>
                   </div>
-                  <div id="graph-branch-chips" class="graph-branch-chips">
+              <div id="graph-branch-chips" class="graph-branch-chips">
                     <button type="button" class="mini-action graph-branch-chip active" data-graph-chip="all">All</button>
                     <button type="button" class="mini-action graph-branch-chip" data-graph-chip="SUPPLIED_BY">Suppliers</button>
                     <button type="button" class="mini-action graph-branch-chip" data-graph-chip="REVIEWED_UNDER">Regulations</button>
@@ -655,6 +756,14 @@
                     <button type="button" class="mini-action graph-branch-chip" data-graph-chip="SUBSTITUTES_WITH">Substitutes</button>
                   </div>
                   <div id="graph-context-bar" class="graph-context-bar"></div>
+                  <div id="graph-action-bar" class="graph-action-bar">
+                    <button type="button" id="graph-collapse-branch" class="mini-action secondary">Collapse branch</button>
+                    <button type="button" id="graph-expand-branch" class="mini-action secondary">Expand branch</button>
+                    <button type="button" id="graph-pin-node" class="mini-action secondary">Pin node</button>
+                    <button type="button" id="graph-open-evidence" class="mini-action secondary">Open evidence</button>
+                    <button type="button" id="graph-compare-node" class="mini-action secondary">Compare from node</button>
+                    <button type="button" id="graph-save-view" class="mini-action secondary">Save graph view</button>
+                  </div>
                   <div id="graph-subgraph" class="graph-canvas">
                     <div id="graph-viewport" class="graph-viewport">
                       <svg id="graph-edges" class="graph-edges" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -694,6 +803,7 @@
               </div>
               <p id="insight-summary" class="panel-helper">Open a node to review its local context, recent signals, and nearby entities.</p>
               <div id="analytics-summary" class="metric-grid"></div>
+              <div id="analytics-visuals" class="analytics-visuals"></div>
               <div class="split-grid">
                 <div>
                   <div class="subsection-heading">Details</div>
