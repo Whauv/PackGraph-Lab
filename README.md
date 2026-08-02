@@ -97,8 +97,10 @@ It includes:
 - API hardening through stronger request validation, rate limiting, idempotent mutation endpoints, structured error envelopes, and readiness/live health endpoints
 - Observability support for JSONL event logs, request metrics snapshots, runtime health checks, and job backlog summaries
 - Flexible local-source ingest support for recursive JSON folders and optional SQLite sources selected from CLI or `.env`
-- Ingest profiling with schema/source summaries, duplicate-content reporting, provenance metadata, and per-domain metrics
-- Review workflow support for summaries, pending export, reviewed-decision import, and structured audit logging
+- Ingest profiling with schema/source summaries, duplicate-content reporting, nested-folder depth summaries, structured validation errors, provenance metadata, resumable run-state files, and per-domain metrics
+- Review workflow support for summaries, enriched pending export payloads, reviewed-decision import, and structured audit logging
+- Local-first ER controls with hashed decision cache keys, configurable confidence thresholds, persistent audit trails, and evaluation dataset support
+- Operator status/dashboard and graph-schema metadata scaffolding for safer local administration
 - Scenario engine for supplier outages, regulation activation, reformulation targets, and cost constraints
 - Document intelligence support for uploaded evidence metadata and extracted field presentation
 - Export support for PDF and CSV flows
@@ -251,6 +253,24 @@ python scripts/ingest_graph.py --profile-only --json-source-dir .\\private_data 
 python scripts/ingest_graph.py
 ```
 
+Dry-run the ingest without writing to Neo4j:
+
+```bash
+python scripts/ingest_graph.py --dry-run
+```
+
+Limit a large nested folder scan:
+
+```bash
+python scripts/ingest_graph.py --profile-only --max-files 25
+```
+
+Resume a previous run-state artifact:
+
+```bash
+python scripts/ingest_graph.py --resume-run-id ING-20260802091500-ABC123
+```
+
 Profile and save the observability report:
 
 ```bash
@@ -281,6 +301,24 @@ Import reviewed decisions and optionally apply them to the persistent match cach
 
 ```bash
 python scripts/review_workflow.py import --input .\\review-exports\\reviewed-decisions.json --apply
+```
+
+### ER evaluation
+
+```bash
+python scripts/evaluate_entity_resolution.py
+```
+
+### Operator status
+
+```bash
+python scripts/status_dashboard.py
+```
+
+### Graph schema metadata
+
+```bash
+python scripts/migrate_graph_schema.py --apply --notes "{\"source\":\"local migration\"}"
 ```
 
 ### Background jobs
@@ -394,6 +432,8 @@ The optional wrapper lives in `agents/packgraph_lab_agent/agent.py` and exposes 
 - `GET /private-data/schema` returns field/type summaries without exposing values, filenames, or folder names.
 - Natural-language queries can use private data for searches across products, suppliers, materials, locations, grades, and keyword matches.
 - Private matches remain read-only until a human-review decision clears any graph write-back.
+- Local folder ingest can come either from `.env` defaults or from explicit CLI overrides.
+- External-model usage is disabled by default, so the safe local-first path remains the standard runtime.
 
 ## Data model overview
 

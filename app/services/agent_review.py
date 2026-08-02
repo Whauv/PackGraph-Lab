@@ -159,7 +159,11 @@ class ReviewCandidateStore:
         ]
 
     def export_pending(self, destination: Path, org_id: str | None = None) -> dict[str, Any]:
-        pending = [record for record in self.list(org_id=org_id, limit=1000) if record["status"] in {"pending_human_review", "assigned", "in_approval"}]
+        pending = [
+            self._format_pending_export(record)
+            for record in self.list(org_id=org_id, limit=1000)
+            if record["status"] in {"pending_human_review", "assigned", "in_approval"}
+        ]
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(json.dumps(pending, indent=2), encoding="utf-8")
         self._append_audit("exported_pending", {"destination": str(destination), "count": len(pending)})
@@ -217,3 +221,27 @@ class ReviewCandidateStore:
         entry = {"timestamp": datetime.now(UTC).isoformat(), "action": action, "payload": payload}
         with self.audit_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry) + "\n")
+
+    def _format_pending_export(self, record: dict[str, Any]) -> dict[str, Any]:
+        payload = record.get("payload", {})
+        history = record.get("history", [])
+        comparison = payload.get("comparison", {})
+        return {
+            **record,
+            "display_name": payload.get("display_name")
+            or comparison.get("left_label")
+            or comparison.get("right_label")
+            or record["candidate_id"],
+            "reviewer_fields": {
+                "assigned_reviewer_id": record.get("assigned_reviewer_id"),
+                "decision_state": record.get("decision_state"),
+                "last_updated_at": record.get("updated_at"),
+            },
+            "provenance_snippets": payload.get("provenance_snippets", []),
+            "score_breakdown": comparison.get("score_breakdown") or payload.get("score_breakdown") or {},
+            "audit_payload": {
+                "reason": record.get("reason"),
+                "history_events": len(history),
+                "latest_history": history[-1] if history else None,
+            },
+        }

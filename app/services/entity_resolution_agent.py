@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, UTC
+import hashlib
 import json
 import re
 from typing import Any
@@ -47,6 +48,7 @@ class EntityResolutionAgent:
         self.settings = settings or get_settings()
         self.cache = MatchDecisionCache(self.settings.match_decision_cache_path)
         self.audit_path = self.settings.entity_resolution_audit_path
+        self.active_backend = self._resolve_backend()
 
     def analyze(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
         comparisons = []
@@ -62,6 +64,7 @@ class EntityResolutionAgent:
         auto_items = [item for item in comparisons if item["decision"] == "auto_commit"]
         return {
             "checked_rows": len(rows),
+            "backend": self.active_backend,
             "duplicate_groups": comparisons,
             "auto_commit_candidates": auto_items,
             "review_candidates": review_items,
@@ -70,12 +73,18 @@ class EntityResolutionAgent:
 
     def compare_records(self, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
         pair_key = self._pair_key(left, right)
-        cached = self.cache.get(pair_key)
-        if cached:
-            return {**cached, "decision_source": "cache"}
-
         left_label = self._label_for_row(left)
         right_label = self._label_for_row(right)
+        cached = self.cache.get(pair_key)
+        if cached:
+            return {
+                **cached,
+                "left_label": left_label,
+                "right_label": right_label,
+                "pair_key": pair_key,
+                "decision_source": "cache",
+            }
+
         lexical = self._token_similarity(left_label, right_label)
         numeric = self._numeric_similarity(left, right)
         score = round((lexical * 0.75) + (numeric * 0.25), 3)
@@ -90,11 +99,29 @@ class EntityResolutionAgent:
             "right_label": right_label,
             "confidence": score,
             "decision": decision,
+            "backend": self.active_backend,
+            "score_breakdown": {
+                "lexical_similarity": round(lexical, 3),
+                "numeric_similarity": round(numeric, 3),
+                "decision_thresholds": {
+                    "review": self.settings.er_review_threshold,
+                    "auto_commit": self.settings.er_auto_accept_threshold,
+                },
+            },
             "reason": f"Lexical similarity {lexical:.2f}, numeric similarity {numeric:.2f}.",
         }
-        self.cache.set(pair_key, result)
+        self.cache.set(
+            pair_key,
+            {
+                "confidence": result["confidence"],
+                "decision": result["decision"],
+                "backend": result["backend"],
+                "score_breakdown": result["score_breakdown"],
+                "reason": result["reason"],
+            },
+        )
         self._append_audit(pair_key, result)
-        return {**result, "decision_source": "heuristic"}
+        return {**result, "pair_key": pair_key, "decision_source": self.active_backend}
 
     def _append_audit(self, pair_key: str, result: dict[str, Any]) -> None:
         entry = {"timestamp": datetime.now(UTC).isoformat(), "pair_key": pair_key, **result}
@@ -103,7 +130,22 @@ class EntityResolutionAgent:
 
     def _pair_key(self, left: dict[str, Any], right: dict[str, Any]) -> str:
         labels = sorted([self._label_for_row(left), self._label_for_row(right)])
-        return "|".join(labels)
+        payload = json.dumps(
+            {
+                "kind": self._row_kind(left),
+                "labels": labels,
+            },
+            sort_keys=True,
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
+
+    def _resolve_backend(self) -> str:
+        configured = (self.settings.er_backend or "heuristic").strip().lower()
+        if configured in {"heuristic", "local"}:
+            return configured
+        if not self.settings.llm_enabled:
+            return "heuristic"
+        return configured
 
     def _label_for_row(self, row: dict[str, Any]) -> str:
         return str(

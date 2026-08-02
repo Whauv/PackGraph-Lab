@@ -22,6 +22,18 @@ class Settings:
     neo4j_auto_ingest: bool = False
     ingest_parser_name: str = "packgraph-local-ingest"
     ingest_parser_version: str = "2.0"
+    ingest_schema_version: str = "2026.08.02"
+    ingest_report_dir: Path = Path("./data/runtime/reports")
+    ingest_state_dir: Path = Path("./data/runtime/ingest_state")
+    transform_cache_path: Path = Path("./data/runtime/transform_cache.json")
+    graph_schema_version: str = "2026.08.02"
+    er_eval_dataset_path: Path = Path("./tests/fixtures/entity_resolution_eval.json")
+    llm_enabled: bool = False
+    llm_backend: str = "disabled"
+    embeddings_backend: str = "local"
+    er_backend: str = "heuristic"
+    adjudicator_backend: str = "local"
+    outbound_field_allowlist: str = "entity_type,label,score,preview,fields,question,intent,route,top_rows,missing_evidence,entity_resolution"
     project_memory_path: Path = Path("./data/staging/project_memory.json")
     review_candidates_path: Path = Path("./data/staging/agent_review_candidates.json")
     agent_audit_path: Path = Path("./data/runtime/agent_audit.jsonl")
@@ -56,6 +68,18 @@ def get_settings() -> Settings:
         neo4j_auto_ingest=os.getenv("NEO4J_AUTO_INGEST", "false").lower() in {"1", "true", "yes", "on"},
         ingest_parser_name=os.getenv("PACKGRAPH_INGEST_PARSER_NAME", "packgraph-local-ingest"),
         ingest_parser_version=os.getenv("PACKGRAPH_INGEST_PARSER_VERSION", "2.0"),
+        ingest_schema_version=os.getenv("PACKGRAPH_INGEST_SCHEMA_VERSION", "2026.08.02"),
+        ingest_report_dir=Path(os.getenv("PACKGRAPH_INGEST_REPORT_DIR", "./data/runtime/reports")),
+        ingest_state_dir=Path(os.getenv("PACKGRAPH_INGEST_STATE_DIR", "./data/runtime/ingest_state")),
+        transform_cache_path=Path(os.getenv("PACKGRAPH_TRANSFORM_CACHE_PATH", "./data/runtime/transform_cache.json")),
+        graph_schema_version=os.getenv("PACKGRAPH_GRAPH_SCHEMA_VERSION", "2026.08.02"),
+        er_eval_dataset_path=Path(os.getenv("PACKGRAPH_ER_EVAL_DATASET_PATH", "./tests/fixtures/entity_resolution_eval.json")),
+        llm_enabled=os.getenv("PACKGRAPH_LLM_ENABLED", "false").lower() in {"1", "true", "yes", "on"},
+        llm_backend=os.getenv("PACKGRAPH_LLM_BACKEND", "disabled"),
+        embeddings_backend=os.getenv("PACKGRAPH_EMBEDDINGS_BACKEND", "local"),
+        er_backend=os.getenv("PACKGRAPH_ER_BACKEND", "heuristic"),
+        adjudicator_backend=os.getenv("PACKGRAPH_ADJUDICATOR_BACKEND", "local"),
+        outbound_field_allowlist=os.getenv("PACKGRAPH_OUTBOUND_FIELD_ALLOWLIST", "entity_type,label,score,preview,fields,question,intent,route,top_rows,missing_evidence,entity_resolution"),
         project_memory_path=Path(os.getenv("PACKGRAPH_PROJECT_MEMORY_PATH", "./data/staging/project_memory.json")),
         review_candidates_path=Path(os.getenv("PACKGRAPH_REVIEW_CANDIDATES_PATH", "./data/staging/agent_review_candidates.json")),
         agent_audit_path=Path(os.getenv("PACKGRAPH_AGENT_AUDIT_PATH", "./data/runtime/agent_audit.jsonl")),
@@ -79,6 +103,9 @@ def get_settings() -> Settings:
     settings.runtime_db_path.parent.mkdir(parents=True, exist_ok=True)
     settings.observability_log_path.parent.mkdir(parents=True, exist_ok=True)
     settings.metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.ingest_report_dir.mkdir(parents=True, exist_ok=True)
+    settings.ingest_state_dir.mkdir(parents=True, exist_ok=True)
+    settings.transform_cache_path.parent.mkdir(parents=True, exist_ok=True)
     if not settings.project_memory_path.exists():
         settings.project_memory_path.write_text(
             '{"saved_entities":[],"saved_suppliers":[],"prior_questions":[],"compared_entities":[],"user_assumptions":[],"uploaded_file_references":[],"investigation_notes":[]}',
@@ -88,4 +115,6 @@ def get_settings() -> Settings:
         settings.review_candidates_path.write_text("[]", encoding="utf-8")
     if not settings.match_decision_cache_path.exists():
         settings.match_decision_cache_path.write_text("{}", encoding="utf-8")
+    if not settings.transform_cache_path.exists():
+        settings.transform_cache_path.write_text("{}", encoding="utf-8")
     return settings

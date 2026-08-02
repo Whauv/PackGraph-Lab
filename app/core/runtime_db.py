@@ -217,6 +217,18 @@ MIGRATIONS: list[tuple[str, list[str]]] = [
             """,
         ],
     ),
+    (
+        "003_graph_schema_metadata",
+        [
+            """
+            CREATE TABLE IF NOT EXISTS graph_schema_metadata (
+                graph_schema_version TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL,
+                notes_json TEXT NOT NULL
+            )
+            """
+        ],
+    ),
 ]
 
 

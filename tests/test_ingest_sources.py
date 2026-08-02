@@ -56,16 +56,21 @@ class IngestSourceTests(unittest.TestCase):
         self.assertEqual(summary["source_profile"]["sqlite_tables_scanned"], 1)
         self.assertTrue(summary["source_profile"]["invalid_sources"])
         self.assertTrue(summary["source_profile"]["duplicate_content_report"])
+        self.assertIn("nested_folder_depth_summary", summary["source_profile"])
+        self.assertTrue(summary["source_profile"]["validation_errors"] or summary["source_profile"]["parse_errors"])
 
     def test_ingestable_records_include_provenance_metadata(self):
         service = PrivateDataService(self.json_dir, self.sqlite_path, parser_name="tester", parser_version="9.9")
-        rows = service.ingestable_records()
+        rows = service.ingestable_records(run_id="ING-TEST")
         self.assertTrue(rows)
         first = rows[0]
         self.assertIn("provenance_id", first)
         self.assertIn("source_record_id", first)
         self.assertEqual(first["parser_name"], "tester")
         self.assertEqual(first["parser_version"], "9.9")
+        self.assertEqual(first["run_id"], "ING-TEST")
+        self.assertIn("schema_version", first)
+        self.assertIn("file_size_bytes", first)
 
 
 if __name__ == "__main__":
