@@ -3,6 +3,8 @@ from functools import lru_cache
 from pathlib import Path
 import os
 
+from app.services.security_utils import secure_mkdir, secure_write_text
+
 
 @dataclass
 class Settings:
@@ -95,26 +97,26 @@ def get_settings() -> Settings:
         observability_log_path=Path(os.getenv("PACKGRAPH_OBSERVABILITY_LOG_PATH", "./data/runtime/app_events.jsonl")),
         metrics_path=Path(os.getenv("PACKGRAPH_METRICS_PATH", "./data/runtime/metrics_snapshot.json")),
     )
-    settings.packgraph_data_dir.mkdir(parents=True, exist_ok=True)
-    settings.packgraph_runtime_dir.mkdir(parents=True, exist_ok=True)
-    settings.packgraph_staging_dir.mkdir(parents=True, exist_ok=True)
-    settings.private_data_dir.mkdir(parents=True, exist_ok=True)
-    settings.json_ingest_dir.mkdir(parents=True, exist_ok=True)
-    settings.runtime_db_path.parent.mkdir(parents=True, exist_ok=True)
-    settings.observability_log_path.parent.mkdir(parents=True, exist_ok=True)
-    settings.metrics_path.parent.mkdir(parents=True, exist_ok=True)
-    settings.ingest_report_dir.mkdir(parents=True, exist_ok=True)
-    settings.ingest_state_dir.mkdir(parents=True, exist_ok=True)
-    settings.transform_cache_path.parent.mkdir(parents=True, exist_ok=True)
+    secure_mkdir(settings.packgraph_data_dir)
+    secure_mkdir(settings.packgraph_runtime_dir)
+    secure_mkdir(settings.packgraph_staging_dir)
+    secure_mkdir(settings.private_data_dir)
+    secure_mkdir(settings.json_ingest_dir)
+    secure_mkdir(settings.runtime_db_path.parent)
+    secure_mkdir(settings.observability_log_path.parent)
+    secure_mkdir(settings.metrics_path.parent)
+    secure_mkdir(settings.ingest_report_dir)
+    secure_mkdir(settings.ingest_state_dir)
+    secure_mkdir(settings.transform_cache_path.parent)
     if not settings.project_memory_path.exists():
-        settings.project_memory_path.write_text(
+        secure_write_text(
+            settings.project_memory_path,
             '{"saved_entities":[],"saved_suppliers":[],"prior_questions":[],"compared_entities":[],"user_assumptions":[],"uploaded_file_references":[],"investigation_notes":[]}',
-            encoding="utf-8",
         )
     if not settings.review_candidates_path.exists():
-        settings.review_candidates_path.write_text("[]", encoding="utf-8")
+        secure_write_text(settings.review_candidates_path, "[]")
     if not settings.match_decision_cache_path.exists():
-        settings.match_decision_cache_path.write_text("{}", encoding="utf-8")
+        secure_write_text(settings.match_decision_cache_path, "{}")
     if not settings.transform_cache_path.exists():
-        settings.transform_cache_path.write_text("{}", encoding="utf-8")
+        secure_write_text(settings.transform_cache_path, "{}")
     return settings

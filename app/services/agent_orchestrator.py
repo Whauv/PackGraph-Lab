@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, UTC
-import json
 from typing import Any
 
 from app.core.config import Settings
 from app.services.agent_state_machine import build_state_machine
+from app.services.security_utils import sanitize_audit_payload, secure_append_jsonl
 
 
 class AgentOrchestrationRecorder:
@@ -43,11 +43,10 @@ class AgentOrchestrationRecorder:
         return build_state_machine("review_checked", details)
 
     def append_audit(self, question: str, orchestration: dict[str, Any], review_candidate: dict[str, Any] | None) -> None:
-        entry = {
+        entry = sanitize_audit_payload({
             "timestamp": datetime.now(UTC).isoformat(),
             "question": question,
             "orchestration": orchestration,
             "review_candidate_id": review_candidate["candidate_id"] if review_candidate else None,
-        }
-        with self.audit_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry) + "\n")
+        })
+        secure_append_jsonl(self.audit_path, entry)

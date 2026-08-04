@@ -40,13 +40,38 @@ class ReviewWorkflowTests(unittest.TestCase):
         self.tempdir.cleanup()
 
     def test_summary_export_and_import_apply(self):
-        created = self.store.create("entity_resolution", "Need review", {"foo": "bar"})
+        created = self.store.create(
+            "entity_resolution",
+            "Need review",
+            {
+                "display_name": "Film A11 duplicate",
+                "comparison": {"left_label": "Film A11", "right_label": "Film A-11", "score_breakdown": {"lexical": 0.91}},
+                "top_rows": [{"entity_type": "material", "label": "Film A11", "file_path": "C:/secret/materials.json", "source_url": "https://hidden.example"}],
+                "provenance_snippets": ["Internal declaration paragraph"],
+            },
+        )
         summary = self.store.summary()
         self.assertEqual(summary["pending"], 1)
 
         export_path = Path(self.tempdir.name) / "pending.json"
         exported = self.store.export_pending(export_path)
         self.assertEqual(exported["count"], 1)
+        exported_payload = json.loads(export_path.read_text(encoding="utf-8"))
+        self.assertEqual(exported_payload[0]["display_name"], "Film A11 duplicate")
+        self.assertIn("payload", exported_payload[0])
+        self.assertNotIn("raw_payload", exported_payload[0]["payload"])
+        self.assertNotIn("file_path", json.dumps(exported_payload[0]))
+        self.assertNotIn("source_url", json.dumps(exported_payload[0]))
+
+        csv_path = Path(self.tempdir.name) / "pending.csv"
+        exported_csv = self.store.export_pending(csv_path)
+        self.assertEqual(exported_csv["format"], "csv")
+        self.assertIn("candidate_id", csv_path.read_text(encoding="utf-8"))
+
+        raw_export_path = Path(self.tempdir.name) / "pending-raw.json"
+        self.store.export_pending(raw_export_path, include_raw_props=True)
+        raw_payload = json.loads(raw_export_path.read_text(encoding="utf-8"))
+        self.assertIn("raw_payload", raw_payload[0]["payload"])
 
         reviewed = [
             {
@@ -66,6 +91,10 @@ class ReviewWorkflowTests(unittest.TestCase):
         self.assertEqual(result["applied"], 1)
         cache = json.loads(self.settings.match_decision_cache_path.read_text(encoding="utf-8"))
         self.assertIn("left|right", cache)
+        audit_lines = self.settings.review_audit_path.read_text(encoding="utf-8").splitlines()
+        self.assertTrue(audit_lines)
+        self.assertNotIn("source_url", audit_lines[-1])
+        self.assertNotIn("C:/secret/materials.json", audit_lines[0])
 
 
 if __name__ == "__main__":

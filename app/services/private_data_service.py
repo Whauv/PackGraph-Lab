@@ -10,6 +10,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from app.services.security_utils import filtered_provenance, hash_text, secure_write_json
+
 
 class TransformCache:
     def __init__(self, path: Path | None = None):
@@ -17,7 +19,7 @@ class TransformCache:
         if self.path:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             if not self.path.exists():
-                self.path.write_text("{}", encoding="utf-8")
+                secure_write_json(self.path, {})
 
     def load(self) -> dict[str, Any]:
         if not self.path:
@@ -32,7 +34,7 @@ class TransformCache:
             return
         payload = self.load()
         payload[key] = value
-        self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        secure_write_json(self.path, payload)
 
 
 class PrivateDataService:
@@ -142,12 +144,12 @@ class PrivateDataService:
                 row["source_kind"] = dataset["source_kind"]
                 row["content_hash"] = self._record_hash(row)
                 row["run_id"] = run_id
-                row["source_file"] = dataset.get("source_file")
-                row["source_url"] = dataset.get("source_url")
+                row["source_name"] = dataset.get("source_file")
                 row["file_path"] = dataset.get("source_path")
                 row["file_size_bytes"] = dataset.get("file_size_bytes")
                 row["schema_version"] = dataset["schema_version"]
                 row["validation_error_count"] = len(dataset.get("validation_errors", []))
+                row["provenance"] = filtered_provenance(row)
                 rows.append(row)
         return rows
 
@@ -251,7 +253,6 @@ class PrivateDataService:
                 "schema_version": self.schema_version,
                 "source_file": path.name,
                 "source_path": str(path),
-                "source_url": None,
                 "file_size_bytes": path.stat().st_size,
                 "max_nested_depth": relative_depth,
                 "validation_errors": validation_errors,
@@ -290,7 +291,6 @@ class PrivateDataService:
                             "schema_version": self.schema_version,
                             "source_file": sqlite_file.name,
                             "source_path": f"{sqlite_file}:{table_name}",
-                            "source_url": None,
                             "file_size_bytes": sqlite_file.stat().st_size,
                             "max_nested_depth": 0,
                             "validation_errors": validation_errors,
@@ -478,7 +478,7 @@ class PrivateDataService:
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
 
     def _hash_text(self, value: str) -> str:
-        return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
+        return hash_text(value)
 
     def _value_type(self, value: Any) -> str:
         if isinstance(value, bool):

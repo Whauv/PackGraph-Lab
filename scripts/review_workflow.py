@@ -20,8 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("summary", help="Show review summary counts.")
 
-    export_parser = subparsers.add_parser("export", help="Export pending review items.")
-    export_parser.add_argument("--output", required=True, help="Destination JSON path.")
+    export_parser = subparsers.add_parser("export", help="Export pending review items using safe fields by default.")
+    export_parser.add_argument("--output", required=True, help="Destination JSON or CSV path.")
+    export_parser.add_argument("--include-raw-props", action="store_true", help="Opt in to raw review payloads in export output.")
 
     import_parser = subparsers.add_parser("import", help="Import reviewed decisions.")
     import_parser.add_argument("--input", required=True, help="Reviewed decision JSON path.")
@@ -36,7 +37,7 @@ def main(argv: list[str] | None = None) -> dict:
     if args.command == "summary":
         payload = store.summary()
     elif args.command == "export":
-        payload = store.export_pending(Path(args.output))
+        payload = store.export_pending(Path(args.output), include_raw_props=args.include_raw_props)
     else:
         payload = store.import_reviewed_decisions(Path(args.input), apply=args.apply)
     print(json.dumps(payload, indent=2))

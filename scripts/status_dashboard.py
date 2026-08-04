@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 from app.core.config import get_settings
 from app.core.runtime_db import build_runtime_db
 from app.services.agent_review import ReviewCandidateStore
+from app.services.security_utils import safe_path_hint
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -37,11 +38,11 @@ def main(argv: list[str] | None = None) -> dict:
             "neo4j_database": settings.neo4j_database,
         },
         "artifact_locations": {
-            "reports": str(settings.ingest_report_dir),
-            "ingest_state": str(settings.ingest_state_dir),
-            "review_audit": str(settings.review_audit_path),
-            "entity_resolution_audit": str(settings.entity_resolution_audit_path),
-            "runtime_db": str(settings.runtime_db_path),
+            "reports": safe_path_hint(settings.ingest_report_dir),
+            "ingest_state": safe_path_hint(settings.ingest_state_dir),
+            "review_audit": safe_path_hint(settings.review_audit_path),
+            "entity_resolution_audit": safe_path_hint(settings.entity_resolution_audit_path),
+            "runtime_db": safe_path_hint(settings.runtime_db_path),
         },
         "recent_run_reports": reports,
         "ingest_stats": _aggregate_ingest_stats(reports),
@@ -65,7 +66,7 @@ def _load_recent_reports(report_dir: Path, limit: int) -> list[dict]:
                 "private_records": payload.get("private_records", 0),
                 "duplicate_counts": payload.get("duplicate_counts", {}),
                 "duration_seconds": payload.get("duration_seconds"),
-                "report_path": str(path),
+                "report_path": safe_path_hint(path),
             }
         )
     return reports
