@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 from app.core.config import Settings
+from app.services.security_utils import secure_write_json
 
 
 class ProjectMemoryStore:
@@ -23,6 +24,5 @@ class ProjectMemoryStore:
                     continue
                 if value not in existing:
                     existing.append(value)
-        with self.path.open("w", encoding="utf-8") as handle:
-            json.dump(memory, handle, indent=2)
+        secure_write_json(self.path, memory)
         return memory

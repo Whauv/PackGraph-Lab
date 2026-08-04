@@ -49,6 +49,8 @@ class AppState:
             settings.sqlite_ingest_path,
             parser_name=settings.ingest_parser_name,
             parser_version=settings.ingest_parser_version,
+            schema_version=settings.ingest_schema_version,
+            transform_cache_path=settings.transform_cache_path,
         )
         self.query_engine = QueryEngine(self.repository, self.private_data)
         self.auth = AuthService(settings, self.runtime_db)

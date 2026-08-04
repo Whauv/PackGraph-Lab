@@ -503,9 +503,12 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": candidate}
 
     @router.get("/review-candidates/export")
-    def export_review_candidates(output: str, request: Request):
+    def export_review_candidates(output: str, request: Request, include_raw_props: bool = False):
         user = require_permission(request, "review:assign")
-        return {"status": "ok", "data": state.review_store.export_pending(Path(output), org_id=user["org_id"])}
+        return {
+            "status": "ok",
+            "data": state.review_store.export_pending(Path(output), org_id=user["org_id"], include_raw_props=include_raw_props),
+        }
 
     @router.post("/review-candidates/import")
     def import_review_candidates(request: Request, input_path: str, apply: bool = False):

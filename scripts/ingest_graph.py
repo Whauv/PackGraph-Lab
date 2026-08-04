@@ -19,6 +19,7 @@ from app.repositories.graph_repository import Neo4jAdminRepository
 from app.services.ingest_pipeline import IngestPipeline
 from app.services.ingest_sources import resolve_ingest_sources
 from app.services.private_data_service import PrivateDataService
+from app.services.security_utils import sanitize_private_record_for_graph, sanitize_run_report, secure_write_json
 
 
 CONSTRAINTS = [
@@ -53,6 +54,8 @@ def main(argv: list[str] | None = None) -> dict:
     state_path = settings.ingest_state_dir / f"{run_id}.json"
 
     resumed_state = _load_state(state_path) if args.resume_run_id else {}
+    if args.resume_run_id and resumed_state.get("selection_source") == "cli" and not args.json_source_dir and not args.sqlite_path:
+        raise ValueError("Resumed runs from sanitized CLI state must be given --json-source-dir and/or --sqlite-path again because raw local paths are not stored in run-state files.")
     sources = resolve_ingest_sources(
         settings,
         json_source_dir=args.json_source_dir or resumed_state.get("json_source_dir"),
@@ -83,6 +86,7 @@ def main(argv: list[str] | None = None) -> dict:
         "write_mode": "profile_only" if args.profile_only else "dry_run" if args.dry_run else "write",
         "resumed_from": args.resume_run_id,
         "operator_role": args.role,
+        "role_scope_note": "CLI role checks are advisory safeguards only and are not authentication or authorization boundaries.",
         "selection_source": sources.selection_source,
         "json_source_dir": str(sources.json_source_dir) if sources.json_source_dir else None,
         "sqlite_path": str(sources.sqlite_path) if sources.sqlite_path else None,
@@ -144,7 +148,9 @@ def main(argv: list[str] | None = None) -> dict:
         metrics = {"generated": {"nodes": {}, "edges": {}}, "external": {"nodes": {}, "edges": {}}}
         if not args.skip_generated:
             metrics["generated"] = pipeline.ingest_generated_bundle(store, normalize_neo4j_properties)
-        metrics["external"] = pipeline.ingest_external_records([normalize_neo4j_properties(row) for row in local_rows])
+        metrics["external"] = pipeline.ingest_external_records(
+            [normalize_neo4j_properties(sanitize_private_record_for_graph(row)) for row in local_rows]
+        )
 
         report.update(
             {
@@ -171,13 +177,11 @@ def main(argv: list[str] | None = None) -> dict:
 
 
 def _emit_report(report: dict, report_path: Path) -> None:
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    secure_write_json(report_path, sanitize_run_report(report))
 
 
 def _write_state(state_path: Path, report: dict) -> None:
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    secure_write_json(state_path, sanitize_run_report(report))
 
 
 def _load_state(state_path: Path) -> dict:
@@ -210,7 +214,7 @@ def _enforce_role(role: str, profile_only: bool, dry_run: bool) -> None:
     if profile_only or dry_run:
         return
     if role not in {"write", "admin"}:
-        raise PermissionError("Write ingest requires operator role 'write' or 'admin'.")
+        raise PermissionError("Write ingest requires operator role 'write' or 'admin'. This CLI role flag is advisory only, not real authentication.")
 
 
 def _deduplicate_rows(rows: list[dict]) -> tuple[list[dict], dict[str, int]]:

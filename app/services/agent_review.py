@@ -10,6 +10,7 @@ from uuid import uuid4
 from app.core.config import Settings
 from app.core.runtime_db import RuntimeDatabase, deserialize_json, serialize_json
 from app.services.entity_resolution_agent import MatchDecisionCache
+from app.services.security_utils import review_export_to_csv_bytes, safe_path_hint, sanitize_audit_payload, sanitize_review_payload, secure_append_jsonl, secure_write_json, secure_write_text
 
 
 class ReviewCandidateStore:
@@ -63,6 +64,7 @@ class ReviewCandidateStore:
 
     def create(self, candidate_type: str, reason: str, payload: dict[str, Any], org_id: str = "ORG-001") -> dict[str, Any]:
         now = datetime.now(UTC).isoformat()
+        sanitized_payload = sanitize_review_payload(payload, include_raw_props=True)
         record = {
             "candidate_id": f"ARC-{uuid4().hex[:10].upper()}",
             "org_id": org_id,
@@ -70,7 +72,7 @@ class ReviewCandidateStore:
             "reason": reason,
             "status": "pending_human_review",
             "review_before_writeback": 1,
-            "payload_json": serialize_json(payload),
+            "payload_json": serialize_json(sanitized_payload),
             "assigned_reviewer_id": None,
             "decision_state": "new",
             "created_at": now,
@@ -158,16 +160,18 @@ class ReviewCandidateStore:
             for row in rows
         ]
 
-    def export_pending(self, destination: Path, org_id: str | None = None) -> dict[str, Any]:
+    def export_pending(self, destination: Path, org_id: str | None = None, *, include_raw_props: bool = False) -> dict[str, Any]:
         pending = [
-            self._format_pending_export(record)
+            self._format_pending_export(record, include_raw_props=include_raw_props)
             for record in self.list(org_id=org_id, limit=1000)
             if record["status"] in {"pending_human_review", "assigned", "in_approval"}
         ]
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(json.dumps(pending, indent=2), encoding="utf-8")
-        self._append_audit("exported_pending", {"destination": str(destination), "count": len(pending)})
-        return {"destination": str(destination), "count": len(pending)}
+        if destination.suffix.lower() == ".csv":
+            secure_write_text(destination, review_export_to_csv_bytes(pending).decode("utf-8"))
+        else:
+            secure_write_json(destination, pending)
+        self._append_audit("exported_pending", {"destination": str(destination), "count": len(pending), "include_raw_props": include_raw_props})
+        return {"destination": safe_path_hint(destination), "count": len(pending), "format": destination.suffix.lower().lstrip(".") or "json", "include_raw_props": include_raw_props}
 
     def import_reviewed_decisions(self, source: Path, apply: bool = False, org_id: str | None = None) -> dict[str, Any]:
         payload = json.loads(source.read_text(encoding="utf-8"))
@@ -187,7 +191,7 @@ class ReviewCandidateStore:
             )
             applied += 1
         self._append_audit("imported_reviewed_decisions", {"source": str(source), "applied": applied, "apply": apply})
-        return {"source": str(source), "applied": applied, "apply": apply}
+        return {"source": safe_path_hint(source), "applied": applied, "apply": apply}
 
     def _history(self, candidate_id: str, org_id: str, actor_id: str | None, action: str, comment: str, metadata: dict[str, Any]) -> None:
         with self.db.connect() as connection:
@@ -210,24 +214,31 @@ class ReviewCandidateStore:
 
     def _row_to_candidate(self, row: Any) -> dict[str, Any]:
         record = dict(row)
+        raw_payload = deserialize_json(record["payload_json"], {})
         return {
             **record,
             "review_before_writeback": bool(record["review_before_writeback"]),
-            "payload": deserialize_json(record["payload_json"], {}),
+            "payload": sanitize_review_payload(raw_payload, include_raw_props=False),
             "history": self.history(record["candidate_id"], org_id=record.get("org_id")),
         }
 
     def _append_audit(self, action: str, payload: dict[str, Any]) -> None:
-        entry = {"timestamp": datetime.now(UTC).isoformat(), "action": action, "payload": payload}
-        with self.audit_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry) + "\n")
+        entry = sanitize_audit_payload({"timestamp": datetime.now(UTC).isoformat(), "action": action, **payload})
+        secure_append_jsonl(self.audit_path, entry)
 
-    def _format_pending_export(self, record: dict[str, Any]) -> dict[str, Any]:
-        payload = record.get("payload", {})
+    def _format_pending_export(self, record: dict[str, Any], *, include_raw_props: bool = False) -> dict[str, Any]:
+        payload = self._load_raw_payload(record["candidate_id"], record.get("org_id"))
         history = record.get("history", [])
         comparison = payload.get("comparison", {})
         return {
-            **record,
+            "candidate_id": record["candidate_id"],
+            "org_id": record["org_id"],
+            "candidate_type": record["candidate_type"],
+            "reason": record["reason"],
+            "status": record["status"],
+            "review_before_writeback": record["review_before_writeback"],
+            "created_at": record["created_at"],
+            "updated_at": record["updated_at"],
             "display_name": payload.get("display_name")
             or comparison.get("left_label")
             or comparison.get("right_label")
@@ -242,6 +253,27 @@ class ReviewCandidateStore:
             "audit_payload": {
                 "reason": record.get("reason"),
                 "history_events": len(history),
-                "latest_history": history[-1] if history else None,
+                "latest_history": {
+                    "action": history[-1].get("action"),
+                    "comment": history[-1].get("comment"),
+                    "created_at": history[-1].get("created_at"),
+                }
+                if history
+                else None,
             },
+            "payload": sanitize_review_payload(payload, include_raw_props=include_raw_props),
         }
+
+    def _load_raw_payload(self, candidate_id: str, org_id: str | None) -> dict[str, Any]:
+        with self.db.connect() as connection:
+            if org_id:
+                row = connection.execute(
+                    "SELECT payload_json FROM review_candidates WHERE candidate_id=? AND org_id=?",
+                    (candidate_id, org_id),
+                ).fetchone()
+            else:
+                row = connection.execute(
+                    "SELECT payload_json FROM review_candidates WHERE candidate_id=?",
+                    (candidate_id,),
+                ).fetchone()
+        return deserialize_json(row["payload_json"], {}) if row else {}

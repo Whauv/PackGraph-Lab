@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from app.core.config import Settings
 from app.core.runtime_db import RuntimeDatabase, deserialize_json, serialize_json
+from app.services.security_utils import secure_write_json, secure_write_text
 
 
 class AuthService:
@@ -184,7 +185,7 @@ class AuthService:
                         ),
                     )
             if not self.session_path.exists():
-                self.session_path.write_text("{}", encoding="utf-8")
+                secure_write_text(self.session_path, "{}")
 
     def list_roles(self) -> list[dict[str, Any]]:
         return self.ROLE_CONFIG
@@ -241,7 +242,7 @@ class AuthService:
                 """,
                 (token, user_id, org_id, created_at.isoformat(), expires_at.isoformat(), created_at.isoformat()),
             )
-        self.session_path.write_text(json.dumps({"session_token": token}), encoding="utf-8")
+        secure_write_json(self.session_path, {"session_token": token})
         return {"session_token": token, "expires_at": expires_at.isoformat()}
 
     def login(self, email: str, password: str) -> dict[str, Any] | None:
@@ -260,7 +261,7 @@ class AuthService:
                     "UPDATE sessions SET revoked_at=?, last_seen_at=? WHERE session_token=?",
                     (datetime.now(UTC).isoformat(), datetime.now(UTC).isoformat(), token),
                 )
-        self.session_path.write_text("{}", encoding="utf-8")
+        secure_write_text(self.session_path, "{}")
 
     def current_user(self, session_token: str | None = None) -> dict[str, Any] | None:
         token = session_token or self._active_session_token()

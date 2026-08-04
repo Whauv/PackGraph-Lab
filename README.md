@@ -101,6 +101,7 @@ It includes:
 - Review workflow support for summaries, enriched pending export payloads, reviewed-decision import, and structured audit logging
 - Local-first ER controls with hashed decision cache keys, configurable confidence thresholds, persistent audit trails, and evaluation dataset support
 - Operator status/dashboard and graph-schema metadata scaffolding for safer local administration
+- Security-hardened local artifact flow with safe-by-default review exports, sanitized audit logs, redacted provenance metadata, hashed local path references, and secure local writes for reports, state, caches, and review files
 - Scenario engine for supplier outages, regulation activation, reformulation targets, and cost constraints
 - Document intelligence support for uploaded evidence metadata and extracted field presentation
 - Export support for PDF and CSV flows
@@ -198,6 +199,15 @@ For more detail, see:
 
 ## Local run
 
+## Security notes
+
+- Review exports are safe by default. Pending review JSON and CSV outputs only include allowlisted fields unless you explicitly opt in to raw payload export.
+- Use `python scripts/review_workflow.py export --output pending.json --include-raw-props` only when you intentionally need raw review payloads for a local debugging task.
+- Remote OpenAI or other hosted LLM adjudication is not part of the default runtime. PackGraph runs local-first with `PACKGRAPH_LLM_ENABLED=false` and `PACKGRAPH_LLM_BACKEND=disabled`.
+- Ingest reports, run-state files, caches, and audit logs use hashed path references and redacted connection info where possible. This reduces accidental leakage, but it is not encryption.
+- CLI role flags such as `--role write` in ingest commands are advisory operator safeguards, not real authentication or authorization boundaries.
+- Local runtime artifacts should still be protected by your OS, workstation account, and deployment environment.
+
 ### Option 1: direct Python run
 
 Use this when you want the fastest local developer workflow.
@@ -217,6 +227,21 @@ Open:
 
 - landing page: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 - product workspace: [http://127.0.0.1:8000/product](http://127.0.0.1:8000/product)
+
+### Review workflow exports
+
+Safe export:
+
+```bash
+python scripts/review_workflow.py export --output review-exports/pending.json
+python scripts/review_workflow.py export --output review-exports/pending.csv
+```
+
+Raw payload opt-in:
+
+```bash
+python scripts/review_workflow.py export --output review-exports/pending-raw.json --include-raw-props
+```
 
 Notes:
 

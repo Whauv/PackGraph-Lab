@@ -7,13 +7,14 @@ import re
 from typing import Any
 
 from app.core.config import Settings, get_settings
+from app.services.security_utils import sanitize_audit_payload, secure_append_jsonl, secure_write_json
 
 
 class MatchDecisionCache:
     def __init__(self, path):
         self.path = path
         if not self.path.exists():
-            self.path.write_text("{}", encoding="utf-8")
+            secure_write_json(self.path, {})
 
     def load(self) -> dict[str, Any]:
         with self.path.open("r", encoding="utf-8") as handle:
@@ -25,8 +26,7 @@ class MatchDecisionCache:
     def set(self, key: str, value: dict[str, Any]) -> None:
         payload = self.load()
         payload[key] = value
-        with self.path.open("w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2)
+        secure_write_json(self.path, payload)
 
 
 class EntityResolutionAgent:
@@ -124,9 +124,8 @@ class EntityResolutionAgent:
         return {**result, "pair_key": pair_key, "decision_source": self.active_backend}
 
     def _append_audit(self, pair_key: str, result: dict[str, Any]) -> None:
-        entry = {"timestamp": datetime.now(UTC).isoformat(), "pair_key": pair_key, **result}
-        with self.audit_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry) + "\n")
+        entry = sanitize_audit_payload({"timestamp": datetime.now(UTC).isoformat(), "pair_key": pair_key, **result})
+        secure_append_jsonl(self.audit_path, entry)
 
     def _pair_key(self, left: dict[str, Any], right: dict[str, Any]) -> str:
         labels = sorted([self._label_for_row(left), self._label_for_row(right)])

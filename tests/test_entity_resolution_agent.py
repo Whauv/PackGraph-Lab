@@ -53,6 +53,9 @@ class EntityResolutionAgentTests(unittest.TestCase):
         self.assertIn(result["pair_key"], cache)
         self.assertNotIn("Polyethylene film", json.dumps(cache))
         self.assertIn("score_breakdown", result)
+        audit = self.settings.entity_resolution_audit_path.read_text(encoding="utf-8")
+        self.assertIn('"pair_key"', audit)
+        self.assertNotIn("Polyethylene film", audit)
 
 
 if __name__ == "__main__":
