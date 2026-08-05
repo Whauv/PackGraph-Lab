@@ -24,7 +24,7 @@ window.PackGraphUI = {
       </div>`;
   },
 
-  loadingState(title, text = "Loading…") {
+  loadingState(title, text = "Loading...") {
     return `
       <div class="table-empty">
         <span class="table-empty-illustration" aria-hidden="true"></span>
