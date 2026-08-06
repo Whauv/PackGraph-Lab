@@ -440,15 +440,51 @@ The chat backend now behaves like a controlled graph assistant without becoming 
 - `GET /metrics` returns request counters and per-route latency aggregates.
 - Structured runtime events are written to `data/runtime/app_events.jsonl`.
 
-## Optional Google ADK scaffold
+## Parallel Google ADK architecture
 
-If you want an ADK-compatible wrapper without making Google tooling part of the default local app:
+PackGraph Lab now ships with two parallel versions:
+
+- Original runtime: the existing FastAPI app in `app/main.py`
+- ADK runtime: a separate Google ADK-dependent surface under `adk_architecture/`
+
+Install ADK support if needed:
 
 ```bash
 pip install -r requirements-adk.txt
 ```
 
-The optional wrapper lives in `agents/packgraph_lab_agent/agent.py` and exposes read-only tools for classification, readonly graph querying, review-candidate creation, and state-machine inspection.
+Run the original app:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Run the ADK FastAPI app on a separate port:
+
+```bash
+uvicorn adk_architecture.api:app --reload --port 8001
+```
+
+Run the ADK tool smoke test:
+
+```bash
+python -m adk_architecture.run_adk_tool_smoke
+python -m adk_architecture.run_adk_tool_smoke --check-db
+```
+
+Run the ADK CLI from `adk_architecture/agents/`:
+
+```bash
+adk run packgraph_lab_adk
+```
+
+Run ADK Web from `adk_architecture/agents/`:
+
+```bash
+adk web --port 8001
+```
+
+The ADK layer does not replace PackGraph business logic. It wraps the existing repository, query engine, review workflow, governance filters, and scenario handling through Google ADK `FunctionTool.run_async(...)`.
 
 ## Private data mode
 

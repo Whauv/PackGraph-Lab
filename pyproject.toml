@@ -16,6 +16,7 @@ dependencies = [
   "python-dotenv==1.1.1",
   "python-multipart==0.0.20",
   "httpx==0.28.1",
+  "google-adk>=2.3,<3",
 ]
 
 [project.scripts]
@@ -26,4 +27,4 @@ packgraph-status = "scripts.status_dashboard:main"
 packgraph-graph-schema = "scripts.migrate_graph_schema:main"
 
 [tool.setuptools.packages.find]
-include = ["app*", "agents*", "scripts*"]
+include = ["app*", "agents*", "adk_architecture*", "scripts*"]
