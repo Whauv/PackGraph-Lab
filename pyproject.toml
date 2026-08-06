@@ -9,13 +9,14 @@ description = "Local-first packaging intelligence workspace with graph, ingest, 
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi==0.116.1",
+  "fastapi==0.139.2",
   "uvicorn[standard]==0.35.0",
-  "pydantic==2.11.7",
+  "pydantic>=2.12,<3",
   "neo4j==5.28.2",
   "python-dotenv==1.1.1",
   "python-multipart==0.0.20",
   "httpx==0.28.1",
+  "google-adk>=2.3,<3",
 ]
 
 [project.scripts]
@@ -26,4 +27,4 @@ packgraph-status = "scripts.status_dashboard:main"
 packgraph-graph-schema = "scripts.migrate_graph_schema:main"
 
 [tool.setuptools.packages.find]
-include = ["app*", "agents*", "scripts*"]
+include = ["app*", "agents*", "adk_architecture*", "scripts*"]

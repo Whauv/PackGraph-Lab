@@ -20,6 +20,7 @@ class ReviewWorkflowTests(unittest.TestCase):
             packgraph_staging_dir=root / "staging",
             private_data_dir=root / "private",
             json_ingest_dir=root / "private",
+            runtime_db_path=root / "runtime" / "packgraph_runtime.db",
             project_memory_path=root / "staging" / "project_memory.json",
             review_candidates_path=root / "staging" / "agent_review_candidates.json",
             agent_audit_path=root / "runtime" / "agent_audit.jsonl",
