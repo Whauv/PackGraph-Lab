@@ -3405,6 +3405,13 @@ function setupShellNavigation() {
   });
 }
 
+function scrollToTarget(targetId) {
+  if (!targetId) return;
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function setupNavigation() {
   document.getElementById("jump-chat").addEventListener("click", () => {
     window.PackGraphChat?.open();
@@ -3418,6 +3425,15 @@ function setupNavigation() {
       const target = button.dataset.jumpPage;
       setPage(target);
       document.querySelector(`[data-page="${target}"]`).scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+  document.querySelectorAll("[data-scroll-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      scrollToTarget(button.dataset.scrollTarget);
+      const nav = button.closest(".page-local-nav");
+      if (nav) {
+        nav.querySelectorAll(".page-local-link").forEach((link) => link.classList.toggle("active", link === button));
+      }
     });
   });
 }
