@@ -3679,3 +3679,145 @@ small {
     justify-items: start;
   }
 }
+
+.graph-chat-launcher {
+  position: fixed;
+  right: 16px;
+  bottom: 84px;
+  min-width: 136px;
+  z-index: 41;
+}
+
+.graph-chat-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg) 74%, transparent);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  z-index: 44;
+}
+
+.graph-chat-overlay.open {
+  opacity: 1;
+}
+
+.graph-chat-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(440px, calc(100vw - 24px));
+  height: 100vh;
+  padding: 22px 20px 18px;
+  background: var(--panel);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.18);
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  transform: translateX(102%);
+  transition: transform 220ms ease;
+  z-index: 45;
+}
+
+.graph-chat-drawer.open {
+  transform: translateX(0);
+}
+
+.graph-chat-header,
+.graph-chat-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+
+.graph-chat-header h3 {
+  margin: 0;
+}
+
+.graph-chat-section {
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.graph-chat-feed-section {
+  min-height: 280px;
+}
+
+.graph-chat-context-card,
+.graph-chat-context-empty,
+.graph-chat-message {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 12px;
+}
+
+.graph-chat-context-card,
+.graph-chat-context-empty {
+  display: grid;
+  gap: 10px;
+}
+
+.graph-chat-context-top,
+.graph-chat-context-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.graph-chat-context-top {
+  grid-template-columns: repeat(2, max-content);
+}
+
+.graph-chat-context-meta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.graph-chat-context-copy {
+  margin: 0;
+  color: var(--muted);
+}
+
+.graph-chat-quick-actions {
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+.graph-chat-messages {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  max-height: 36vh;
+  overflow-y: auto;
+}
+
+.graph-chat-message {
+  display: grid;
+  gap: 6px;
+}
+
+.graph-chat-message.error {
+  border-color: var(--warn);
+}
+
+.graph-chat-author {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--soft);
+}
+
+.graph-chat-form {
+  display: grid;
+  gap: 10px;
+}
+
+#graph-chat-input {
+  min-height: 96px;
+  resize: vertical;
+}
+
+body[data-theme="dark"] .graph-chat-drawer {
+  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.36);
+}

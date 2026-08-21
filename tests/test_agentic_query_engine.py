@@ -58,6 +58,25 @@ class AgenticQueryEngineTests(unittest.TestCase):
         self.assertTrue(any(item["name"] == "retrieve_source_documents" for item in payload["agent_tools"]))
         self.assertTrue(payload["project_memory"]["prior_questions"])
 
+    def test_context_injection_resolves_selected_material_suppliers(self):
+        repository = LocalGraphRepository()
+        engine = QueryEngine(repository)
+
+        payload = engine.ask(
+            "show suppliers for this",
+            context={
+                "entity_type": "material",
+                "entity_id": "MAT-001",
+                "entity_name": "Film A11",
+                "metadata": {"category": "film"},
+            },
+        )
+
+        self.assertEqual(payload["plan"]["intent"], "suppliers_for_material")
+        self.assertIn("material Film A11", payload["resolved_question"])
+        self.assertTrue(payload["rows"])
+        self.assertTrue(any(row.get("supplier_id") for row in payload["rows"]))
+
 
 if __name__ == "__main__":
     unittest.main()

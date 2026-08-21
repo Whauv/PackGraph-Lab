@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.core.config import get_settings
@@ -33,22 +34,23 @@ class QueryEngine:
         self.agent_tools = AgentToolbelt(repository, self.review_store)
         self.agent_orchestration = AgentOrchestrationRecorder(self.settings)
 
-    def ask(self, question: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
+    def ask(self, question: str, options: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         options = options or {}
-        plan = self.planner.plan(question, self.repository)
+        resolved_question = self._merge_context_into_question(question, context)
+        plan = self.planner.plan(resolved_question, self.repository)
         private_status = self.private_data.private_status() if self.private_data else {"private_data_active": False, "dataset_count": 0, "record_count": 0}
-        private_lookup = self.private_data.query(question) if self.private_data and private_status["private_data_active"] else {"rows": []}
+        private_lookup = self.private_data.query(resolved_question) if self.private_data and private_status["private_data_active"] else {"rows": []}
         intent = plan["intent"]
         router = self._route_question(plan, private_lookup)
         classifier = self._build_classifier_metadata(plan, router, private_status)
         retrieval = self._build_retrieval_metadata(plan, private_lookup)
         tool_runs: list[dict[str, Any]] = []
 
-        classify = self.agent_tools.classify_question(question, plan)
+        classify = self.agent_tools.classify_question(resolved_question, plan)
         tool_runs.append(classify)
         proof_requested = classify["output"]["proof_requested"]
 
-        resolved = self.agent_tools.resolve_entities(question, plan)
+        resolved = self.agent_tools.resolve_entities(resolved_question, plan)
         tool_runs.append(resolved)
 
         template = self.agent_tools.retrieve_reviewed_template(plan)
@@ -60,7 +62,7 @@ class QueryEngine:
         if intent in {"compare_suppliers", "supplier_risk_ranking"}:
             search_result = self.agent_tools.search_suppliers(primary_keyword, plan.get("entities", {}).get("region"))
         else:
-            search_result = self.agent_tools.search_entities(primary_keyword or question)
+            search_result = self.agent_tools.search_entities(primary_keyword or resolved_question)
         tool_runs.append(search_result)
 
         query_result = self.agent_tools.query_database(intent, router, template_name)
@@ -69,16 +71,18 @@ class QueryEngine:
         if intent == "refuse_or_clarify":
             if router == "private_data" and private_lookup["rows"]:
                 return self._private_data_response(
-                    question,
-                    plan,
-                    private_lookup,
-                    classifier,
-                    retrieval,
-                    tool_runs,
-                    proof_requested,
-                    router,
-                    template_name,
-                )
+                question,
+                plan,
+                private_lookup,
+                classifier,
+                retrieval,
+                tool_runs,
+                proof_requested,
+                router,
+                template_name,
+                context=context,
+                resolved_question=resolved_question,
+            )
             return self._finalize_response(
                 question=question,
                 plan=plan,
@@ -91,6 +95,8 @@ class QueryEngine:
                 proof_requested=proof_requested,
                 route=router,
                 template_name=template_name,
+                context=context,
+                resolved_question=resolved_question,
             )
         if router == "private_data" and private_lookup["rows"]:
             return self._private_data_response(
@@ -103,15 +109,24 @@ class QueryEngine:
                 proof_requested,
                 router,
                 template_name,
+                context=context,
+                resolved_question=resolved_question,
             )
 
-        entities = {**plan.get("entities", {}), **options}
+        entities = {**plan.get("entities", {}), **self._entities_from_context(context), **options}
         result = None
         message = plan["explanation"]
         source = "graph"
         if intent == "recommend_food_packaging":
             result = self._recommend_materials(question, entities)
             message = self._summarize_material_list(result, "Recommended materials from the synthetic packaging graph")
+        elif intent == "suppliers_for_material":
+            material_id = entities.get("material_id") or "MAT-001"
+            material = self.repository.get_material(material_id)
+            suppliers = material.get("suppliers", []) if material else []
+            result = self.repository.compare_suppliers([item["supplier_id"] for item in suppliers]) if suppliers else []
+            label = material["name"] if material else material_id
+            message = self._summarize_supplier_list(result[:5], f"Qualified suppliers for {label}")
         elif intent == "find_recyclable_substitutes":
             material_id = entities.get("material_id") or entities.get("focus_material_id") or "MAT-001"
             result = self.repository.find_recyclable_substitutes(material_id)
@@ -171,10 +186,12 @@ class QueryEngine:
                     classifier,
                     retrieval,
                     tool_runs,
-                    proof_requested,
-                    router,
-                    template_name,
-                )
+                proof_requested,
+                router,
+                template_name,
+                context=context,
+                resolved_question=resolved_question,
+            )
             result = self.repository.materials_at_risk()
             message = self._summarize_risk_materials(result[:5])
 
@@ -191,6 +208,8 @@ class QueryEngine:
             proof_requested=proof_requested,
             route=router,
             template_name=template_name,
+            context=context,
+            resolved_question=resolved_question,
         )
 
     def run_scenario(self, scenario: str, material_id: str | None = None, supplier_id: str | None = None, options: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -234,6 +253,54 @@ class QueryEngine:
         elif entities.get("prioritize_sustainability"):
             materials = sorted(materials, key=lambda item: item["sustainability_score"], reverse=True)
         return materials
+
+    def _entities_from_context(self, context: dict[str, Any] | None) -> dict[str, Any]:
+        if not context:
+            return {}
+        entity_type = str(context.get("entity_type") or "").lower()
+        entity_id = context.get("entity_id")
+        entity_name = context.get("entity_name")
+        metadata = context.get("metadata") or {}
+        entities: dict[str, Any] = {}
+        if entity_type == "material":
+            entities["material_id"] = entity_id
+        elif entity_type == "supplier":
+            entities["supplier_id"] = entity_id
+            entities["supplier_ids"] = [entity_id] if entity_id else []
+        elif entity_type == "regulation":
+            entities["regulation_id"] = entity_id
+        elif entity_type == "application":
+            entities["application_id"] = entity_id
+        elif entity_type in {"product", "component"} and metadata.get("material_id"):
+            entities["material_id"] = metadata["material_id"]
+        if entity_name:
+            entities["context_name"] = entity_name
+        if metadata.get("region") and not entities.get("region"):
+            entities["region"] = metadata["region"]
+        return {key: value for key, value in entities.items() if value not in (None, "", [])}
+
+    def _merge_context_into_question(self, question: str, context: dict[str, Any] | None) -> str:
+        if not context:
+            return question
+        entity_type = str(context.get("entity_type") or "").strip().lower()
+        entity_id = context.get("entity_id")
+        entity_name = context.get("entity_name")
+        metadata = context.get("metadata") or {}
+        if not any([entity_type, entity_id, entity_name]):
+            return question
+        descriptor = entity_name or entity_id or "selected item"
+        if entity_type:
+            descriptor = f"{entity_type} {descriptor}"
+        descriptor = descriptor.strip()
+        resolved = re.sub(r"\b(this|it|that|selected item|selected entity)\b", descriptor, question, flags=re.IGNORECASE)
+        if resolved != question:
+            return resolved
+        if re.search(r"\b(show|list|find|compare|review|inspect|trace|open)\b", question.lower()):
+            suffix_parts = [descriptor]
+            if metadata.get("region"):
+                suffix_parts.append(f"in {metadata['region']}")
+            return f"{question} for {' '.join(suffix_parts)}"
+        return question
 
     def _summarize_material_list(self, materials: list[dict[str, Any]], intro: str) -> str:
         if not materials:
@@ -392,6 +459,8 @@ class QueryEngine:
         proof_requested: bool,
         route: str,
         template_name: str,
+        context: dict[str, Any] | None = None,
+        resolved_question: str | None = None,
     ) -> dict[str, Any]:
         result = {"rows": private_lookup["rows"], "private_query": private_lookup.get("query", {})}
         top_rows = private_lookup["rows"][:6]
@@ -414,6 +483,8 @@ class QueryEngine:
             proof_requested=proof_requested,
             route=route,
             template_name=template_name,
+            context=context,
+            resolved_question=resolved_question,
         )
 
     def _finalize_response(
@@ -431,6 +502,8 @@ class QueryEngine:
         proof_requested: bool = False,
         route: str = "graph",
         template_name: str = "READ_ONLY_REPOSITORY_LOOKUP",
+        context: dict[str, Any] | None = None,
+        resolved_question: str | None = None,
     ) -> dict[str, Any]:
         tool_runs = list(tool_runs or [])
         evidence_tool = self.agent_tools.retrieve_source_documents(result, plan.get("entities", {}))
@@ -448,7 +521,7 @@ class QueryEngine:
             proof_requested=proof_requested,
         )
         entity_resolution = self.entity_resolution.analyze(scored_rows)
-        investigation_plan = self.investigation_planner.build_plan(question, intent, plan.get("entities", {}))
+        investigation_plan = self.investigation_planner.build_plan(resolved_question or question, intent, plan.get("entities", {}))
 
         review_candidate = None
         if (proof_requested and evidence_profile["evidence_strength"] == "weak") or entity_resolution["review_before_merge"]:
@@ -456,7 +529,7 @@ class QueryEngine:
                 "evidence_gap" if missing_evidence else "entity_resolution",
                 missing_evidence[0] if missing_evidence else "Potential duplicate or alias resolution requires human review.",
                 {
-                    "question": question,
+                    "question": resolved_question or question,
                     "intent": intent,
                     "route": route,
                     "top_rows": scored_rows[:3],
@@ -487,7 +560,7 @@ class QueryEngine:
         }
         project_memory = self.project_memory.update(
             {
-                "prior_questions": [question],
+                "prior_questions": [resolved_question or question],
                 "saved_entities": [
                     row.get("entity_id") or row.get("material_id") or row.get("supplier_id") or row.get("title") or row.get("label")
                     for row in scored_rows[:5]
@@ -514,8 +587,11 @@ class QueryEngine:
             evidence_count=len(evidence_rows),
             review_needed=bool(review_candidate),
         )
-        self.agent_orchestration.append_audit(question, orchestration, review_candidate)
+        self.agent_orchestration.append_audit(resolved_question or question, orchestration, review_candidate)
         return {
+            "question": question,
+            "resolved_question": resolved_question or question,
+            "context": context or {},
             "plan": plan,
             "result": result,
             "message": explanation_tool["output"]["summary"],
