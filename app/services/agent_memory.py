@@ -12,6 +12,19 @@ class ProjectMemoryStore:
         self.path = settings.project_memory_path
 
     def load(self) -> dict[str, Any]:
+        if not self.path.exists():
+            secure_write_json(
+                self.path,
+                {
+                    "saved_entities": [],
+                    "saved_suppliers": [],
+                    "prior_questions": [],
+                    "compared_entities": [],
+                    "user_assumptions": [],
+                    "uploaded_file_references": [],
+                    "investigation_notes": [],
+                },
+            )
         with self.path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
 

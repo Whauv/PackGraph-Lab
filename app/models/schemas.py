@@ -23,9 +23,17 @@ class ErrorEnvelope(BaseModel):
     detail: str | None = None
 
 
+class QueryContext(BaseModel):
+    entity_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=64)]
+    entity_id: str | None = None
+    entity_name: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class QueryRequest(BaseModel):
     question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=1200)]
     options: dict[str, Any] = Field(default_factory=dict)
+    context: QueryContext | None = None
 
 
 class ProjectMemoryPatchRequest(BaseModel):

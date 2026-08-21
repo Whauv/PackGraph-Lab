@@ -12,6 +12,7 @@ class QueryPlanner:
 
         extracted = self._extract_entities(question, repository) if repository else {}
         rules: list[tuple[str, str, str, list[str]]] = [
+            ("suppliers_for_material", r"(show|list|find|which|who).*(suppliers?|sources?).*(for|of|used by|qualified|this|that|it)", "List qualified suppliers for a selected material", ["material_id"]),
             ("material_lookup", r"(tell me about|show me|details on|what is)\b", "Summarize a material from the demo graph", ["material_id"]),
             ("compare_materials", r"(compare materials|compare|versus| vs )", "Compare named materials with weighted demo attributes", ["material_ids"]),
             ("find_recyclable_substitutes", r"(substitute|replacement|alternative|swap)", "Find recyclable substitutes for a selected material", ["material_id"]),

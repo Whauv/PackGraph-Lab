@@ -96,6 +96,26 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(investigation.json()["data"]["owner_name"], "Demo Analyst")
         self.assertEqual(investigation.json()["data"]["project_status"], "active")
 
+    def test_query_ask_accepts_context_payload(self):
+        response = self.client.post(
+            "/query/ask",
+            json={
+                "question": "show suppliers for this",
+                "options": {"material_id": "MAT-001"},
+                "context": {
+                    "entity_type": "material",
+                    "entity_id": "MAT-001",
+                    "entity_name": "Film A11",
+                    "metadata": {"category": "film"},
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]
+        self.assertEqual(payload["plan"]["intent"], "suppliers_for_material")
+        self.assertIn("resolved_question", payload)
+        self.assertTrue(payload["rows"])
+
 
 if __name__ == "__main__":
     unittest.main()

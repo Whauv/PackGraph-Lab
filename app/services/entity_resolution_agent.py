@@ -17,6 +17,8 @@ class MatchDecisionCache:
             secure_write_json(self.path, {})
 
     def load(self) -> dict[str, Any]:
+        if not self.path.exists():
+            secure_write_json(self.path, {})
         with self.path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
 

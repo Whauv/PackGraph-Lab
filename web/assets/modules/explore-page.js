@@ -211,11 +211,11 @@ window.PackGraphExplorePage = {
       ${this.renderDetailMap(detail.map_points || [])}
       ${this.renderDetailGraph(detail.graph || { nodes: [], edges: [] })}
       <div class="detail-card">
-        <h5>Open in dashboard</h5>
+        <h5>Open in graph chat</h5>
         <h4>Carry this context forward</h4>
-        <p>Move into the decision workspace with a prepared graph question.</p>
+        <p>Open the shared drawer with a prepared graph question and the selected entity already attached.</p>
         <div class="row-actions">
-          <button type="button" id="explore-jump-dashboard">Open Dashboard</button>
+          <button type="button" id="explore-jump-dashboard">Open graph chat</button>
         </div>
       </div>`;
     const button = document.getElementById("explore-jump-dashboard");

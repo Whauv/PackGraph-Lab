@@ -216,6 +216,108 @@ function addMessage(author, text, detail = "") {
   log.prepend(message);
 }
 
+function setChatContext(context, options = {}) {
+  if (!window.PackGraphChat?.setContext) return;
+  window.PackGraphChat.setContext(context, options);
+}
+
+function buildMaterialChatContext(material) {
+  if (!material) return null;
+  return {
+    entity_type: "material",
+    entity_id: material.material_id,
+    entity_name: material.name,
+    metadata: {
+      category: titleCase(material.category || ""),
+      compliance: titleCase(material.compliance_state || ""),
+      region: material.regions_available?.[0] || "",
+      suppliers: material.supplier_ids?.length || 0,
+    },
+  };
+}
+
+function buildSupplierChatContext(supplier) {
+  if (!supplier) return null;
+  return {
+    entity_type: "supplier",
+    entity_id: supplier.supplier_id,
+    entity_name: supplier.name,
+    metadata: {
+      region: supplier.regions_served?.[0] || supplier.primary_region || "",
+      risk: supplier.disruption_risk_score ?? "",
+      lead_time_days: supplier.lead_time_days ?? "",
+      certifications: supplier.certifications?.length || 0,
+    },
+  };
+}
+
+function buildRegulationChatContext(regulation) {
+  if (!regulation) return null;
+  return {
+    entity_type: "regulation",
+    entity_id: regulation.regulation_id,
+    entity_name: regulation.name,
+    metadata: {
+      region: regulation.region || "",
+      effective_on: regulation.effective_on || "",
+      focus: regulation.focus || "",
+    },
+  };
+}
+
+function buildExploreDetailChatContext(detail) {
+  if (!detail) return null;
+  const facts = {};
+  (detail.facts || []).slice(0, 4).forEach((item) => {
+    if (item?.label && item?.value) {
+      facts[item.label.toLowerCase().replace(/\s+/g, "_")] = item.value;
+    }
+  });
+  if (detail.focus_material_id) {
+    facts.material_id = detail.focus_material_id;
+  }
+  return {
+    entity_type: detail.entity_type || "entity",
+    entity_id: detail.entity_id || "",
+    entity_name: detail.title || detail.summary || "Selected entity",
+    metadata: facts,
+  };
+}
+
+function buildComponentChatContext(label) {
+  return {
+    entity_type: "component",
+    entity_id: "",
+    entity_name: label,
+    metadata: {},
+  };
+}
+
+function handleChatResult(question, response) {
+  state.latestQuestion = question;
+  addMessage("Question", question);
+  addMessage("PackGraph", response.message);
+  renderStructuredAnswer({
+    panel: response.panel,
+    meta: {
+      confidence: `${Math.round((response.classifier?.confidence || 0) * 100)}%`,
+      evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
+      review_state: response.review_candidate ? response.review_gate?.status || "review_required" : response.review_gate?.status || "cleared",
+      workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
+    },
+  });
+  renderQueryRows(response.rows || []);
+  renderExecutionDebug(response);
+  syncActiveCase({
+    latest_question: question,
+    evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
+    review_state: response.review_candidate ? "pending_human_review" : response.review_gate?.status || "cleared",
+    status: response.review_candidate ? "approve" : response.evidence_profile?.evidence_strength === "weak" ? "validate" : "evaluate",
+    workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
+    note: response.panel?.summary || "",
+  }, { syncMemory: true });
+}
+
 function renderStructuredAnswer(panel) {
   if (window.PackGraphAnswerPanel) {
     window.PackGraphAnswerPanel.render(panel);
@@ -1162,6 +1264,7 @@ async function openSupplierProfile(supplierId) {
   state.latestSupplierId = supplierId;
   const supplier = await fetchJson(`/suppliers/${encodeURIComponent(supplierId)}`);
   renderSupplierDetail(supplier);
+  setChatContext(buildSupplierChatContext(supplier));
   pushRecentEntity({ id: supplierId, label: supplier.name, type: "supplier" });
   setPage("intelligence");
   renderCrossPageContext();
@@ -1170,6 +1273,7 @@ async function openSupplierProfile(supplierId) {
 async function openRegulationDetail(regulationId) {
   const regulation = await fetchJson(`/regulations/${encodeURIComponent(regulationId)}`);
   renderRegulationDetail(regulation);
+  setChatContext(buildRegulationChatContext(regulation));
   pushRecentEntity({ id: regulationId, label: regulation.name, type: "regulation" });
   setPage("intelligence");
   renderCrossPageContext();
@@ -1235,11 +1339,10 @@ function bindInlineActions() {
   });
   document.querySelectorAll("[data-ask-component]").forEach((button) => {
     button.addEventListener("click", () => {
-      const input = document.getElementById("question-input");
-      if (!input) return;
-      input.value = `What should I know about the component ${button.dataset.askComponent} for packaging decisions?`;
-      setPage("overview");
-      input.focus();
+      setChatContext(buildComponentChatContext(button.dataset.askComponent), {
+        open: true,
+        prompt: `What should I know about the component ${button.dataset.askComponent} for packaging decisions?`,
+      });
     });
   });
   document.querySelectorAll("[data-export-material]").forEach((button) => {
@@ -1565,6 +1668,7 @@ async function loadMaterialDetail() {
   document.getElementById("material-detail").innerHTML = skeletonBlock("material");
   const material = await fetchJson(`/materials/${state.selectedMaterialId}`);
   state.selectedMaterialDetail = material;
+  setChatContext(buildMaterialChatContext(material));
   document.getElementById("context-material").textContent = material.name;
   document.getElementById("overview-selected-material").textContent = material.name;
   document.getElementById("overview-selected-material-note").textContent = `${titleCase(material.category)} material across ${material.regions_available.length} regions with ${material.supplier_ids.length} qualified suppliers in the demo graph.`;
@@ -2081,6 +2185,7 @@ async function loadExploreEntities() {
 
 async function openExploreDetail(entityType, entityId) {
   state.selectedExploreDetail = await fetchJson(`/explore/detail?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`);
+  setChatContext(buildExploreDetailChatContext(state.selectedExploreDetail));
   if (window.PackGraphExplorePage) {
     window.PackGraphExplorePage.renderResults(state.exploreResults, openExploreDetail, entityId, (materialId) => {
       addMaterialToShortlist(materialId);
@@ -2091,19 +2196,12 @@ async function openExploreDetail(entityType, entityId) {
 }
 
 async function jumpExploreToDashboard(detail) {
-  if (detail?.focus_material_id) {
-    await openMaterial(detail.focus_material_id, "overview");
-  } else {
-    setPage("overview");
-  }
-  setSection("dashboard");
-  const input = document.getElementById("question-input");
-  if (input) {
-    input.value = detail?.dashboard_prompt || "What should I inspect next in the graph?";
-  }
+  setChatContext(buildExploreDetailChatContext(detail), {
+    open: true,
+    prompt: detail?.dashboard_prompt || "What should I inspect next in the graph?",
+  });
   state.latestQuestion = detail?.dashboard_prompt || "";
   renderCrossPageContext();
-  document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderExploreCompareSummary() {
@@ -3138,8 +3236,7 @@ function setupShellNavigation() {
 
 function setupNavigation() {
   document.getElementById("jump-chat").addEventListener("click", () => {
-    setPage("overview");
-    document.getElementById("chat-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    window.PackGraphChat?.open();
   });
   document.getElementById("jump-workbench").addEventListener("click", () => {
     setPage("workbench");
@@ -3420,33 +3517,16 @@ function setupForms() {
     event.preventDefault();
     const question = document.getElementById("question-input").value.trim();
     if (!question) return;
-    state.latestQuestion = question;
     const response = await fetchJson("/query/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, options: { material_id: state.selectedMaterialId, prioritize_sustainability: true } }),
+      body: JSON.stringify({
+        question,
+        options: { material_id: state.selectedMaterialId, prioritize_sustainability: true },
+        context: window.PackGraphChat?.getContext?.() || buildMaterialChatContext(state.selectedMaterialDetail),
+      }),
     });
-    addMessage("Question", question);
-    addMessage("PackGraph", response.message);
-    renderStructuredAnswer({
-      panel: response.panel,
-      meta: {
-        confidence: `${Math.round((response.classifier?.confidence || 0) * 100)}%`,
-        evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
-        review_state: response.review_candidate ? response.review_gate?.status || "review_required" : response.review_gate?.status || "cleared",
-        workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
-      },
-    });
-    renderQueryRows(response.rows || []);
-    renderExecutionDebug(response);
-    syncActiveCase({
-      latest_question: question,
-      evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
-      review_state: response.review_candidate ? "pending_human_review" : response.review_gate?.status || "cleared",
-      status: response.review_candidate ? "approve" : response.evidence_profile?.evidence_strength === "weak" ? "validate" : "evaluate",
-      workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
-      note: response.panel?.summary || "",
-    }, { syncMemory: true });
+    handleChatResult(question, response);
     await Promise.all([loadReviewQueue(), loadNotifications()]);
   });
 
@@ -3798,6 +3878,21 @@ async function init() {
   loadActiveCase();
   loadUiWorkspaceState();
   loadPersonalWorkspace();
+  window.PackGraphChat?.init({
+    request: async ({ question, context }) => fetchJson("/query/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question,
+        options: { material_id: state.selectedMaterialId, prioritize_sustainability: true },
+        context,
+      }),
+    }),
+    onResult: async (question, response) => {
+      handleChatResult(question, response);
+      await Promise.all([loadReviewQueue(), loadNotifications()]);
+    },
+  });
   setupThemeToggle();
   setupShellNavigation();
   setupPageNavigation();

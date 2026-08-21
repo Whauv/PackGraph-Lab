@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PackGraph Lab</title>
     <link rel="icon" href="/assets/favicon.svg?v=20260805" type="image/svg+xml" />
-    <link rel="stylesheet" href="/assets/style.css?v=20260805" />
+    <link rel="stylesheet" href="/assets/style.css?v=20260821" />
   </head>
   <body>
     <div class="shell">
@@ -1257,15 +1257,48 @@
         </section>
       </main>
     </div>
-    <script src="/assets/modules/shared-ui.js?v=20260805"></script>
-    <script src="/assets/modules/auth-shell.js?v=20260805"></script>
-    <script src="/assets/modules/answer-panel.js?v=20260805"></script>
-    <script src="/assets/modules/explore-page.js?v=20260805"></script>
-    <script src="/assets/modules/contribute-page.js?v=20260805"></script>
-    <script src="/assets/modules/community-page.js?v=20260805"></script>
-    <script src="/assets/modules/workbench-panels.js?v=20260805"></script>
-    <script src="/assets/modules/trend-charts.js?v=20260805"></script>
-    <script src="/assets/app.js?v=20260805"></script>
+    <div id="graph-chat-overlay" class="graph-chat-overlay" hidden></div>
+    <aside id="graph-chat-drawer" class="graph-chat-drawer" hidden aria-label="Graph chat drawer">
+      <div class="graph-chat-header">
+        <div>
+          <p class="eyebrow">Graph chat</p>
+          <h3>Ask with live context</h3>
+        </div>
+        <button type="button" id="graph-chat-close" class="secondary">Close</button>
+      </div>
+      <div id="graph-chat-status" class="upload-status"></div>
+      <section class="graph-chat-section">
+        <div class="graph-chat-section-header">
+          <span class="section-label">Selected context</span>
+          <button type="button" id="graph-chat-clear-context" class="mini-action secondary">Clear</button>
+        </div>
+        <div id="graph-chat-context"></div>
+        <div id="graph-chat-quick-actions" class="prompt-row graph-chat-quick-actions"></div>
+      </section>
+      <section class="graph-chat-section graph-chat-feed-section">
+        <div class="graph-chat-section-header">
+          <span class="section-label">Conversation</span>
+        </div>
+        <div id="graph-chat-messages" class="graph-chat-messages"></div>
+      </section>
+      <form id="graph-chat-form" class="graph-chat-form">
+        <textarea id="graph-chat-input" rows="3" placeholder="Ask about the selected material, supplier, evidence, or alternatives"></textarea>
+        <div class="row-actions">
+          <button type="submit">Ask graph chat</button>
+        </div>
+      </form>
+    </aside>
+    <script src="/assets/modules/shared-ui.js?v=20260821"></script>
+    <script src="/assets/modules/auth-shell.js?v=20260821"></script>
+    <script src="/assets/modules/answer-panel.js?v=20260821"></script>
+    <script src="/assets/modules/explore-page.js?v=20260821"></script>
+    <script src="/assets/modules/contribute-page.js?v=20260821"></script>
+    <script src="/assets/modules/community-page.js?v=20260821"></script>
+    <script src="/assets/modules/workbench-panels.js?v=20260821"></script>
+    <script src="/assets/modules/trend-charts.js?v=20260821"></script>
+    <script src="/assets/modules/chat-drawer.js?v=20260821"></script>
+    <script src="/assets/app.js?v=20260821"></script>
+    <button type="button" id="graph-chat-launcher" class="graph-chat-launcher">Graph chat</button>
     <button type="button" id="guided-tour-button" class="guided-tour-button">Guided tour</button>
   </body>
 </html>

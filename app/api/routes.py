@@ -427,7 +427,14 @@ def build_router(state) -> APIRouter:
 
     @router.post("/query/ask")
     def ask(request: QueryRequest):
-        return {"status": "ok", "data": state.query_engine.ask(request.question, request.options)}
+        return {
+            "status": "ok",
+            "data": state.query_engine.ask(
+                request.question,
+                request.options,
+                request.context.model_dump() if request.context else None,
+            ),
+        }
 
     @router.get("/project-memory")
     def project_memory():
