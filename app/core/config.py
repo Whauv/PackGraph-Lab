@@ -9,6 +9,7 @@ from app.services.security_utils import secure_mkdir, secure_write_text
 @dataclass
 class Settings:
     project_name: str = "PackGraph Lab"
+    runtime_profile: str = "local-demo"
     graph_backend: str = "neo4j"
     packgraph_data_dir: Path = Path("./data/generated")
     packgraph_runtime_dir: Path = Path("./data/runtime")
@@ -50,11 +51,21 @@ class Settings:
     rate_limit_window_seconds: int = 60
     observability_log_path: Path = Path("./data/runtime/app_events.jsonl")
     metrics_path: Path = Path("./data/runtime/metrics_snapshot.json")
+    response_cache_default_ttl_seconds: int = 45
+    response_cache_graph_ttl_seconds: int = 30
+    response_cache_analytics_ttl_seconds: int = 60
+    request_timeout_ms: int = 8000
+    request_retry_attempts: int = 2
+    cleanup_retention_days: int = 7
+    cleanup_max_report_files: int = 30
+    cleanup_max_runtime_logs: int = 12
+    neo4j_ready_timeout_seconds: int = 2
 
 
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings(
+        runtime_profile=os.getenv("PACKGRAPH_RUNTIME_PROFILE", "local-demo"),
         graph_backend=os.getenv("GRAPH_BACKEND", "neo4j"),
         packgraph_data_dir=Path(os.getenv("PACKGRAPH_DATA_DIR", "./data/generated")),
         packgraph_runtime_dir=Path(os.getenv("PACKGRAPH_RUNTIME_DIR", "./data/runtime")),
@@ -96,6 +107,15 @@ def get_settings() -> Settings:
         rate_limit_window_seconds=int(os.getenv("PACKGRAPH_RATE_LIMIT_WINDOW_SECONDS", "60")),
         observability_log_path=Path(os.getenv("PACKGRAPH_OBSERVABILITY_LOG_PATH", "./data/runtime/app_events.jsonl")),
         metrics_path=Path(os.getenv("PACKGRAPH_METRICS_PATH", "./data/runtime/metrics_snapshot.json")),
+        response_cache_default_ttl_seconds=int(os.getenv("PACKGRAPH_CACHE_TTL_SECONDS", "45")),
+        response_cache_graph_ttl_seconds=int(os.getenv("PACKGRAPH_GRAPH_CACHE_TTL_SECONDS", "30")),
+        response_cache_analytics_ttl_seconds=int(os.getenv("PACKGRAPH_ANALYTICS_CACHE_TTL_SECONDS", "60")),
+        request_timeout_ms=int(os.getenv("PACKGRAPH_REQUEST_TIMEOUT_MS", "8000")),
+        request_retry_attempts=int(os.getenv("PACKGRAPH_REQUEST_RETRY_ATTEMPTS", "2")),
+        cleanup_retention_days=int(os.getenv("PACKGRAPH_CLEANUP_RETENTION_DAYS", "7")),
+        cleanup_max_report_files=int(os.getenv("PACKGRAPH_CLEANUP_MAX_REPORT_FILES", "30")),
+        cleanup_max_runtime_logs=int(os.getenv("PACKGRAPH_CLEANUP_MAX_RUNTIME_LOGS", "12")),
+        neo4j_ready_timeout_seconds=int(os.getenv("PACKGRAPH_NEO4J_READY_TIMEOUT_SECONDS", "2")),
     )
     secure_mkdir(settings.packgraph_data_dir)
     secure_mkdir(settings.packgraph_runtime_dir)
