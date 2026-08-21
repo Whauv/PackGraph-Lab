@@ -188,11 +188,22 @@
 
         <section class="page-section active" data-page="overview">
           <section class="page-banner">
-            <div>
-              <p class="eyebrow">Surface 1</p>
-              <h2>Overview</h2>
+            <div class="page-banner-copy">
+              <div>
+                <p class="eyebrow">Surface 1</p>
+                <h2>Overview</h2>
+              </div>
+              <p class="page-banner-lead">Start here. Narrow the set, ask one good question, and only move deeper when a candidate earns it.</p>
             </div>
-            <p>Start here. Narrow the set, ask one good question, and only move deeper when a candidate earns it.</p>
+            <div class="page-banner-actions">
+              <button type="button" data-scroll-target="global-search-form">Start with search</button>
+              <button type="button" class="secondary" data-jump-page="workbench">Open comparison</button>
+            </div>
+            <nav class="page-local-nav" aria-label="Overview sections">
+              <button type="button" class="mini-action page-local-link active" data-scroll-target="global-search-form">Search</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="chat-panel">Answer</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="material-detail">Material</button>
+            </nav>
           </section>
           <section class="overview-shell surface-shell">
             <aside class="surface-context-rail surface-column">
@@ -442,11 +453,23 @@
 
         <section class="page-section" data-page="workbench">
           <section class="page-banner workbench-banner">
-            <div>
-              <p class="eyebrow">Surface 2</p>
-              <h2>Workbench</h2>
+            <div class="page-banner-copy">
+              <div>
+                <p class="eyebrow">Surface 2</p>
+                <h2>Workbench</h2>
+              </div>
+              <p class="page-banner-lead">Use Workbench when you have real candidates. Compare them, verify the proof, test pressure, and save the case.</p>
             </div>
-            <p>Use Workbench when you have real candidates. Compare them, verify the proof, test pressure, and save the case.</p>
+            <div class="page-banner-actions">
+              <button type="button" data-scroll-target="compare-form">Review shortlist</button>
+              <button type="button" class="secondary" data-scroll-target="scenario-form">Run scenario</button>
+            </div>
+            <nav class="page-local-nav" aria-label="Workbench sections">
+              <button type="button" class="mini-action page-local-link active" data-scroll-target="compare-form">Compare</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="provenance-panel">Evidence</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="review-detail-panel">Review</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="scenario-form">Scenario</button>
+            </nav>
           </section>
           <section class="workbench-shell surface-shell">
             <aside class="surface-context-rail surface-column">
@@ -754,11 +777,23 @@
 
         <section class="page-section" data-page="intelligence">
           <section class="page-banner intelligence-banner">
-            <div>
-              <p class="eyebrow">Surface 3</p>
-              <h2>Intelligence</h2>
+            <div class="page-banner-copy">
+              <div>
+                <p class="eyebrow">Surface 3</p>
+                <h2>Intelligence</h2>
+              </div>
+              <p class="page-banner-lead">Use Intelligence to inspect the graph, open node context, and scan the signals around the decision.</p>
             </div>
-            <p>Use Intelligence to inspect the graph, open node context, and scan the signals around the decision.</p>
+            <div class="page-banner-actions">
+              <button type="button" data-scroll-target="graph-subgraph">Open graph</button>
+              <button type="button" class="secondary" data-scroll-target="alerts-list">View signals</button>
+            </div>
+            <nav class="page-local-nav" aria-label="Intelligence sections">
+              <button type="button" class="mini-action page-local-link active" data-scroll-target="graph-subgraph">Graph</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="graph-path-results">Paths</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="analytics-related">Inspector</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="alerts-list">Signals</button>
+            </nav>
           </section>
           <section class="intelligence-shell surface-shell">
             <aside class="surface-context-rail surface-column">
@@ -955,11 +990,23 @@
 
         <section class="product-section" data-section="explore">
           <section class="page-banner">
-            <div>
-              <p class="eyebrow">Explore</p>
-              <h2>Research materials and products before you decide</h2>
+            <div class="page-banner-copy">
+              <div>
+                <p class="eyebrow">Explore</p>
+                <h2>Research materials and products before you decide</h2>
+              </div>
+              <p class="page-banner-lead">Browse materials and finished products in one discovery surface, then move into the dashboard with a clearer question and stronger graph context.</p>
             </div>
-            <p>Browse materials and finished products in one discovery surface, then move into the dashboard with a clearer question and stronger graph context.</p>
+            <div class="page-banner-actions">
+              <button type="button" data-scroll-target="explore-hero-form">Search graph</button>
+              <button type="button" class="secondary" data-scroll-target="explore-results">Browse results</button>
+            </div>
+            <nav class="page-local-nav" aria-label="Explore sections">
+              <button type="button" class="mini-action page-local-link active" data-scroll-target="explore-hero-form">Search</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="explore-tabs">Modes</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="explore-results">Results</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="explore-detail">Detail</button>
+            </nav>
           </section>
           <section class="panel explore-shell-panel">
             <div class="explore-hero">
@@ -1057,11 +1104,23 @@
 
         <section class="product-section" data-section="contribute">
           <section class="page-banner">
-            <div>
-              <p class="eyebrow">Contribute</p>
-              <h2>Add structured knowledge</h2>
+            <div class="page-banner-copy">
+              <div>
+                <p class="eyebrow">Contribute</p>
+                <h2>Add structured knowledge</h2>
+              </div>
+              <p class="page-banner-lead">Bring domain knowledge into the product with clearer roles, structured submissions, and a visible review path.</p>
             </div>
-            <p>Bring domain knowledge into the product with clearer roles, structured submissions, and a visible review path.</p>
+            <div class="page-banner-actions">
+              <button type="button" data-scroll-target="contribution-form">Submit insight</button>
+              <button type="button" class="secondary" data-scroll-target="contribution-review-queue">Open review queue</button>
+            </div>
+            <nav class="page-local-nav" aria-label="Contribute sections">
+              <button type="button" class="mini-action page-local-link active" data-scroll-target="contribute-role-cards">Roles</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="contribution-form">Submit</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="contribution-recent-list">Recent</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="contribution-review-queue">Review</button>
+            </nav>
           </section>
           <section class="contribute-shell surface-shell">
             <aside class="surface-context-rail surface-column">
@@ -1179,11 +1238,23 @@
 
         <section class="product-section" data-section="community">
           <section class="page-banner">
-            <div>
-              <p class="eyebrow">Community</p>
-              <h2>Discuss the graph in context</h2>
+            <div class="page-banner-copy">
+              <div>
+                <p class="eyebrow">Community</p>
+                <h2>Discuss the graph in context</h2>
+              </div>
+              <p class="page-banner-lead">Use Community for discussion around materials, sourcing, regulation, and trend signals without losing the graph context.</p>
             </div>
-            <p>Use Community for discussion around materials, sourcing, regulation, and trend signals without losing the graph context.</p>
+            <div class="page-banner-actions">
+              <button type="button" data-scroll-target="community-post-form">Start a thread</button>
+              <button type="button" class="secondary" data-scroll-target="community-feed">Browse feed</button>
+            </div>
+            <nav class="page-local-nav" aria-label="Community sections">
+              <button type="button" class="mini-action page-local-link active" data-scroll-target="community-channels">Channels</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="community-feed">Feed</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="community-detail">Thread</button>
+              <button type="button" class="mini-action page-local-link" data-scroll-target="community-post-form">Compose</button>
+            </nav>
           </section>
           <section class="community-shell">
             <aside class="community-left-rail surface-column">
