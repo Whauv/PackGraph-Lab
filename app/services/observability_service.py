@@ -13,6 +13,7 @@ class ObservabilityService:
         self.settings = settings
         self.counters = Counter()
         self.latencies = defaultdict(lambda: deque(maxlen=200))
+        self.gauges: dict[str, Any] = {}
 
     def log_event(self, event_type: str, payload: dict[str, Any]) -> None:
         entry = sanitize_audit_payload({
@@ -28,9 +29,21 @@ class ObservabilityService:
         self.latencies[path].append(duration_ms)
         self.write_metrics_snapshot()
 
+    def record_cache(self, namespace: str, outcome: str) -> None:
+        self.counters[f"cache_{outcome}_total"] += 1
+        self.counters[f"cache_{namespace}_{outcome}_total"] += 1
+
+    def record_job(self, status: str) -> None:
+        self.counters[f"jobs_{status}_total"] += 1
+
+    def set_gauge(self, key: str, value: Any) -> None:
+        self.gauges[key] = value
+        self.write_metrics_snapshot()
+
     def metrics(self) -> dict[str, Any]:
         return {
             "counters": dict(self.counters),
+            "gauges": dict(self.gauges),
             "latency_ms": {
                 path: {
                     "count": len(values),

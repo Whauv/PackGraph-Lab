@@ -54,12 +54,22 @@ const state = {
   graphPinnedNodeIds: [],
   scenarioComparisons: [],
   roleDashboardProfile: null,
+  graphRenderSignature: "",
   personalWorkspace: {
     bookmarks: [],
     recent_entities: [],
     quick_note: "",
     reminders: [],
   },
+};
+
+const REQUEST_TIMEOUT_MS = 12000;
+const REQUEST_RETRY_ATTEMPTS = 1;
+const DRAFT_STORAGE_KEYS = {
+  contribution: "packgraph-draft-contribution",
+  communityPost: "packgraph-draft-community-post",
+  communityReply: "packgraph-draft-community-reply",
+  investigation: "packgraph-draft-investigation",
 };
 
 function applyTheme(theme) {
@@ -162,6 +172,36 @@ function persistPersonalWorkspace() {
   window.localStorage.setItem("packgraph-personal-workspace", JSON.stringify(state.personalWorkspace));
 }
 
+function setupDraftPersistence() {
+  registerDraftPersistence(DRAFT_STORAGE_KEYS.contribution, [
+    "contribution-title",
+    "contribution-summary",
+    "contribution-evidence-note",
+    "contribution-edit-request",
+    "contribution-proposed-links",
+    "contribution-role",
+    "contribution-type",
+    "contribution-entity-type",
+    "contribution-entity-id",
+  ]);
+  registerDraftPersistence(DRAFT_STORAGE_KEYS.communityPost, [
+    "community-post-title",
+    "community-post-body",
+    "community-source-reference",
+    "community-channel-select",
+    "community-related-material",
+  ]);
+  registerDraftPersistence(DRAFT_STORAGE_KEYS.communityReply, ["community-reply-body"]);
+  registerDraftPersistence(DRAFT_STORAGE_KEYS.investigation, [
+    "investigation-title",
+    "investigation-project-status",
+    "investigation-owner",
+    "investigation-due-date",
+    "investigation-notes",
+    "investigation-rationale",
+  ]);
+}
+
 async function syncProjectMemory(patch = {}) {
   try {
     state.projectMemory = await fetchJson("/project-memory", {
@@ -192,15 +232,98 @@ function syncActiveCase(patch = {}, { syncMemory = false } = {}) {
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: authHeaders(options.headers || {}),
-  });
-  const payload = await response.json();
-  if (!response.ok || payload.status === "error") {
-    throw new Error(payload.detail || payload.error || "Request failed");
+  const method = (options.method || "GET").toUpperCase();
+  const retries = Number.isFinite(options.retries) ? options.retries : REQUEST_RETRY_ATTEMPTS;
+  const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : REQUEST_TIMEOUT_MS;
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(new Error("timeout")), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: authHeaders(options.headers || {}),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => ({
+        status: response.ok ? "ok" : "error",
+        detail: response.ok ? "" : "The server returned a non-JSON response.",
+      }));
+      if (!response.ok || payload.status === "error") {
+        const message = payload.detail || payload.error || `Request failed with status ${response.status}`;
+        const error = new Error(message);
+        error.code = payload.error || `http_${response.status}`;
+        error.status = response.status;
+        throw error;
+      }
+      return payload.data;
+    } catch (error) {
+      lastError = error;
+      const retryable = method === "GET" && (error.name === "AbortError" || !error.status || error.status >= 500);
+      if (!retryable || attempt === retries) {
+        throw new Error(error.message || "Request failed");
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 250 * (attempt + 1)));
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
-  return payload.data;
+  throw lastError || new Error("Request failed");
+}
+
+function debounce(fn, wait = 250) {
+  let timer = null;
+  return (...args) => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => fn(...args), wait);
+  };
+}
+
+function saveDraft(key, payload) {
+  window.localStorage.setItem(key, JSON.stringify(payload));
+}
+
+function loadDraft(key) {
+  try {
+    return JSON.parse(window.localStorage.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(key) {
+  window.localStorage.removeItem(key);
+}
+
+function persistFormDraft(key, fields) {
+  const payload = {};
+  fields.forEach(({ id, property = "value" }) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    payload[id] = element[property];
+  });
+  saveDraft(key, payload);
+}
+
+function restoreFormDraft(key, fields) {
+  const payload = loadDraft(key);
+  if (!payload) return;
+  fields.forEach(({ id, property = "value" }) => {
+    const element = document.getElementById(id);
+    if (!element || !(id in payload)) return;
+    element[property] = payload[id];
+  });
+}
+
+function registerDraftPersistence(key, fieldIds, eventName = "input") {
+  restoreFormDraft(key, fieldIds.map((id) => ({ id })));
+  fieldIds.forEach((id) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.addEventListener(eventName, () => {
+      persistFormDraft(key, fieldIds.map((fieldId) => ({ id: fieldId })));
+    });
+  });
 }
 
 function formatTags(items, className = "tag") {
@@ -1594,7 +1717,7 @@ async function loadMaterials() {
   const body = await payload.json();
   state.materials = body.data;
   state.products = await fetchJson("/products");
-  state.suppliers = await fetchJson("/suppliers");
+  state.suppliers = await fetchJson("/suppliers?page=1&limit=100");
   state.supplierRegionSummary = await fetchJson("/suppliers/regions/summary");
   state.applications = await fetchJson("/applications");
   state.regulations = await fetchJson("/regulations");
@@ -1843,7 +1966,7 @@ async function loadCompliance() {
 }
 
 async function loadAlerts() {
-  const alerts = await fetchJson("/alerts");
+  const alerts = await fetchJson("/alerts?page=1&limit=12");
   document.getElementById("context-alerts").textContent = alerts.length;
   renderTableCard(
     "alerts-list",
@@ -1937,7 +2060,7 @@ async function loadReviewQueue() {
     return;
   }
   try {
-    state.reviewQueue = await fetchJson("/review-candidates?limit=12");
+    state.reviewQueue = await fetchJson("/review-candidates?page=1&limit=12");
     state.reviewSummary = await fetchJson("/review-candidates/summary");
     if (!state.selectedReviewCandidateId && state.reviewQueue.length) {
       state.selectedReviewCandidateId = state.reviewQueue[0].candidate_id;
@@ -2079,13 +2202,29 @@ async function saveCurrentExploreSearch() {
       min_sustainability: document.getElementById("explore-sustainability")?.value || "",
     },
   };
-  await fetchJson("/searches", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  setStatus("explore-status", "Saved the current Explore search.", "success");
-  await loadSavedSearches();
+  const optimistic = {
+    search_id: `local-search-${Date.now()}`,
+    name: payload.name,
+    filters: payload.filters,
+    tab: payload.tab,
+    view: payload.view,
+    pending: true,
+  };
+  state.savedSearches = [optimistic, ...(state.savedSearches || [])].slice(0, 12);
+  renderSavedSearches();
+  try {
+    await fetchJson("/searches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setStatus("explore-status", "Saved the current Explore search.", "success");
+    await loadSavedSearches();
+  } catch (error) {
+    state.savedSearches = (state.savedSearches || []).filter((item) => item.search_id !== optimistic.search_id);
+    renderSavedSearches();
+    throw error;
+  }
 }
 
 function renderSupplierRegionSummary() {
@@ -2137,6 +2276,8 @@ async function loadExploreEntities() {
   if (applicationId) params.set("application_id", applicationId);
   if (complianceState) params.set("compliance_state", complianceState);
   if (minSustainability) params.set("min_sustainability", minSustainability);
+  params.set("page", "1");
+  params.set("limit", state.exploreView === "graph" ? "18" : "24");
   renderSurfaceState("explore-results", "loading", "Loading browse results", "PackGraph is assembling materials, products, or updates for the current filter set.");
   setStatus("explore-status", "Loading browse results...", "info");
   try {
@@ -2337,6 +2478,7 @@ async function submitContribution() {
       body: JSON.stringify(payload),
     });
     document.getElementById("contribution-form").reset();
+    clearDraft(DRAFT_STORAGE_KEYS.contribution);
     populateContributionEntityOptions();
     await Promise.all([loadContributionData(), loadNotifications()]);
     setStatus("contribution-status", `Submitted ${payload.title}.`, "success");
@@ -2374,6 +2516,8 @@ async function loadCommunityPosts() {
   const params = new URLSearchParams({ channel_id: state.selectedCommunityChannelId });
   if (moderation) params.set("moderation_state", moderation);
   if (relatedEntityId) params.set("related_entity_id", relatedEntityId);
+  params.set("page", "1");
+  params.set("limit", "12");
   renderSurfaceState("community-feed", "loading", "Loading discussions", "PackGraph is gathering posts for the selected channel.");
   try {
     state.communityPosts = await fetchJson(`/community/posts?${params.toString()}`);
@@ -2381,10 +2525,10 @@ async function loadCommunityPosts() {
     renderSurfaceState("community-feed", "error", "Discussions could not load", error.message);
     setStatus("community-status", error.message, "error");
     return;
-    }
-    if (!state.selectedCommunityPostId && state.communityPosts.length) {
-      state.selectedCommunityPostId = state.communityPosts[0].post_id;
-    }
+  }
+  if (!state.selectedCommunityPostId && state.communityPosts.length) {
+    state.selectedCommunityPostId = state.communityPosts[0].post_id;
+  }
     if (window.PackGraphCommunityPage) {
       window.PackGraphCommunityPage.renderPosts(state.communityPosts, state.selectedCommunityPostId, openCommunityPost, upvoteCommunityPost, saveCommunityPost, pinCommunityPost, sendCommunityPostToReview, useCommunityPostInCase);
     }
@@ -2468,17 +2612,22 @@ async function submitCommunityPost() {
     return;
   }
   setStatus("community-status", "Publishing demo post...", "info");
-  await fetchJson("/community/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  document.getElementById("community-post-form").reset();
-  state.selectedCommunityChannelId = payload.channel_id;
-  state.selectedCommunityPostId = null;
-  await loadCommunityData();
-  setStatus("community-status", `Created post ${payload.title}.`, "success");
-  await loadNotifications();
+  try {
+    await fetchJson("/community/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    document.getElementById("community-post-form").reset();
+    clearDraft(DRAFT_STORAGE_KEYS.communityPost);
+    state.selectedCommunityChannelId = payload.channel_id;
+    state.selectedCommunityPostId = null;
+    await loadCommunityData();
+    setStatus("community-status", `Created post ${payload.title}.`, "success");
+    await loadNotifications();
+  } catch (error) {
+    setStatus("community-status", error.message, "error");
+  }
 }
 
 async function loadScenarioHistory() {
@@ -2526,12 +2675,29 @@ function renderScenarioComparison() {
 async function loadGraph() {
   document.getElementById("graph-nodes-layer").innerHTML = skeletonBlock("graph");
   const graph = await fetchJson(`/graph/subgraph?material_id=${state.selectedMaterialId}`);
+  const nextSignature = JSON.stringify({
+    material_id: state.selectedMaterialId,
+    filter: state.graphFilter,
+    preset: state.graphPreset,
+    isolate: state.graphIsolateSelection,
+    collapsed: state.graphCollapsedTypes,
+    pinned: state.graphPinnedNodeIds,
+    nodes: graph.nodes?.map((node) => node.id),
+    edges: graph.edges?.map((edge) => `${edge.source}:${edge.type}:${edge.target}`),
+  });
   state.currentGraph = graph;
   const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
   if (!graphNodeIds.has(state.selectedGraphNodeId)) {
     state.selectedGraphNodeId = state.selectedMaterialId;
   }
-  renderGraphCanvas(graph);
+  if (state.graphRenderSignature !== nextSignature) {
+    renderGraphCanvas(graph);
+    state.graphRenderSignature = nextSignature;
+  } else {
+    applyGraphZoom();
+    updateGraphContextBar(graph, normalizeGraphEdges(graph, state.graphIsolateSelection ? state.selectedGraphNodeId : state.selectedMaterialId));
+    updateGraphActionBar();
+  }
   const selectors = [document.getElementById("graph-source"), document.getElementById("graph-target")];
   selectors.forEach((select) => {
     select.innerHTML = graph.nodes.map((node) => `<option value="${node.id}">${node.label}</option>`).join("");
@@ -3115,21 +3281,26 @@ async function saveInvestigation() {
   };
   const method = state.currentInvestigationId ? "PATCH" : "POST";
   const url = state.currentInvestigationId ? `/investigations/${state.currentInvestigationId}` : "/investigations";
-  const result = await fetchJson(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  state.currentInvestigationId = result.investigation_id;
-  setStatus("investigation-status", `Saved ${result.title} with ${result.shortlisted_material_ids.length} shortlisted materials.`, "success");
-  syncActiveCase({
-    name: result.title,
-    note: result.decision_rationale || result.notes || state.activeCase?.note || "",
-    status: "approve",
-    workflow_step: "Approve",
-    review_state: result.project_status || "active",
-  }, { syncMemory: true });
-  await loadInvestigations();
+  try {
+    const result = await fetchJson(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    clearDraft(DRAFT_STORAGE_KEYS.investigation);
+    state.currentInvestigationId = result.investigation_id;
+    setStatus("investigation-status", `Saved ${result.title} with ${result.shortlisted_material_ids.length} shortlisted materials.`, "success");
+    syncActiveCase({
+      name: result.title,
+      note: result.decision_rationale || result.notes || state.activeCase?.note || "",
+      status: "approve",
+      workflow_step: "Approve",
+      review_state: result.project_status || "active",
+    }, { syncMemory: true });
+    await loadInvestigations();
+  } catch (error) {
+    setStatus("investigation-status", error.message, "error");
+  }
 }
 
 async function resumeInvestigation(investigationId) {
@@ -3440,6 +3611,19 @@ function setupGraphFilters() {
 }
 
 function setupForms() {
+  const debouncedExploreReload = debounce(() => {
+    loadExploreEntities();
+  }, 280);
+  const debouncedExploreAutocomplete = debounce((value) => {
+    updateExploreAutocomplete(value);
+  }, 180);
+  const debouncedCommandCenterSearch = debounce(() => {
+    runCommandCenter();
+  }, 220);
+  const debouncedGlobalSearch = debounce(() => {
+    runGlobalSearch();
+  }, 260);
+
   document.addEventListener("keydown", (event) => {
     const isCommandShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
     if (isCommandShortcut) {
@@ -3595,6 +3779,7 @@ function setupForms() {
     document.getElementById("investigation-due-date").value = "";
     document.getElementById("investigation-notes").value = "";
     document.getElementById("investigation-rationale").value = "";
+    clearDraft(DRAFT_STORAGE_KEYS.investigation);
     setStatus("investigation-status", "Cleared the current investigation draft.", "info");
   });
 
@@ -3626,49 +3811,72 @@ function setupForms() {
       return;
     }
     setStatus("workspace-status", "Saving workspace context...", "info");
-  await fetchJson("/workspaces", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        filters: {
-          search: document.getElementById("filter-search").value.trim(),
-          material_family: document.getElementById("filter-family").value.trim(),
-          region: document.getElementById("filter-region").value,
-          category: document.getElementById("filter-category").value,
-          regulation_id: document.getElementById("filter-regulation").value,
-          claim_type: document.getElementById("filter-claim").value,
-          compliance_state: document.getElementById("filter-compliance").value,
-          performance_metric: document.getElementById("filter-performance-metric").value,
-          min_performance_score: document.getElementById("filter-performance-score").value,
-          supplier_capability: document.getElementById("filter-supplier-capability").value.trim(),
-          min_sustainability: document.getElementById("filter-sustainability").value,
-          graph_filter: state.graphFilter,
-          graph_preset: state.graphPreset,
-          graph_isolate_selection: state.graphIsolateSelection,
-          graph_collapsed_types: state.graphCollapsedTypes,
-          graph_pinned_node_ids: state.graphPinnedNodeIds,
-          active_case_name: state.activeCase?.name || "",
-        },
-        selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
-        active_tab: state.currentPage,
-      }),
-    });
-    document.getElementById("workspace-name").value = "";
-    await Promise.all([loadWorkspaces(), loadNotifications()]);
-    setStatus("workspace-status", `Saved workspace ${name}.`, "success");
-    syncActiveCase({
+    const payload = {
       name,
-      shortlist_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
-      focus_material_id: state.selectedMaterialId,
-      status: "discover",
-      workflow_step: "Discover",
-    }, { syncMemory: true });
+      filters: {
+        search: document.getElementById("filter-search").value.trim(),
+        material_family: document.getElementById("filter-family").value.trim(),
+        region: document.getElementById("filter-region").value,
+        category: document.getElementById("filter-category").value,
+        regulation_id: document.getElementById("filter-regulation").value,
+        claim_type: document.getElementById("filter-claim").value,
+        compliance_state: document.getElementById("filter-compliance").value,
+        performance_metric: document.getElementById("filter-performance-metric").value,
+        min_performance_score: document.getElementById("filter-performance-score").value,
+        supplier_capability: document.getElementById("filter-supplier-capability").value.trim(),
+        min_sustainability: document.getElementById("filter-sustainability").value,
+        graph_filter: state.graphFilter,
+        graph_preset: state.graphPreset,
+        graph_isolate_selection: state.graphIsolateSelection,
+        graph_collapsed_types: state.graphCollapsedTypes,
+        graph_pinned_node_ids: state.graphPinnedNodeIds,
+        active_case_name: state.activeCase?.name || "",
+      },
+      selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
+      active_tab: state.currentPage,
+    };
+    const optimistic = {
+      workspace_id: `local-workspace-${Date.now()}`,
+      name,
+      filters: payload.filters,
+      selected_material_ids: payload.selected_material_ids,
+      active_tab: payload.active_tab,
+      pending: true,
+    };
+    state.workspaces = [optimistic, ...(state.workspaces || [])].slice(0, 12);
+    renderSavedWorkspaces();
+    try {
+      await fetchJson("/workspaces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      document.getElementById("workspace-name").value = "";
+      await Promise.all([loadWorkspaces(), loadNotifications()]);
+      setStatus("workspace-status", `Saved workspace ${name}.`, "success");
+      syncActiveCase({
+        name,
+        shortlist_material_ids: payload.selected_material_ids,
+        focus_material_id: state.selectedMaterialId,
+        status: "discover",
+        workflow_step: "Discover",
+      }, { syncMemory: true });
+    } catch (error) {
+      state.workspaces = (state.workspaces || []).filter((item) => item.workspace_id !== optimistic.workspace_id);
+      renderSavedWorkspaces();
+      setStatus("workspace-status", error.message, "error");
+    }
   });
 
   document.getElementById("command-center-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     await runCommandCenter();
+  });
+  document.getElementById("command-center-input").addEventListener("input", () => {
+    const value = document.getElementById("command-center-input").value.trim();
+    if (value.length >= 2) {
+      debouncedCommandCenterSearch();
+    }
   });
 
   document.getElementById("command-center-close").addEventListener("click", () => {
@@ -3706,7 +3914,7 @@ function setupForms() {
     }
   });
 
-  document.getElementById("productivity-note").addEventListener("change", (event) => {
+  document.getElementById("productivity-note").addEventListener("input", (event) => {
     state.personalWorkspace.quick_note = event.target.value.trim();
     persistPersonalWorkspace();
     renderPersonalWorkspace();
@@ -3725,6 +3933,12 @@ function setupForms() {
   document.getElementById("global-search-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     await runGlobalSearch();
+  });
+  document.getElementById("global-search-input").addEventListener("input", () => {
+    const value = document.getElementById("global-search-input").value.trim();
+    if (value.length >= 2) {
+      debouncedGlobalSearch();
+    }
   });
 
   document.getElementById("global-search-image-trigger").addEventListener("click", () => {
@@ -3766,6 +3980,9 @@ function setupForms() {
   document.getElementById("explore-sort").addEventListener("change", async () => {
     await loadExploreEntities();
   });
+  ["explore-taxonomy", "explore-region", "explore-category", "explore-supplier", "explore-application", "explore-compliance", "explore-sustainability"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", debouncedExploreReload);
+  });
 
   document.getElementById("explore-reset").addEventListener("click", async () => {
     document.getElementById("explore-filter-form").reset();
@@ -3784,7 +4001,11 @@ function setupForms() {
   document.getElementById("explore-hero-input").addEventListener("input", async (event) => {
     const value = event.target.value;
     document.getElementById("explore-search").value = value;
-    await updateExploreAutocomplete(value);
+    debouncedExploreAutocomplete(value);
+  });
+  document.getElementById("explore-search").addEventListener("input", (event) => {
+    document.getElementById("explore-hero-input").value = event.target.value;
+    debouncedExploreReload();
   });
 
   document.getElementById("explore-hero-clear").addEventListener("click", async () => {
@@ -3834,6 +4055,7 @@ function setupForms() {
         body: JSON.stringify({ body }),
       });
       document.getElementById("community-reply-body").value = "";
+      clearDraft(DRAFT_STORAGE_KEYS.communityReply);
       setStatus("community-status", "Reply added to the selected discussion.", "success");
       await Promise.all([loadCommunityPosts(), loadNotifications()]);
     } catch (error) {
@@ -3901,6 +4123,7 @@ async function init() {
   setupGraphPanControls();
   setupGraphFilters();
   setupForms();
+  setupDraftPersistence();
   setupOverviewOnboardingHint();
   setNotificationFilter("all");
   renderCaseWorkspace();

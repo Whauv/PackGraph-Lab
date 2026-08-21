@@ -49,6 +49,28 @@ def build_router(state) -> APIRouter:
         state.idempotency.store(idem_key, request.method, request.url.path, request_hash, response_payload, org_id=org_id)
         return response_payload
 
+    def paginate_records(records: list[dict], page: int = 1, limit: int = 20) -> tuple[list[dict], dict]:
+        safe_limit = max(1, min(limit, 100))
+        safe_page = max(1, page)
+        start = (safe_page - 1) * safe_limit
+        end = start + safe_limit
+        sliced = records[start:end]
+        return sliced, {
+            "page": safe_page,
+            "limit": safe_limit,
+            "total": len(records),
+            "has_next": end < len(records),
+            "has_previous": safe_page > 1,
+        }
+
+    def cached(namespace: str, payload: dict, loader, ttl_seconds: int | None = None):
+        return state.cache.get_or_set(
+            f"route:{namespace}",
+            payload,
+            ttl_seconds=ttl_seconds or state.settings.response_cache_default_ttl_seconds,
+            loader=loader,
+        )
+
     @router.get("/materials")
     def list_materials():
         return {"status": "ok", "data": state.repository.list_materials(), "meta": state.repository.manifest["counts"]}
@@ -96,8 +118,27 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.repository.timeline_for_material(material_id)}
 
     @router.get("/suppliers")
-    def list_suppliers(region: str | None = None):
-        return {"status": "ok", "data": state.repository.list_suppliers(region=region)}
+    def list_suppliers(region: str | None = None, search: str | None = None, page: int = 1, limit: int = 24):
+        def load():
+            records = state.repository.list_suppliers(region=region)
+            if search:
+                query = search.lower().strip()
+                records = [
+                    item for item in records
+                    if query in item.get("name", "").lower()
+                    or query in item.get("region", "").lower()
+                    or query in " ".join(item.get("certifications", [])).lower()
+                ]
+            return records
+
+        records = cached(
+            "suppliers",
+            {"region": region, "search": search},
+            load,
+            ttl_seconds=state.settings.response_cache_graph_ttl_seconds,
+        )
+        page_rows, meta = paginate_records(records, page=page, limit=limit)
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/suppliers/regions/summary")
     def supplier_region_summary():
@@ -129,10 +170,23 @@ def build_router(state) -> APIRouter:
         min_sustainability: int | None = None,
         region: str | None = None,
         taxonomy: str | None = None,
+        page: int = 1,
+        limit: int = 24,
     ):
-        return {
-            "status": "ok",
-            "data": state.repository.explore_entities(
+        records = cached(
+            "explore_entities",
+            {
+                "tab": tab,
+                "search": search,
+                "category": category,
+                "supplier_id": supplier_id,
+                "application_id": application_id,
+                "compliance_state": compliance_state,
+                "min_sustainability": min_sustainability,
+                "region": region,
+                "taxonomy": taxonomy,
+            },
+            lambda: state.repository.explore_entities(
                 tab=tab,
                 search=search,
                 category=category,
@@ -143,7 +197,10 @@ def build_router(state) -> APIRouter:
                 region=region,
                 taxonomy=taxonomy,
             ),
-        }
+            ttl_seconds=state.settings.response_cache_graph_ttl_seconds,
+        )
+        page_rows, meta = paginate_records(records, page=page, limit=limit)
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/explore/autocomplete")
     def explore_autocomplete(query: str):
@@ -169,22 +226,25 @@ def build_router(state) -> APIRouter:
 
     @router.get("/search/global")
     def global_search(query: str):
-        results = state.repository.global_search(query)
-        if not results:
-            discovered = state.components.discover(query)
-            if discovered:
-                record = discovered["record"]
-                results = [
-                    {
-                        "entity_type": "component",
-                        "entity_id": record["component_id"],
-                        "title": record["name"],
-                        "subtitle": f"{record.get('component_type', 'Web-discovered component')} | cached on {record.get('discovered_at', 'unknown date')}",
-                        "meta": f"Stored from {record.get('source_name', 'web discovery')} for future lookups.",
-                        "source_url": record.get("source_url", ""),
-                        "discovery_state": discovered["discovery_state"],
-                    }
-                ]
+        def load():
+            results = state.repository.global_search(query)
+            if not results:
+                discovered = state.components.discover(query)
+                if discovered:
+                    record = discovered["record"]
+                    results = [
+                        {
+                            "entity_type": "component",
+                            "entity_id": record["component_id"],
+                            "title": record["name"],
+                            "subtitle": f"{record.get('component_type', 'Web-discovered component')} | cached on {record.get('discovered_at', 'unknown date')}",
+                            "meta": f"Stored from {record.get('source_name', 'web discovery')} for future lookups.",
+                            "source_url": record.get("source_url", ""),
+                            "discovery_state": discovered["discovery_state"],
+                        }
+                    ]
+            return results
+        results = cached("global_search", {"query": query}, load, ttl_seconds=state.settings.response_cache_graph_ttl_seconds)
         return {"status": "ok", "data": results}
 
     @router.get("/components")
@@ -222,59 +282,66 @@ def build_router(state) -> APIRouter:
 
     @router.get("/search/command")
     def command_search(query: str, request: Request):
-        results = state.repository.global_search(query)
         current_user = state.auth.current_user(_session_token(request))
-        workspaces = state.auth.list_workspaces(current_user["user_id"]) if current_user else []
-        investigations = state.investigations.list(
-            current_user["user_id"] if current_user else None,
-            org_id=current_user["org_id"] if current_user else None,
+        def load():
+            results = state.repository.global_search(query)
+            workspaces = state.auth.list_workspaces(current_user["user_id"]) if current_user else []
+            investigations = state.investigations.list(
+                current_user["user_id"] if current_user else None,
+                org_id=current_user["org_id"] if current_user else None,
+            )
+            scenarios = state.scenario_history.list(current_user["user_id"] if current_user else None) if current_user else []
+            submissions = [
+                item
+                for item in state.contributions.list_submissions(org_id=current_user["org_id"] if current_user else None)
+                if query.lower() in item.get("title", "").lower()
+            ]
+            posts = [
+                item
+                for item in state.community.list_posts(org_id=current_user["org_id"] if current_user else None)
+                if query.lower() in item.get("title", "").lower() or query.lower() in item.get("body", "").lower()
+            ]
+            return {
+                "results": results[:10],
+                "workspaces": [
+                    {"entity_type": "workspace", "entity_id": item["workspace_id"], "title": item["name"], "subtitle": item.get("active_tab", "workspace")}
+                    for item in workspaces[:5]
+                ],
+                "investigations": [
+                    {
+                        "entity_type": "investigation",
+                        "entity_id": item["investigation_id"],
+                        "title": item["title"],
+                        "subtitle": f"{item.get('project_status', item.get('status', 'open'))} | due {item.get('due_date') or 'not set'}",
+                    }
+                    for item in investigations[:5]
+                    if query.lower() in item.get("title", "").lower() or query.lower() in item.get("notes", "").lower()
+                ],
+                "scenarios": [
+                    {
+                        "entity_type": "scenario",
+                        "entity_id": item["scenario_id"],
+                        "title": item.get("scenario_type", "scenario").replace("_", " ").title(),
+                        "subtitle": item.get("created_at", ""),
+                    }
+                    for item in scenarios[:5]
+                    if query.lower() in str(item.get("scenario_type", "")).lower()
+                ],
+                "contributions": [
+                    {"entity_type": "contribution", "entity_id": item["contribution_id"], "title": item["title"], "subtitle": item.get("status", "queued")}
+                    for item in submissions[:5]
+                ],
+                "posts": [
+                    {"entity_type": "community_post", "entity_id": item["post_id"], "title": item["title"], "subtitle": item.get("channel_id", "community")}
+                    for item in posts[:5]
+                ],
+            }
+        payload = cached(
+            "command_search",
+            {"query": query, "org_id": current_user["org_id"] if current_user else None},
+            load,
+            ttl_seconds=state.settings.response_cache_default_ttl_seconds,
         )
-        scenarios = state.scenario_history.list(current_user["user_id"] if current_user else None) if current_user else []
-        submissions = [
-            item
-            for item in state.contributions.list_submissions(org_id=current_user["org_id"] if current_user else None)
-            if query.lower() in item.get("title", "").lower()
-        ]
-        posts = [
-            item
-            for item in state.community.list_posts(org_id=current_user["org_id"] if current_user else None)
-            if query.lower() in item.get("title", "").lower() or query.lower() in item.get("body", "").lower()
-        ]
-        payload = {
-            "results": results[:10],
-            "workspaces": [
-                {"entity_type": "workspace", "entity_id": item["workspace_id"], "title": item["name"], "subtitle": item.get("active_tab", "workspace")}
-                for item in workspaces[:5]
-            ],
-            "investigations": [
-                {
-                    "entity_type": "investigation",
-                    "entity_id": item["investigation_id"],
-                    "title": item["title"],
-                    "subtitle": f"{item.get('project_status', item.get('status', 'open'))} | due {item.get('due_date') or 'not set'}",
-                }
-                for item in investigations[:5]
-                if query.lower() in item.get("title", "").lower() or query.lower() in item.get("notes", "").lower()
-            ],
-            "scenarios": [
-                {
-                    "entity_type": "scenario",
-                    "entity_id": item["scenario_id"],
-                    "title": item.get("scenario_type", "scenario").replace("_", " ").title(),
-                    "subtitle": item.get("created_at", ""),
-                }
-                for item in scenarios[:5]
-                if query.lower() in str(item.get("scenario_type", "")).lower()
-            ],
-            "contributions": [
-                {"entity_type": "contribution", "entity_id": item["contribution_id"], "title": item["title"], "subtitle": item.get("status", "queued")}
-                for item in submissions[:5]
-            ],
-            "posts": [
-                {"entity_type": "community_post", "entity_id": item["post_id"], "title": item["title"], "subtitle": item.get("channel_id", "community")}
-                for item in posts[:5]
-            ],
-        }
         return {"status": "ok", "data": payload}
 
     @router.get("/private-data/status")
@@ -445,9 +512,11 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.query_engine.project_memory.update(payload.model_dump())}
 
     @router.get("/review-candidates")
-    def review_candidates(request: Request, status: str | None = None, limit: int = 100):
+    def review_candidates(request: Request, status: str | None = None, page: int = 1, limit: int = 24):
         current_user = current_user_or_401(request)
-        return {"status": "ok", "data": state.review_store.list(status=status, org_id=current_user["org_id"], limit=limit)}
+        rows = state.review_store.list(status=status, org_id=current_user["org_id"], limit=500)
+        page_rows, meta = paginate_records(rows, page=page, limit=limit)
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/review-candidates/summary")
     def review_candidates_summary(request: Request):
@@ -476,6 +545,7 @@ def build_router(state) -> APIRouter:
         candidate = state.review_store.assign(candidate_id, payload.reviewer_id, actor["user_id"], actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
     @router.post("/review-candidates/{candidate_id}/comment")
@@ -484,6 +554,7 @@ def build_router(state) -> APIRouter:
         candidate = state.review_store.comment(candidate_id, actor["user_id"], payload.comment, actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
     @router.post("/review-candidates/{candidate_id}/decision")
@@ -492,6 +563,7 @@ def build_router(state) -> APIRouter:
         candidate = state.review_store.decide(candidate_id, actor["user_id"], payload.status, payload.comment, payload.metadata, actor["org_id"])
         if not candidate:
             raise HTTPException(status_code=404, detail="Review candidate not found")
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
     @router.post("/review-candidates/manual")
@@ -507,6 +579,7 @@ def build_router(state) -> APIRouter:
             },
             org_id=actor["org_id"],
         )
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
     @router.get("/review-candidates/export")
@@ -562,17 +635,18 @@ def build_router(state) -> APIRouter:
 
     @router.get("/compliance/dashboard")
     def compliance_dashboard():
-        watch_count = sum(1 for item in state.repository.materials if item["compliance_state"] == "watch")
-        non_compliant_count = sum(1 for item in state.repository.materials if item["compliance_state"] == "non-compliant")
-        return {
-            "status": "ok",
-            "data": {
-                "watch_count": watch_count,
-                "non_compliant_count": non_compliant_count,
+        data = cached(
+            "compliance_dashboard",
+            {"scope": "default"},
+            lambda: {
+                "watch_count": sum(1 for item in state.repository.materials if item["compliance_state"] == "watch"),
+                "non_compliant_count": sum(1 for item in state.repository.materials if item["compliance_state"] == "non-compliant"),
                 "at_risk_materials": state.repository.materials_at_risk()[:10],
                 "upcoming_regulations": [item for item in state.repository.regulations if not item["active"]][:6],
             },
-        }
+            ttl_seconds=state.settings.response_cache_analytics_ttl_seconds,
+        )
+        return {"status": "ok", "data": data}
 
     @router.get("/graph/relationships")
     def graph_relationships(material_id: str | None = None):
@@ -580,7 +654,13 @@ def build_router(state) -> APIRouter:
 
     @router.get("/graph/subgraph")
     def graph_subgraph(material_id: str):
-        return {"status": "ok", "data": state.repository.graph_subgraph(material_id)}
+        data = cached(
+            "graph_subgraph",
+            {"material_id": material_id},
+            lambda: state.repository.graph_subgraph(material_id),
+            ttl_seconds=state.settings.response_cache_graph_ttl_seconds,
+        )
+        return {"status": "ok", "data": data}
 
     @router.get("/graph/path")
     def graph_path(source_id: str, target_id: str):
@@ -588,11 +668,24 @@ def build_router(state) -> APIRouter:
 
     @router.get("/graph/node-insight")
     def graph_node_insight(node_id: str):
-        return {"status": "ok", "data": state.repository.graph_node_insight(node_id)}
+        data = cached(
+            "graph_node_insight",
+            {"node_id": node_id},
+            lambda: state.repository.graph_node_insight(node_id),
+            ttl_seconds=state.settings.response_cache_graph_ttl_seconds,
+        )
+        return {"status": "ok", "data": data}
 
     @router.get("/documents/search")
-    def documents_search(query: str, material_id: str | None = None):
-        return {"status": "ok", "data": state.repository.search_documents(query, material_id)}
+    def documents_search(query: str, material_id: str | None = None, page: int = 1, limit: int = 20):
+        rows = cached(
+            "documents_search",
+            {"query": query, "material_id": material_id},
+            lambda: state.repository.search_documents(query, material_id),
+            ttl_seconds=state.settings.response_cache_graph_ttl_seconds,
+        )
+        page_rows, meta = paginate_records(rows, page=page, limit=limit)
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/documents/{document_id}")
     def document_detail(document_id: str):
@@ -657,15 +750,30 @@ def build_router(state) -> APIRouter:
             summary=result["record"].get("extraction_summary", ""),
             uploaded_at=result["artifact"]["uploaded_at"],
         )
+        state.cache.invalidate_prefix("route:documents_search")
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": result}
 
     @router.get("/alerts")
-    def alerts():
-        return {"status": "ok", "data": state.repository.alerts()}
+    def alerts(page: int = 1, limit: int = 10):
+        rows = cached(
+            "alerts",
+            {"scope": "default"},
+            lambda: state.repository.alerts(),
+            ttl_seconds=state.settings.response_cache_analytics_ttl_seconds,
+        )
+        page_rows, meta = paginate_records(rows, page=page, limit=limit)
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/analytics/overview")
     def analytics_overview():
-        return {"status": "ok", "data": state.repository.analytics_overview()}
+        data = cached(
+            "analytics_overview",
+            {"scope": "default"},
+            lambda: state.repository.analytics_overview(),
+            ttl_seconds=state.settings.response_cache_analytics_ttl_seconds,
+        )
+        return {"status": "ok", "data": data}
 
     @router.get("/integrity/report")
     def integrity_report():
@@ -713,11 +821,13 @@ def build_router(state) -> APIRouter:
     @router.post("/workspaces")
     def save_workspace(payload: WorkspaceSaveRequest, request: Request):
         user = require_permission(request, "workspaces:write")
-        return maybe_idempotent(
+        response = maybe_idempotent(
             request,
             payload.model_dump(),
             lambda: {"status": "ok", "data": state.auth.save_workspace(user["user_id"], payload.model_dump())},
         )
+        state.cache.invalidate_prefix("route:notifications")
+        return response
 
     @router.get("/searches")
     def list_saved_searches(request: Request):
@@ -727,11 +837,13 @@ def build_router(state) -> APIRouter:
     @router.post("/searches")
     def save_search(payload: dict, request: Request):
         user = require_permission(request, "search:save")
-        return maybe_idempotent(
+        response = maybe_idempotent(
             request,
             payload,
             lambda: {"status": "ok", "data": state.auth.save_search(user["user_id"], payload)},
         )
+        state.cache.invalidate_prefix("route:notifications")
+        return response
 
     @router.get("/contributions/roles")
     def contribution_roles():
@@ -758,11 +870,13 @@ def build_router(state) -> APIRouter:
             if not validation["valid"]:
                 raise HTTPException(status_code=400, detail=validation["message"])
         submitted_by = current_user["name"]
-        return maybe_idempotent(
+        response = maybe_idempotent(
             request,
             payload.model_dump(),
             lambda: {"status": "ok", "data": state.contributions.create(payload.model_dump(), submitted_by, org_id=current_user["org_id"])},
         )
+        state.cache.invalidate_prefix("route:notifications")
+        return response
 
     @router.post("/contributions/{contribution_id}/review")
     def review_contribution(contribution_id: str, payload: ContributionReviewRequest, request: Request):
@@ -770,12 +884,16 @@ def build_router(state) -> APIRouter:
         record = state.contributions.review(contribution_id, payload.status, reviewer["name"], payload.reviewer_note, org_id=reviewer["org_id"])
         if not record:
             raise HTTPException(status_code=404, detail="Contribution not found")
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": record}
 
     @router.get("/jobs")
-    def list_jobs(request: Request, status: str | None = None, limit: int = 50):
+    def list_jobs(request: Request, status: str | None = None, page: int = 1, limit: int = 20):
         user = require_permission(request, "jobs:view")
-        return {"status": "ok", "data": state.jobs.list(status=status, org_id=user["org_id"], limit=limit), "meta": state.jobs.summary(org_id=user["org_id"])}
+        rows = state.jobs.list(status=status, org_id=user["org_id"], limit=500)
+        page_rows, meta = paginate_records(rows, page=page, limit=limit)
+        meta["summary"] = state.jobs.summary(org_id=user["org_id"])
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/jobs/{job_id}")
     def get_job(job_id: str, request: Request):
@@ -816,9 +934,28 @@ def build_router(state) -> APIRouter:
         return {"status": "ok", "data": state.community.list_channels(org_id=current_user["org_id"] if current_user else "ORG-001")}
 
     @router.get("/community/posts")
-    def community_posts(request: Request, channel_id: str | None = None, moderation_state: str | None = None, related_entity_id: str | None = None):
+    def community_posts(
+        request: Request,
+        channel_id: str | None = None,
+        moderation_state: str | None = None,
+        related_entity_id: str | None = None,
+        page: int = 1,
+        limit: int = 12,
+    ):
         current_user = maybe_current_user(request)
-        return {"status": "ok", "data": state.community.list_posts(channel_id, moderation_state, related_entity_id, current_user["org_id"] if current_user else "ORG-001")}
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        rows = cached(
+            "community_posts",
+            {
+                "channel_id": channel_id,
+                "moderation_state": moderation_state,
+                "related_entity_id": related_entity_id,
+                "org_id": org_id,
+            },
+            lambda: state.community.list_posts(channel_id, moderation_state, related_entity_id, org_id),
+        )
+        page_rows, meta = paginate_records(rows, page=page, limit=limit)
+        return {"status": "ok", "data": page_rows, "meta": meta}
 
     @router.get("/community/posts/{post_id}")
     def community_post_detail(post_id: str, request: Request):
@@ -832,10 +969,13 @@ def build_router(state) -> APIRouter:
     def create_community_post(payload: CommunityPostCreate, request: Request):
         current_user = require_permission(request, "community:write")
         author_name = current_user["name"]
-        return {
+        response = {
             "status": "ok",
             "data": state.community.create_post(payload.model_dump(), author_name, current_user["role_title"], 68, current_user["org_id"]),
         }
+        state.cache.invalidate_prefix("route:community_posts")
+        state.cache.invalidate_prefix("route:notifications")
+        return response
 
     @router.post("/community/posts/{post_id}/upvote")
     def upvote_community_post(post_id: str, request: Request):
@@ -843,6 +983,7 @@ def build_router(state) -> APIRouter:
         post = state.community.upvote(post_id, current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
+        state.cache.invalidate_prefix("route:community_posts")
         return {"status": "ok", "data": post}
 
     @router.post("/community/posts/{post_id}/save")
@@ -851,6 +992,7 @@ def build_router(state) -> APIRouter:
         post = state.community.save_post(post_id, current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
+        state.cache.invalidate_prefix("route:community_posts")
         return {"status": "ok", "data": post}
 
     @router.post("/community/posts/{post_id}/reply")
@@ -859,6 +1001,7 @@ def build_router(state) -> APIRouter:
         post = state.community.add_reply(post_id, payload.body, current_user["name"], current_user["role_title"], current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
+        state.cache.invalidate_prefix("route:community_posts")
         return {"status": "ok", "data": post}
 
     @router.post("/community/posts/{post_id}/pin")
@@ -867,25 +1010,26 @@ def build_router(state) -> APIRouter:
         post = state.community.pin(post_id, current_user["org_id"])
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
+        state.cache.invalidate_prefix("route:community_posts")
+        state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": post}
 
     @router.get("/notifications")
     def notifications(request: Request):
         user = state.auth.current_user(_session_token(request))
-        alerts = state.repository.alerts()[:4]
-        reviews = state.review_store.list(
-            status="pending_human_review",
-            org_id=user["org_id"] if user else None,
-            limit=4,
-        )
-        queue = state.contributions.list_queue(org_id=user["org_id"] if user else None)[:4]
-        posts = [item for item in state.community.list_posts(org_id=user["org_id"] if user else None) if item.get("moderation_state") == "pending"][:4]
-        workspaces = state.auth.list_workspaces(user["user_id"])[:2] if user else []
-        scenarios = state.scenario_history.list(user["user_id"])[:2] if user else []
-        investigations = state.investigations.list(user["user_id"], org_id=user["org_id"])[:2] if user else []
-        return {
-            "status": "ok",
-            "data": [
+        def load():
+            alerts = state.repository.alerts()[:4]
+            reviews = state.review_store.list(
+                status="pending_human_review",
+                org_id=user["org_id"] if user else None,
+                limit=4,
+            )
+            queue = state.contributions.list_queue(org_id=user["org_id"] if user else None)[:4]
+            posts = [item for item in state.community.list_posts(org_id=user["org_id"] if user else None) if item.get("moderation_state") == "pending"][:4]
+            workspaces = state.auth.list_workspaces(user["user_id"])[:2] if user else []
+            scenarios = state.scenario_history.list(user["user_id"])[:2] if user else []
+            investigations = state.investigations.list(user["user_id"], org_id=user["org_id"])[:2] if user else []
+            return [
                 *[
                     {"type": "alert", "title": item["title"], "detail": item["detail"], "tone": item["severity"]}
                     for item in alerts
@@ -914,8 +1058,26 @@ def build_router(state) -> APIRouter:
                     {"type": "project", "title": item["title"], "detail": f"{item.get('project_status', 'active')} | due {item.get('due_date') or 'not set'}", "tone": "neutral"}
                     for item in investigations
                 ],
-            ],
+            ]
+        payload = cached(
+            "notifications",
+            {"org_id": user["org_id"] if user else None, "user_id": user["user_id"] if user else None},
+            load,
+        )
+        return {
+            "status": "ok",
+            "data": payload,
         }
+
+    @router.get("/runtime/maintenance")
+    def runtime_maintenance():
+        return {"status": "ok", "data": state.runtime_maintenance.summary()}
+
+    @router.post("/runtime/maintenance/cleanup")
+    def runtime_cleanup(request: Request):
+        require_permission(request, "jobs:process")
+        result = state.runtime_maintenance.cleanup()
+        return {"status": "ok", "data": result}
 
     @router.get("/governance/sources")
     def governance_sources(request: Request):

@@ -30,6 +30,8 @@ from app.services.lineage_service import LineageService
 from app.services.observability_service import ObservabilityService
 from app.services.private_data_service import PrivateDataService
 from app.services.query_engine import QueryEngine
+from app.services.response_cache_service import ResponseCacheService
+from app.services.runtime_maintenance_service import RuntimeMaintenanceService
 from app.services.scenario_history_service import ScenarioHistoryService
 from scripts.evaluate_entity_resolution import main as evaluate_entity_resolution_main
 from scripts.ingest_graph import main as ingest_main
@@ -39,11 +41,14 @@ class AppState:
     def __init__(self):
         settings = get_settings()
         self.settings = settings
+        self.requested_graph_backend = settings.graph_backend
         self.runtime_db = build_runtime_db(settings)
         self.observability = ObservabilityService(settings)
+        self.cache = ResponseCacheService()
         self.rate_limiter = RateLimiter(settings.rate_limit_requests, settings.rate_limit_window_seconds)
         self.idempotency = IdempotencyService(self.runtime_db)
         self.repository = build_graph_repository(settings)
+        self.runtime_maintenance = RuntimeMaintenanceService(settings)
         self.private_data = PrivateDataService(
             settings.private_data_dir,
             settings.sqlite_ingest_path,
@@ -77,6 +82,9 @@ class AppState:
         self.jobs.register_handler("import_review_decisions", self._job_import_review_decisions)
         self.jobs.register_handler("document_parse", self._job_document_parse)
         self.jobs.register_handler("export_bundle", self._job_export_bundle)
+        self.repository_status = self._repository_status()
+        self.observability.set_gauge("graph_backend_active", self.repository_status["active_backend"])
+        self.observability.set_gauge("graph_backend_requested", self.repository_status["requested_backend"])
 
     def benchmarks(self) -> dict:
         benchmark_path = Path("data/runtime/benchmark_results.json")
@@ -89,6 +97,7 @@ class AppState:
         }
 
     def _job_ingest(self, payload: dict) -> dict:
+        self.observability.record_job("running")
         argv: list[str] = []
         if payload.get("json_source_dir"):
             argv.extend(["--json-source-dir", payload["json_source_dir"]])
@@ -98,19 +107,30 @@ class AppState:
             argv.append("--profile-only")
         if payload.get("skip_generated"):
             argv.append("--skip-generated")
-        return ingest_main(argv)
+        result = ingest_main(argv)
+        self.cache.invalidate_prefix("route:")
+        self.observability.record_job("completed")
+        return result
 
     def _job_evaluate_entity_resolution(self, payload: dict) -> dict:
+        self.observability.record_job("running")
         argv: list[str] = []
         if payload.get("dataset"):
             argv.extend(["--dataset", payload["dataset"]])
-        return evaluate_entity_resolution_main(argv)
+        result = evaluate_entity_resolution_main(argv)
+        self.observability.record_job("completed")
+        return result
 
     def _job_import_review_decisions(self, payload: dict) -> dict:
         source = Path(payload["input"])
-        return self.review_store.import_reviewed_decisions(source, apply=bool(payload.get("apply")))
+        self.observability.record_job("running")
+        result = self.review_store.import_reviewed_decisions(source, apply=bool(payload.get("apply")))
+        self.cache.invalidate_prefix("route:")
+        self.observability.record_job("completed")
+        return result
 
     def _job_document_parse(self, payload: dict) -> dict:
+        self.observability.record_job("running")
         return {
             "status": "accepted",
             "message": "Document parse jobs should be created during upload flows with artifact context.",
@@ -118,8 +138,20 @@ class AppState:
         }
 
     def _job_export_bundle(self, payload: dict) -> dict:
+        self.observability.record_job("running")
         kind = payload.get("kind", "executive_summary")
         return {"status": "accepted", "kind": kind, "payload": payload}
+
+    def _repository_status(self) -> dict:
+        requested = self.requested_graph_backend
+        active = "neo4j" if self.repository.__class__.__name__ == "Neo4jGraphRepository" else "local"
+        degraded = requested == "neo4j" and active != "neo4j"
+        return {
+            "requested_backend": requested,
+            "active_backend": active,
+            "degraded": degraded,
+            "fallback_reason": "Neo4j was unavailable at startup, so PackGraph continued in local graph mode." if degraded else None,
+        }
 
 
 state = AppState()
@@ -209,25 +241,35 @@ def health():
         "data": {
             "service": "PackGraph Lab",
             "backend": state.settings.graph_backend,
+            "runtime_profile": state.settings.runtime_profile,
+            "repository_status": state.repository_status,
             "private_data_active": state.private_data.has_data(),
             "runtime_db": state.runtime_db.health(),
             "job_summary": state.jobs.summary(),
+            "cache": state.cache.stats(),
+            "runtime_maintenance": state.runtime_maintenance.summary(),
         },
     }
 
 
 @app.get("/health/live")
 def health_live():
-    return {"status": "ok", "data": {"live": True, "date": "2026-07-31"}}
+    return {"status": "ok", "data": {"live": True, "date": "2026-08-21", "runtime_profile": state.settings.runtime_profile}}
 
 
 @app.get("/health/ready")
 def health_ready():
+    ready = True
+    warnings: list[str] = []
+    if state.repository_status["degraded"]:
+        warnings.append(state.repository_status["fallback_reason"])
     return {
         "status": "ok",
         "data": {
-            "ready": True,
+            "ready": ready,
+            "warnings": warnings,
             "graph_backend": state.settings.graph_backend,
+            "repository_status": state.repository_status,
             "runtime_db": state.runtime_db.health(),
         },
     }

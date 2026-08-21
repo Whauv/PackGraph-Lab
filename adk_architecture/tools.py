@@ -1,11 +1,33 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Any
 
-from google.adk.tools.function_tool import FunctionTool
-
 from adk_architecture.tool_runtime import get_packgraph_state
+
+
+class LocalFunctionTool:
+    """Local-first compatibility wrapper for environments that do not need live Google ADK."""
+
+    def __init__(self, fn):
+        self._fn = fn
+        self.name = fn.__name__
+
+    def run_sync(self, args: dict[str, Any] | None = None, tool_context=None):
+        return self._fn(**(args or {}))
+
+    async def run_async(self, args: dict[str, Any] | None = None, tool_context=None):
+        return self.run_sync(args=args, tool_context=tool_context)
+
+
+def _function_tool_factory():
+    use_google_adk = os.getenv("PACKGRAPH_USE_GOOGLE_ADK_RUNTIME", "").lower() in {"1", "true", "yes"}
+    if use_google_adk:
+        from google.adk.tools.function_tool import FunctionTool as GoogleFunctionTool  # pragma: no cover - optional dependency path
+
+        return GoogleFunctionTool
+    return LocalFunctionTool
 
 
 def health_summary() -> dict[str, Any]:
@@ -134,21 +156,22 @@ def create_review_candidate(
 
 
 @lru_cache(maxsize=1)
-def get_adk_tools() -> list[FunctionTool]:
+def get_adk_tools() -> list[Any]:
+    tool_class = _function_tool_factory()
     return [
-        FunctionTool(health_summary),
-        FunctionTool(list_materials),
-        FunctionTool(get_material),
-        FunctionTool(list_suppliers),
-        FunctionTool(classify_question),
-        FunctionTool(retrieve_reviewed_template),
-        FunctionTool(search_entities),
-        FunctionTool(search_suppliers),
-        FunctionTool(query_graph),
-        FunctionTool(retrieve_source_documents),
-        FunctionTool(score_results),
-        FunctionTool(build_answer_explanation),
-        FunctionTool(run_scenario),
-        FunctionTool(graph_subgraph),
-        FunctionTool(create_review_candidate),
+        tool_class(health_summary),
+        tool_class(list_materials),
+        tool_class(get_material),
+        tool_class(list_suppliers),
+        tool_class(classify_question),
+        tool_class(retrieve_reviewed_template),
+        tool_class(search_entities),
+        tool_class(search_suppliers),
+        tool_class(query_graph),
+        tool_class(retrieve_source_documents),
+        tool_class(score_results),
+        tool_class(build_answer_explanation),
+        tool_class(run_scenario),
+        tool_class(graph_subgraph),
+        tool_class(create_review_candidate),
     ]
