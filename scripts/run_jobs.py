@@ -9,8 +9,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.main import state
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Process queued PackGraph runtime jobs.")
@@ -20,6 +18,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> dict:
     args = build_parser().parse_args(argv)
+    from app.main import state
+
     payload = {"status": "ok", "processed": state.jobs.process_all_available(limit=args.limit)}
     print(json.dumps(payload, indent=2))
     return payload
