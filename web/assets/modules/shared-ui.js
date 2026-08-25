@@ -50,6 +50,40 @@ window.PackGraphUI = {
     return `<span class="status-pill status-pill-${tone}">${this.escape(text)}</span>`;
   },
 
+  banner({ eyebrow = "", title = "", body = "", actions = "" } = {}) {
+    return `
+      <div class="ui-banner">
+        <div class="ui-banner-copy">
+          ${eyebrow ? `<p class="eyebrow">${this.escape(eyebrow)}</p>` : ""}
+          ${title ? `<h3>${this.escape(title)}</h3>` : ""}
+          ${body ? `<p>${this.escape(body)}</p>` : ""}
+        </div>
+        ${actions ? `<div class="ui-banner-actions">${actions}</div>` : ""}
+      </div>`;
+  },
+
+  actionRow(actions = []) {
+    return `<div class="ui-action-row">${actions.join("")}</div>`;
+  },
+
+  tableList(rows = [], emptyTitle = "Nothing here yet", emptyText = "There are no records to show.") {
+    if (!rows.length) {
+      return this.emptyState(emptyTitle, emptyText);
+    }
+    return `<div class="ui-table-list">${rows.join("")}</div>`;
+  },
+
+  tableRow({ eyebrow = "", title = "", meta = "", tone = "" } = {}) {
+    return `
+      <article class="ui-table-row${tone ? ` ui-table-row-${this.escape(tone)}` : ""}">
+        <div class="ui-table-row-main">
+          ${eyebrow ? `<span class="section-label">${this.escape(eyebrow)}</span>` : ""}
+          <strong>${this.escape(title)}</strong>
+        </div>
+        ${meta ? `<div class="ui-table-row-meta">${this.escape(meta)}</div>` : ""}
+      </article>`;
+  },
+
   initGuidedTour({ steps, navigator }) {
     this.tour.steps = steps || [];
     this.tour.navigator = navigator || null;

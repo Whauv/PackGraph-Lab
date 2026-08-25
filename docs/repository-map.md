@@ -36,6 +36,21 @@ Use this folder for backend runtime code only.
 - `services/`
   Product logic such as scenarios, exports, auth, document intelligence, and community flows.
 
+Recent structural anchors:
+
+- `services/query_context.py`
+  Selected-entity merge and question hydration helpers.
+- `services/query_execution_layer.py`
+  Deterministic query intent dispatch.
+- `services/query_result_formatter.py`
+  Human-readable summaries and row normalization.
+- `services/query_response_builder.py`
+  Classifier metadata, answer panel, and review-gate assembly.
+- `services/selected_entity_routing.py`
+  Shared selected-entity routing helpers.
+- `repositories/graph_*.py`
+  Focused support modules for materials, suppliers, evidence, traversal, and health logic.
+
 ### `data/`
 
 Treat this as two buckets even though the current runtime paths stay the same:
@@ -59,6 +74,15 @@ Use this folder for frontend runtime assets only.
   Shared CSS, JS, images, and page modules.
 - `assets/modules/`
   Page- or feature-level frontend modules.
+
+Recent structural anchors:
+
+- `assets/modules/shared-ui.js`
+  Shared UI primitives and guided-tour helpers.
+- `assets/modules/app-state.js`
+  Shared persisted browser state defaults and storage keys.
+- `assets/app.js`
+  Main boot file that now composes shared modules instead of owning every persistence concern directly.
 
 ## Recommended update workflow
 
@@ -88,5 +112,6 @@ This makes diffs easier to scan and makes regressions easier to trace.
 
 - Add `docs/changes/` entries for notable milestones.
 - Split large frontend files into more feature-focused modules.
+- Keep extracting page controllers from `web/assets/app.js` into `web/assets/modules/`.
 - Move repo-wide developer config into a dedicated `config/` folder later if needed.
 - Separate seed data from runtime data more explicitly in a future structural refactor.

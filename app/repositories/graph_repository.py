@@ -11,6 +11,21 @@ from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
 from app.repositories.data_store import get_data_store
+from app.repositories.graph_evidence import evidence_for_material as build_evidence_for_material
+from app.repositories.graph_evidence import search_documents as run_document_search
+from app.repositories.graph_evidence import selected_entity_lookup as resolve_selected_entity_lookup
+from app.repositories.graph_evidence import uploaded_record_lookup as resolve_uploaded_record_lookup
+from app.repositories.graph_health import backend_status as build_backend_status
+from app.repositories.graph_health import graph_health as build_graph_health
+from app.repositories.graph_materials import compare_materials as build_material_comparison
+from app.repositories.graph_materials import get_material as load_material_detail
+from app.repositories.graph_materials import materials_at_risk as build_material_risk_list
+from app.repositories.graph_suppliers import compare_suppliers as build_supplier_comparison
+from app.repositories.graph_suppliers import get_supplier as load_supplier_detail
+from app.repositories.graph_traversal import graph_node_insight as build_graph_node_insight
+from app.repositories.graph_traversal import graph_path as build_graph_path
+from app.repositories.graph_traversal import graph_subgraph as build_graph_subgraph
+from app.repositories.graph_traversal import relationship_preview as build_relationship_preview
 
 
 class GraphRepositoryError(RuntimeError):
@@ -164,18 +179,7 @@ class LocalGraphRepository:
         return materials
 
     def get_material(self, material_id: str) -> dict[str, Any] | None:
-        material = self.material_index.get(material_id)
-        if not material:
-            return None
-        result = deepcopy(material)
-        result["suppliers"] = [self.supplier_index[sid] for sid in material["supplier_ids"] if sid in self.supplier_index]
-        result["snapshots"] = self.snapshots_by_material.get(material_id, [])
-        result["documents"] = [
-            doc for doc in self.all_documents()
-            if doc.get("document_id") in material["source_document_ids"] or doc.get("material_id") == material_id
-        ]
-        result["test_reports"] = [report for report in self.all_test_reports() if report.get("material_id") == material_id]
-        return result
+        return load_material_detail(self, material_id)
 
     def list_suppliers(self, region: str | None = None) -> list[dict[str, Any]]:
         if not region:
@@ -838,20 +842,7 @@ class LocalGraphRepository:
         entity_id: str | None = None,
         entity_name: str | None = None,
     ) -> dict[str, Any] | None:
-        resolved = self.resolve_entity_reference(entity_type, entity_id)
-        if not resolved and entity_id:
-            resolved = self._resolve_by_likely_label(entity_id)
-        if not resolved and entity_name:
-            resolved = self._resolve_by_name(entity_name)
-        if not resolved:
-            return None
-        return {
-            "entity": resolved,
-            "material": self.get_material(resolved["id"]) if resolved["type"] == "material" else None,
-            "supplier": self.get_supplier(resolved["id"]) if resolved["type"] == "supplier" else None,
-            "document": self.document_detail(resolved["id"]) if resolved["type"] in {"document", "report"} else None,
-            "component": self.get_component(resolved["id"]) if resolved["type"] == "component" else None,
-        }
+        return resolve_selected_entity_lookup(self, entity_type, entity_id, entity_name)
 
     def uploaded_record_lookup(
         self,
@@ -859,39 +850,10 @@ class LocalGraphRepository:
         entity_id: str | None = None,
         entity_name: str | None = None,
     ) -> dict[str, Any] | None:
-        normalized_type = (entity_type or "").lower()
-        if normalized_type == "component":
-            component = self.get_component(entity_id or "")
-            return {"record_type": "component", "record": component} if component else None
-        if normalized_type in {"document", "source", "source_document", "uploaded_record"}:
-            document = self.document_detail(entity_id or "")
-            return {"record_type": "document", "record": document} if document else None
-        if normalized_type in {"report", "test_report"}:
-            report = self.document_detail(entity_id or "")
-            return {"record_type": "report", "record": report} if report else None
-        if entity_id:
-            document = self.document_detail(entity_id)
-            if document:
-                record_type = "report" if document.get("report_id") else "document"
-                return {"record_type": record_type, "record": document}
-            component = self.get_component(entity_id)
-            if component:
-                return {"record_type": "component", "record": component}
-        if entity_name:
-            name_lower = entity_name.lower()
-            component = next((item for item in self.runtime_components() if name_lower in item.get("name", "").lower()), None)
-            if component:
-                return {"record_type": "component", "record": self.get_component(component["component_id"])}
-        return None
+        return resolve_uploaded_record_lookup(self, entity_type, entity_id, entity_name)
 
     def graph_health(self) -> dict[str, Any]:
-        return {
-            "backend": "neo4j",
-            "uri": _safe_neo4j_uri(self.settings.neo4j_uri),
-            "database": self.settings.neo4j_database,
-            "connected": False,
-            "mode": "configured",
-        }
+        return build_graph_health(self)
 
     def _resolve_by_likely_label(self, entity_id: str) -> dict[str, Any] | None:
         prefix_map = {
@@ -998,29 +960,7 @@ class LocalGraphRepository:
         return None
 
     def get_supplier(self, supplier_id: str) -> dict[str, Any] | None:
-        supplier = self.supplier_index.get(supplier_id)
-        if not supplier:
-            return None
-        snapshots = sorted(self.snapshots_by_supplier.get(supplier_id, []), key=lambda item: item["quarter"])
-        materials = [self.material_index[item] for item in supplier["supplied_material_ids"] if item in self.material_index]
-        current = snapshots[-1] if snapshots else None
-        return {
-            **deepcopy(supplier),
-            "supplied_materials": materials,
-            "certifications_detail": [
-                {"name": certification, "status": "active", "coverage": supplier["country"]}
-                for certification in supplier.get("certifications", [])
-            ],
-            "risk_trend": [
-                {"quarter": item["quarter"], "risk_score": item["risk_score"], "compliance_score": item["compliance_score"]}
-                for item in snapshots[-6:]
-            ],
-            "lead_time_trend": [
-                {"quarter": item["quarter"], "lead_time_days": item["lead_time_days"], "price_index": item["price_index"]}
-                for item in snapshots[-6:]
-            ],
-            "latest_snapshot": current,
-        }
+        return load_supplier_detail(self, supplier_id)
 
     def get_regulation(self, regulation_id: str) -> dict[str, Any] | None:
         regulation = self.regulation_index.get(regulation_id)
@@ -1207,19 +1147,7 @@ class LocalGraphRepository:
         return {"nodes": nodes, "edges": edges}
 
     def compare_suppliers(self, supplier_ids: list[str] | None = None) -> list[dict[str, Any]]:
-        suppliers = self.suppliers if not supplier_ids else [self.supplier_index[sid] for sid in supplier_ids if sid in self.supplier_index]
-        compared = []
-        for supplier in suppliers:
-            snapshots = self.snapshots_by_supplier.get(supplier["supplier_id"], [])
-            compared.append(
-                {
-                    **supplier,
-                    "average_cost_pressure": round(mean(item["price_index"] for item in snapshots), 2) if snapshots else None,
-                    "average_compliance_rate": round(mean(item["compliance_score"] for item in snapshots), 2) if snapshots else None,
-                    "latest_snapshot": snapshots[-1] if snapshots else None,
-                }
-            )
-        return sorted(compared, key=lambda item: (-item["esg_score"], item["disruption_risk_score"], item["lead_time_days"]))
+        return build_supplier_comparison(self, supplier_ids)
 
     def _materials_for_application(self, application_id: str) -> list[dict[str, Any]]:
         return [item for item in self.materials if application_id in item["target_applications"]]
@@ -1284,94 +1212,19 @@ class LocalGraphRepository:
         return affected
 
     def evidence_for_material(self, material_id: str) -> dict[str, Any]:
-        material = self.material_index.get(material_id)
-        if not material:
-            return {}
-        docs = [
-            doc for doc in self.all_documents()
-            if doc.get("document_id") in material["source_document_ids"] or doc.get("material_id") == material_id
-        ]
-        reports = [report for report in self.all_test_reports() if report.get("material_id") == material_id]
-        return {"material": material, "documents": docs, "test_reports": reports}
+        return build_evidence_for_material(self, material_id)
 
     def relationship_preview(self, material_id: str | None = None) -> list[dict[str, Any]]:
-        links = self.relationships
-        if material_id:
-            links = [rel for rel in links if rel["from"] == material_id or rel["to"] == material_id]
-        return links[:80]
+        return build_relationship_preview(self, material_id)
 
     def graph_subgraph(self, material_id: str) -> dict[str, Any]:
-        material = self.material_index.get(material_id)
-        if not material:
-            return {"nodes": [], "edges": []}
-        nodes: dict[str, dict[str, Any]] = {
-            material_id: {"id": material_id, "label": material["name"], "type": "material"},
-        }
-        edges = []
-        for relationship in self.relationship_preview(material_id):
-            source = relationship["from"]
-            target = relationship["to"]
-            edges.append({"source": source, "target": target, "type": relationship["type"]})
-            if source not in nodes:
-                nodes[source] = self._node_descriptor(source)
-            if target not in nodes:
-                nodes[target] = self._node_descriptor(target)
-        return {"nodes": list(nodes.values()), "edges": edges}
+        return build_graph_subgraph(self, material_id)
 
     def graph_path(self, source_id: str, target_id: str) -> dict[str, Any]:
-        queue = [(source_id, [source_id])]
-        seen = {source_id}
-        while queue:
-            current, path = queue.pop(0)
-            if current == target_id:
-                nodes = [self._node_descriptor(node_id) for node_id in path]
-                edges = []
-                for index in range(len(path) - 1):
-                    edge = self._relationship_between(path[index], path[index + 1])
-                    if edge:
-                        edges.append({"source": edge["from"], "target": edge["to"], "type": edge["type"]})
-                return {"path": nodes, "edges": edges}
-            for relationship in self.relationships_by_node.get(current, []):
-                neighbor = relationship["to"] if relationship["from"] == current else relationship["from"]
-                if neighbor not in seen:
-                    seen.add(neighbor)
-                    queue.append((neighbor, path + [neighbor]))
-        return {"path": [], "edges": []}
+        return build_graph_path(self, source_id, target_id)
 
     def graph_node_insight(self, node_id: str) -> dict[str, Any]:
-        node = self._node_descriptor(node_id)
-        relationships = self.relationships_by_node.get(node_id, [])
-        relationship_counts = defaultdict(int)
-        related = []
-        seen_related = set()
-        for relationship in relationships:
-            relationship_counts[relationship["type"]] += 1
-            other_id = relationship["to"] if relationship["from"] == node_id else relationship["from"]
-            if other_id in seen_related:
-                continue
-            seen_related.add(other_id)
-            related_node = self._node_descriptor(other_id)
-            related.append(
-                {
-                    "id": related_node["id"],
-                    "label": related_node["label"],
-                    "type": related_node["type"],
-                    "relationship": relationship["type"],
-                }
-            )
-
-        insight = {
-            "node": node,
-            "summary": f"{node['label']} is connected to {len(related)} nearby nodes across {len(relationship_counts)} relationship types.",
-            "metrics": [],
-            "facts": [],
-            "relationship_counts": [
-                {"label": item_type.replace("_", " ").title(), "value": count}
-                for item_type, count in sorted(relationship_counts.items(), key=lambda item: (-item[1], item[0]))
-            ],
-            "timeline": [],
-            "related": related[:12],
-        }
+        insight = build_graph_node_insight(self, node_id)
 
         if node["type"] == "material":
             material = self.material_index.get(node_id)
@@ -1563,86 +1416,10 @@ class LocalGraphRepository:
         return insight
 
     def compare_materials(self, material_ids: list[str], weights: dict[str, float] | None = None) -> list[dict[str, Any]]:
-        weights = weights or {}
-        defaults = {
-            "sustainability_score": 1.0,
-            "recyclability_score": 0.9,
-            "compostability_score": 0.8,
-            "oxygen_barrier": 0.6,
-            "moisture_barrier": 0.6,
-            "cost_efficiency": 0.7,
-        }
-        defaults.update(weights)
-        compared = []
-        for material_id in material_ids:
-            material = self.material_index.get(material_id)
-            if not material:
-                continue
-            cost_efficiency = max(0.0, 100 - (material["cost_range"]["high"] * 12))
-            weighted_score = (
-                material["sustainability_score"] * defaults["sustainability_score"]
-                + material["recyclability_score"] * defaults["recyclability_score"]
-                + material["compostability_score"] * defaults["compostability_score"]
-                + material["oxygen_barrier"] * defaults["oxygen_barrier"]
-                + material["moisture_barrier"] * defaults["moisture_barrier"]
-                + cost_efficiency * defaults["cost_efficiency"]
-            )
-            compared.append(
-                {
-                    "material_id": material_id,
-                    "name": material["name"],
-                    "category": material["category"],
-                    "descriptor": material["descriptor"],
-                    "composition": material["composition"],
-                    "compliance_state": material["compliance_state"],
-                    "supplier_count": len(material["supplier_ids"]),
-                    "cost_range": material["cost_range"],
-                    "weighted_score": round(weighted_score, 2),
-                    "scores": {
-                        "sustainability": material["sustainability_score"],
-                        "recyclability": material["recyclability_score"],
-                        "compostability": material["compostability_score"],
-                        "oxygen_barrier": material["oxygen_barrier"],
-                        "moisture_barrier": material["moisture_barrier"],
-                        "cost_efficiency": round(cost_efficiency, 2),
-                    },
-                }
-            )
-        return sorted(compared, key=lambda item: item["weighted_score"], reverse=True)
+        return build_material_comparison(self, material_ids, weights)
 
     def search_documents(self, query: str, material_id: str | None = None) -> list[dict[str, Any]]:
-        query_lower = query.lower()
-        documents = self.all_documents()
-        reports = self.all_test_reports()
-        if material_id:
-            documents = [item for item in documents if item.get("material_id") == material_id]
-            reports = [item for item in reports if item.get("material_id") == material_id]
-        results = []
-        for document in documents:
-            haystack = " ".join(
-                [
-                    document.get("title", ""),
-                    document.get("document_type", ""),
-                    document.get("supplier_id", ""),
-                    document.get("extraction_summary", ""),
-                    " ".join(document.get("detected_terms", [])),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append({"type": "document", **document})
-        for report in reports:
-            haystack = " ".join(
-                [
-                    report.get("title", ""),
-                    report.get("lab", ""),
-                    report.get("migration_status", ""),
-                    report.get("extraction_summary", ""),
-                    " ".join(report.get("detected_terms", [])),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append({"type": "test_report", **report})
-        return results[:20]
+        return run_document_search(self, query, material_id)
 
     def alerts(self) -> list[dict[str, Any]]:
         alerts = []
@@ -1840,35 +1617,13 @@ class LocalGraphRepository:
         return prefix_map.get(prefix, "unknown")
 
     def materials_at_risk(self) -> list[dict[str, Any]]:
-        risky = []
-        for material in self.materials:
-            supplier_scores = [self.supplier_index[sid]["disruption_risk_score"] for sid in material["supplier_ids"] if sid in self.supplier_index]
-            avg_risk = mean(supplier_scores) if supplier_scores else 0
-            if avg_risk >= 62:
-                risky.append(
-                    {
-                        "material_id": material["material_id"],
-                        "name": material["name"],
-                        "supplier_risk_score": round(avg_risk, 2),
-                        "substitute_material_ids": material["substitute_material_ids"],
-                    }
-                )
-        return sorted(risky, key=lambda item: item["supplier_risk_score"], reverse=True)
+        return build_material_risk_list(self)
 
     def timeline_for_material(self, material_id: str) -> list[dict[str, Any]]:
         return self.snapshots_by_material.get(material_id, [])
 
     def backend_status(self) -> list[dict[str, Any]]:
-        return [
-            {
-                "backend": "neo4j",
-                "active": True,
-                "mode": "primary graph database",
-                "status": "configured",
-                "uri": _safe_neo4j_uri(self.settings.neo4j_uri),
-                "database": self.settings.neo4j_database,
-            },
-        ]
+        return build_backend_status(self)
 
     def _node_descriptor(self, node_id: str) -> dict[str, Any]:
         if node_id in self.material_index:

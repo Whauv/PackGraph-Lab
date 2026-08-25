@@ -14,7 +14,11 @@ from app.services.entity_resolution_agent import EntityResolutionAgent
 from app.services.evidence_agent import EvidenceAgent
 from app.services.investigation_planner import InvestigationPlanner
 from app.services.private_data_service import PrivateDataService
+from app.services.query_context import QueryContextAdapter
+from app.services.query_execution_layer import QueryExecutionLayer
 from app.services.query_planner import QueryPlanner
+from app.services.query_response_builder import QueryResponseBuilder
+from app.services.query_result_formatter import QueryResultFormatter
 from app.services.scenario_engine import ScenarioEngine
 
 
@@ -33,6 +37,10 @@ class QueryEngine:
         self.investigation_planner = InvestigationPlanner()
         self.agent_tools = AgentToolbelt(repository, self.review_store)
         self.agent_orchestration = AgentOrchestrationRecorder(self.settings)
+        self.context_adapter = QueryContextAdapter()
+        self.result_formatter = QueryResultFormatter(repository)
+        self.response_builder = QueryResponseBuilder(repository)
+        self.execution_layer = QueryExecutionLayer(repository, self.result_formatter)
 
     def ask(self, question: str, options: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         options = options or {}
@@ -114,79 +122,8 @@ class QueryEngine:
             )
 
         entities = {**plan.get("entities", {}), **self._entities_from_context(context), **options}
-        result = None
-        message = plan["explanation"]
-        source = "graph"
-        if intent == "recommend_food_packaging":
-            result = self._recommend_materials(question, entities)
-            message = self._summarize_material_list(result, "Recommended materials from the synthetic packaging graph")
-        elif intent == "selected_material_lookup":
-            material_id = entities.get("material_id") or entities.get("selected_entity_id")
-            result = self.repository.selected_material_lookup(material_id) if material_id else None
-            message = self._summarize_selected_material_lookup(result, material_id)
-        elif intent == "selected_supplier_lookup":
-            supplier_id = entities.get("supplier_id") or entities.get("selected_entity_id")
-            result = self.repository.selected_supplier_lookup(supplier_id) if supplier_id else None
-            message = self._summarize_selected_supplier_lookup(result, supplier_id)
-        elif intent == "selected_entity_lookup":
-            result = self.repository.selected_entity_lookup(
-                entities.get("selected_entity_type"),
-                entities.get("selected_entity_id"),
-                entities.get("selected_entity_name") or entities.get("context_name"),
-            )
-            message = self._summarize_selected_entity_lookup(result)
-        elif intent == "uploaded_record_lookup":
-            result = self.repository.uploaded_record_lookup(
-                entities.get("selected_entity_type"),
-                entities.get("record_id") or entities.get("selected_entity_id"),
-                entities.get("selected_entity_name") or entities.get("context_name"),
-            )
-            message = self._summarize_uploaded_record_lookup(result)
-        elif intent == "suppliers_for_material":
-            material_id = entities.get("material_id") or "MAT-001"
-            material = self.repository.get_material(material_id)
-            suppliers = material.get("suppliers", []) if material else []
-            result = self.repository.compare_suppliers([item["supplier_id"] for item in suppliers]) if suppliers else []
-            label = material["name"] if material else material_id
-            message = self._summarize_supplier_list(result[:5], f"Qualified suppliers for {label}")
-        elif intent == "find_recyclable_substitutes":
-            material_id = entities.get("material_id") or entities.get("focus_material_id") or "MAT-001"
-            result = self.repository.find_recyclable_substitutes(material_id)
-            base = self.repository.get_material(material_id)
-            label = base["name"] if base else material_id
-            message = self._summarize_material_list(result, f"Recyclable substitutes for {label}")
-        elif intent == "compare_suppliers":
-            supplier_ids = entities.get("supplier_ids") or ([entities["supplier_id"]] if entities.get("supplier_id") else None)
-            result = self.repository.compare_suppliers(supplier_ids)
-            message = self._summarize_supplier_list(result[:4], "Supplier comparison across ESG, risk, and lead time")
-        elif intent == "supplier_risk_ranking":
-            result = sorted(self.repository.compare_suppliers(), key=lambda item: item["disruption_risk_score"], reverse=True)[:5]
-            message = self._summarize_supplier_list(result, "Highest-risk suppliers in the demo portfolio")
-        elif intent == "non_compliant_materials":
-            regulation_id = entities.get("regulation_id") or "REGU-003"
-            result = self.repository.non_compliant_materials(regulation_id)
-            regulation = self.repository.regulation_index.get(regulation_id)
-            label = regulation["name"] if regulation else regulation_id
-            message = self._summarize_material_list(result, f"Materials currently failing or at risk under {label}")
-        elif intent == "evidence_for_material":
-            material_id = entities.get("material_id") or "MAT-001"
-            result = self.repository.evidence_for_material(material_id)
-            message = self._summarize_evidence(result)
-        elif intent == "materials_at_risk":
-            result = self.repository.materials_at_risk()
-            message = self._summarize_risk_materials(result[:5])
-        elif intent == "material_lookup":
-            material_id = entities.get("material_id") or "MAT-001"
-            result = self.repository.get_material(material_id)
-            message = self._summarize_material_detail(result)
-        elif intent == "material_filter":
-            result = self._filter_materials_from_question(entities)
-            message = self._summarize_material_list(result[:6], "Filtered materials matching your natural-language constraints")
-        elif intent == "compare_materials":
-            material_ids = entities.get("material_ids") or ([entities["material_id"]] if entities.get("material_id") else [])
-            result = self.repository.compare_materials(material_ids[:4]) if material_ids else []
-            message = self._summarize_comparison(result)
-        elif intent == "catalog_lookup" and private_lookup["rows"]:
+        result, message, source = self.execution_layer.execute(question, intent, entities, private_lookup)
+        if intent == "catalog_lookup" and private_lookup["rows"]:
             return self._private_data_response(
                 question,
                 plan,
@@ -197,6 +134,8 @@ class QueryEngine:
                 proof_requested,
                 router,
                 template_name,
+                context=context,
+                resolved_question=resolved_question,
             )
 
         if result is None:
@@ -238,229 +177,55 @@ class QueryEngine:
         return self.scenarios.run(scenario=scenario, material_id=material_id, supplier_id=supplier_id, options=options)
 
     def _recommend_materials(self, question: str, entities: dict[str, Any]) -> list[dict[str, Any]]:
-        candidates = self.repository.recommend_food_packaging(entities.get("prioritize_sustainability", False))
-        region = entities.get("region")
-        category = entities.get("category")
-        if region or category:
-            filtered = []
-            for candidate in candidates:
-                material = self.repository.material_index.get(candidate["material_id"])
-                if not material:
-                    continue
-                if region and region not in material["regions_available"]:
-                    continue
-                if category and material["category"] != category:
-                    continue
-                filtered.append(candidate)
-            candidates = filtered
-        if entities.get("prioritize_cost"):
-            candidates = sorted(candidates, key=lambda item: self.repository.material_index[item["material_id"]]["cost_range"]["high"])
-        return candidates[:6]
+        return self.execution_layer.recommend_materials(entities)
 
     def _filter_materials_from_question(self, entities: dict[str, Any]) -> list[dict[str, Any]]:
-        materials = self.repository.filter_materials(
-            region=entities.get("region"),
-            category=entities.get("category"),
-            compliance_state=entities.get("compliance_state"),
-            min_sustainability=entities.get("min_sustainability"),
-        )
-        if entities.get("food_safe"):
-            materials = [item for item in materials if item["food_contact_safe"]]
-        if entities.get("application_id"):
-            materials = [item for item in materials if entities["application_id"] in item["target_applications"]]
-        if entities.get("supplier_id"):
-            materials = [item for item in materials if entities["supplier_id"] in item["supplier_ids"]]
-        if entities.get("prioritize_cost"):
-            materials = sorted(materials, key=lambda item: item["cost_range"]["high"])
-        elif entities.get("prioritize_sustainability"):
-            materials = sorted(materials, key=lambda item: item["sustainability_score"], reverse=True)
-        return materials
+        return self.execution_layer.filter_materials_from_question(entities)
 
     def _entities_from_context(self, context: dict[str, Any] | None) -> dict[str, Any]:
-        if not context:
-            return {}
-        entity_type = str(context.get("entity_type") or "").lower()
-        entity_id = context.get("entity_id")
-        entity_name = context.get("entity_name")
-        metadata = context.get("metadata") or {}
-        history = context.get("history") or []
-        entities: dict[str, Any] = {}
-        if entity_type == "material":
-            entities["material_id"] = entity_id
-        elif entity_type == "supplier":
-            entities["supplier_id"] = entity_id
-            entities["supplier_ids"] = [entity_id] if entity_id else []
-        elif entity_type == "regulation":
-            entities["regulation_id"] = entity_id
-        elif entity_type == "application":
-            entities["application_id"] = entity_id
-        elif entity_type in {"product", "component"} and metadata.get("material_id"):
-            entities["material_id"] = metadata["material_id"]
-        if entity_name:
-            entities["context_name"] = entity_name
-            entities["selected_entity_name"] = entity_name
-        if entity_type:
-            entities["selected_entity_type"] = entity_type
-        if entity_id:
-            entities["selected_entity_id"] = entity_id
-        if metadata.get("region") and not entities.get("region"):
-            entities["region"] = metadata["region"]
-        if history:
-            entities["selected_context_history"] = history[:4]
-        return {key: value for key, value in entities.items() if value not in (None, "", [])}
+        return self.context_adapter.entities_from_context(context)
 
     def _merge_context_into_question(self, question: str, context: dict[str, Any] | None) -> str:
-        if not context:
-            return question
-        entity_type = str(context.get("entity_type") or "").strip().lower()
-        entity_id = context.get("entity_id")
-        entity_name = context.get("entity_name")
-        metadata = context.get("metadata") or {}
-        if not any([entity_type, entity_id, entity_name]):
-            return question
-        descriptor = entity_name or entity_id or "selected item"
-        if entity_type:
-            descriptor = f"{entity_type} {descriptor}"
-        descriptor = descriptor.strip()
-        resolved = re.sub(r"\b(this|it|that|selected item|selected entity)\b", descriptor, question, flags=re.IGNORECASE)
-        if resolved != question:
-            return resolved
-        if re.search(r"\b(show|list|find|compare|review|inspect|trace|open)\b", question.lower()):
-            suffix_parts = [descriptor]
-            if metadata.get("region"):
-                suffix_parts.append(f"in {metadata['region']}")
-            return f"{question} for {' '.join(suffix_parts)}"
-        return question
+        return self.context_adapter.merge_context_into_question(question, context)
 
     def _summarize_selected_material_lookup(self, material: dict[str, Any] | None, material_id: str | None) -> str:
-        if not material:
-            return f"The graph query completed, but no material node matched {material_id or 'the selected context'}."
-        return self._summarize_material_detail(material)
+        return self.result_formatter.summarize_selected_material_lookup(material, material_id)
 
     def _summarize_selected_supplier_lookup(self, supplier: dict[str, Any] | None, supplier_id: str | None) -> str:
-        if not supplier:
-            return f"The graph query completed, but no supplier node matched {supplier_id or 'the selected context'}."
-        return (
-            f"{supplier['name']} serves {', '.join(supplier.get('regions_served', [])[:3])} with lead time {supplier.get('lead_time_days', 'n/a')} days.\n"
-            f"Disruption risk {supplier.get('disruption_risk_score', 'n/a')} | ESG {supplier.get('esg_score', 'n/a')} | "
-            f"Supplied materials {len(supplier.get('supplied_materials', []))}."
-        )
+        return self.result_formatter.summarize_selected_supplier_lookup(supplier, supplier_id)
 
     def _summarize_selected_entity_lookup(self, payload: dict[str, Any] | None) -> str:
-        if not payload or not payload.get("entity"):
-            return "The graph query completed, but the selected entity could not be resolved against likely graph labels."
-        entity = payload["entity"]
-        if entity["type"] == "material" and payload.get("material"):
-            return self._summarize_material_detail(payload["material"])
-        if entity["type"] == "supplier" and payload.get("supplier"):
-            return self._summarize_selected_supplier_lookup(payload["supplier"], entity["id"])
-        if entity["type"] in {"document", "report"} and payload.get("document"):
-            document = payload["document"]
-            return f"{document.get('title', entity['label'])} is available as selected evidence with confidence {document.get('confidence_summary', 'n/a')}."
-        if entity["type"] == "component" and payload.get("component"):
-            component = payload["component"]
-            return f"{component.get('name', entity['label'])} is stored as a discovered component for future packaging lookups."
-        return f"Resolved the selected entity as {entity['label']} ({entity['type']})."
+        return self.result_formatter.summarize_selected_entity_lookup(payload)
 
     def _summarize_uploaded_record_lookup(self, payload: dict[str, Any] | None) -> str:
-        if not payload or not payload.get("record"):
-            return "The lookup completed, but no uploaded or source-backed record matched the selected context."
-        record = payload["record"]
-        record_type = payload.get("record_type", "record")
-        if record_type == "component":
-            return f"{record.get('name', 'Selected component')} is stored as a discovered component with related material links."
-        return f"{record.get('title', 'Selected evidence')} is available as a {record_type} with extracted fields and confidence metadata."
+        return self.result_formatter.summarize_uploaded_record_lookup(payload)
 
     def _summarize_material_list(self, materials: list[dict[str, Any]], intro: str) -> str:
-        if not materials:
-            return f"{intro}: no matching materials were found in the current synthetic dataset."
-        lines = []
-        for item in materials[:4]:
-            if "material_id" in item and item["material_id"] in self.repository.material_index:
-                material = self.repository.material_index[item["material_id"]]
-                lines.append(
-                    f"{material['name']} ({material['category']}) | sustainability {material['sustainability_score']} | "
-                    f"recyclability {material['recyclability_score']} | compliance {material['compliance_state']}"
-                )
-            else:
-                lines.append(str(item))
-        return f"{intro}:\n" + "\n".join(lines)
+        return self.result_formatter.summarize_material_list(materials, intro)
 
     def _summarize_supplier_list(self, suppliers: list[dict[str, Any]], intro: str) -> str:
-        if not suppliers:
-            return f"{intro}: no matching suppliers were found."
-        return f"{intro}:\n" + "\n".join(
-            f"{item['name']} | risk {item['disruption_risk_score']} | ESG {item['esg_score']} | lead time {item['lead_time_days']} days"
-            for item in suppliers[:4]
-        )
+        return self.result_formatter.summarize_supplier_list(suppliers, intro)
 
     def _summarize_risk_materials(self, materials: list[dict[str, Any]]) -> str:
-        if not materials:
-            return "No high-risk materials were found in the current dataset."
-        return "Most exposed materials in the current synthetic graph:\n" + "\n".join(
-            f"{item['name']} | average supplier risk {item['supplier_risk_score']}" for item in materials
-        )
+        return self.result_formatter.summarize_risk_materials(materials)
 
     def _summarize_evidence(self, payload: dict[str, Any]) -> str:
-        if not payload or not payload.get("material"):
-            return "No evidence bundle was found for that material."
-        material = payload["material"]
-        documents = payload.get("documents", [])
-        reports = payload.get("test_reports", [])
-        return (
-            f"Evidence for {material['name']}: {len(documents)} source documents and {len(reports)} test reports.\n"
-            + "\n".join(f"{item['title']}" for item in documents[:3] + reports[:2])
-        )
+        return self.result_formatter.summarize_evidence(payload)
 
     def _summarize_material_detail(self, material: dict[str, Any] | None) -> str:
-        if not material:
-            return "That material could not be found in the demo graph."
-        return (
-            f"{material['name']} is a {material['category']} material made from {material['composition']}.\n"
-            f"Sustainability {material['sustainability_score']}, recyclability {material['recyclability_score']}, "
-            f"compliance {material['compliance_state']}, suppliers {len(material['suppliers'])}."
-        )
+        return self.result_formatter.summarize_material_detail(material)
 
     def _summarize_comparison(self, results: list[dict[str, Any]]) -> str:
-        if not results:
-            return "I could not compare materials because the question did not include enough named candidates."
-        return "Material comparison from the demo ranking model:\n" + "\n".join(
-            f"{item['name']} | weighted score {item['weighted_score']} | sustainability {item['scores']['sustainability']} | recyclability {item['scores']['recyclability']}"
-            for item in results[:4]
-        )
+        return self.result_formatter.summarize_comparison(results)
 
     def _route_question(self, plan: dict[str, Any], private_lookup: dict[str, Any]) -> str:
-        if plan["intent"] == "uploaded_record_lookup":
-            return "graph"
-        if private_lookup.get("rows") and (
-            plan["intent"] in {"catalog_lookup", "refuse_or_clarify"}
-            or (plan["intent"] == "compare_suppliers" and not plan.get("entities", {}).get("supplier_ids"))
-            or (plan["intent"] in {"material_filter", "material_lookup"} and not plan.get("entities", {}).get("material_id"))
-        ):
-            return "private_data"
-        return "graph"
+        return self.response_builder.route_question(plan, private_lookup)
 
     def _build_classifier_metadata(self, plan: dict[str, Any], router: str, private_status: dict[str, Any]) -> dict[str, Any]:
-        entities = plan.get("entities", {})
-        matched_entities = [key for key, value in entities.items() if value]
-        confidence = 0.84 if plan["intent"] != "refuse_or_clarify" else 0.42
-        if router == "private_data":
-            confidence = max(confidence, 0.78)
-        return {
-            "route": router,
-            "intent": plan["intent"],
-            "confidence": round(confidence, 2),
-            "matched_entities": matched_entities[:8],
-            "private_data_active": private_status["private_data_active"],
-        }
+        return self.response_builder.build_classifier_metadata(plan, router, private_status)
 
     def _build_retrieval_metadata(self, plan: dict[str, Any], private_lookup: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "reviewed_template": plan.get("cypher_template"),
-            "parameters_needed": plan.get("parameters_needed", []),
-            "parameter_candidates": plan.get("entities", {}),
-            "private_matches_found": len(private_lookup.get("rows", [])),
-        }
+        return self.response_builder.build_retrieval_metadata(plan, private_lookup)
 
     def _score_rows(self, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         reranked = []
@@ -476,93 +241,13 @@ class QueryEngine:
         return reranked
 
     def _normalize_result_rows(self, result: Any, source: str) -> list[dict[str, Any]]:
-        if isinstance(result, list):
-            rows = []
-            for item in result[:10]:
-                if isinstance(item, dict):
-                    row = {key: value for key, value in item.items() if isinstance(value, (str, int, float, bool)) or value is None}
-                    rows.append(row)
-            return rows
-        if isinstance(result, dict):
-            rows = []
-            if source == "private_data":
-                for item in result.get("rows", [])[:10]:
-                    rows.append(
-                        {
-                            "entity_type": item.get("entity_type"),
-                            "label": item.get("label"),
-                            "score": item.get("score"),
-                            "preview": " | ".join(f"{field['label']}: {field['value']}" for field in item.get("fields", [])[:3]),
-                        }
-                    )
-                return rows
-            if result.get("material"):
-                material = result["material"]
-                rows.append(
-                    {
-                        "entity_type": "material",
-                        "entity_id": material.get("material_id"),
-                        "label": material.get("name"),
-                        "score": material.get("sustainability_score"),
-                        "preview": f"{material.get('category', '')} | compliance {material.get('compliance_state', '')}",
-                    }
-                )
-            if result.get("supplier"):
-                supplier = result["supplier"]
-                rows.append(
-                    {
-                        "entity_type": "supplier",
-                        "entity_id": supplier.get("supplier_id"),
-                        "label": supplier.get("name"),
-                        "score": max(1, 100 - float(supplier.get("disruption_risk_score", 0) or 0)),
-                        "preview": f"Lead time {supplier.get('lead_time_days', 'n/a')} | risk {supplier.get('disruption_risk_score', 'n/a')}",
-                    }
-                )
-            if result.get("entity"):
-                entity = result["entity"]
-                rows.append(
-                    {
-                        "entity_type": entity.get("type"),
-                        "entity_id": entity.get("id"),
-                        "label": entity.get("label"),
-                        "score": 100,
-                        "preview": f"Resolved selected {entity.get('type', 'entity')}",
-                    }
-                )
-            if result.get("record"):
-                record = result["record"]
-                rows.append(
-                    {
-                        "entity_type": result.get("record_type", "record"),
-                        "entity_id": record.get("document_id") or record.get("report_id") or record.get("component_id"),
-                        "label": record.get("title") or record.get("name"),
-                        "score": 100,
-                        "preview": record.get("preview_text") or record.get("summary") or "Selected uploaded record",
-                    }
-                )
-            return rows
-        return []
+        return self.result_formatter.normalize_result_rows(result, source)
 
     def _review_gate(self, classifier: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
-        needs_review = classifier["route"] == "private_data" and (classifier["confidence"] < 0.8 or not rows)
-        return {
-            "status": "review_required" if needs_review else "cleared",
-            "reason": "Low-confidence private-data match should be reviewed before any graph write-back." if needs_review else "Read-only query result is safe to present without intervention.",
-            "writeback_allowed": False,
-        }
+        return self.response_builder.review_gate(classifier, rows)
 
     def _pipeline_trace(self, classifier: dict[str, Any], retrieval: dict[str, Any], rows: list[dict[str, Any]], message: str, review: dict[str, Any]) -> list[dict[str, Any]]:
-        return [
-            {"stage": "router", "status": "ok", "detail": f"Sent this question to the {classifier['route']} path."},
-            {"stage": "nlp_classifier", "status": "ok", "detail": f"Intent {classifier['intent']} at confidence {classifier['confidence']}."},
-            {"stage": "template_retrieval", "status": "ok", "detail": f"Reviewed template {retrieval['reviewed_template'] or 'none'}."},
-            {"stage": "parameter_extraction", "status": "ok", "detail": f"Captured {len(retrieval['parameter_candidates'])} parameter slots."},
-            {"stage": "cypher_execution", "status": "ok", "detail": "Executed the reviewed repository/graph retrieval path."},
-            {"stage": "graph_results", "status": "ok", "detail": f"Retrieved {len(rows)} normalized rows."},
-            {"stage": "ensemble_scoring_reranking", "status": "ok", "detail": "Applied deterministic reranking across the returned rows."},
-            {"stage": "optional_explanation", "status": "ok", "detail": message[:160]},
-            {"stage": "human_review_gate", "status": review["status"], "detail": review["reason"]},
-        ]
+        return self.response_builder.pipeline_trace(classifier, retrieval, rows, message, review)
 
     def _private_data_response(
         self,
@@ -732,100 +417,4 @@ class QueryEngine:
         }
 
     def _build_answer_panel(self, intent: str, result: Any, plan: dict[str, Any], message: str) -> dict[str, Any]:
-        panel = {
-            "title": plan.get("explanation", "Decision output"),
-            "summary": message,
-            "recommendations": [],
-            "reasons": [],
-            "risk_flags": [],
-            "next_steps": [],
-        }
-
-        if intent in {"recommend_food_packaging", "material_filter", "find_recyclable_substitutes"} and isinstance(result, list):
-            for item in result[:4]:
-                material_id = item.get("material_id")
-                material = self.repository.material_index.get(material_id) if material_id else None
-                if not material:
-                    continue
-                panel["recommendations"].append(
-                    {
-                        "label": material["name"],
-                        "detail": f"{material['category']} | sustainability {material['sustainability_score']} | recyclability {material['recyclability_score']}",
-                    }
-                )
-                panel["reasons"].append(
-                    f"{material['name']} fits with compliance {material['compliance_state']} and {len(material['supplier_ids'])} qualified suppliers."
-                )
-                if material["compliance_state"] != "compliant":
-                    panel["risk_flags"].append(f"{material['name']} is currently {material['compliance_state']}.")
-
-            panel["next_steps"] = [
-                "Add the strongest candidates to the Workbench shortlist.",
-                "Open the evidence workspace to validate declarations and lab reports.",
-                "Run a scenario before moving to a final recommendation.",
-            ]
-
-        elif intent in {"compare_suppliers", "supplier_risk_ranking"} and isinstance(result, list):
-            panel["recommendations"] = [
-                {"label": item["name"], "detail": f"Risk {item['disruption_risk_score']} | ESG {item['esg_score']} | lead time {item['lead_time_days']} days"}
-                for item in result[:4]
-            ]
-            panel["risk_flags"] = [f"{item['name']} has elevated disruption risk." for item in result[:2]]
-            panel["next_steps"] = [
-                "Review supplier snapshots and alternate supply coverage.",
-                "Open graph intelligence to inspect supplier-linked materials.",
-            ]
-
-        elif intent == "evidence_for_material" and isinstance(result, dict):
-            material = result.get("material")
-            documents = result.get("documents", [])
-            reports = result.get("test_reports", [])
-            if material:
-                panel["recommendations"].append(
-                    {"label": material["name"], "detail": f"{len(documents)} documents and {len(reports)} test reports available"}
-                )
-            panel["reasons"] = [item["title"] for item in documents[:3]]
-            panel["risk_flags"] = ["Declaration evidence is missing." if not any(doc.get("document_type") == "declaration" for doc in documents) else ""] if documents is not None else []
-            panel["risk_flags"] = [item for item in panel["risk_flags"] if item]
-            if not reports:
-                panel["risk_flags"].append("No lab report was found for this material.")
-            panel["next_steps"] = [
-                "Inspect extracted evidence fields and missing metadata.",
-                "Upload missing declarations or reports before finalizing the choice.",
-            ]
-
-        elif intent == "compare_materials" and isinstance(result, list):
-            panel["recommendations"] = [
-                {"label": item["name"], "detail": f"Weighted score {item['weighted_score']} | cost {item['cost_range']['high']} {item['cost_range']['currency']}"}
-                for item in result[:4]
-            ]
-            panel["reasons"] = [
-                f"{item['name']} has sustainability {item['scores']['sustainability']} and recyclability {item['scores']['recyclability']}."
-                for item in result[:3]
-            ]
-            panel["next_steps"] = [
-                "Use the side-by-side matrix to inspect detailed tradeoffs.",
-                "Save the shortlist into an investigation with rationale.",
-            ]
-        elif intent == "catalog_lookup" and isinstance(result, dict):
-            rows = result.get("rows", [])
-            panel["recommendations"] = [
-                {"label": item["label"], "detail": " | ".join(f"{field['label']}: {field['value']}" for field in item.get("fields", [])[:2])}
-                for item in rows[:5]
-            ]
-            panel["reasons"] = [
-                f"Matched a private {item['entity_type']} record with score {item['score']}."
-                for item in rows[:4]
-            ]
-            panel["risk_flags"] = ["Private records are read-only until a human review clears write-back."] if rows else ["No private match was found."]
-            panel["next_steps"] = [
-                "Review the matching private records before turning them into graph entities.",
-                "Use the schema summary if you need to confirm available fields without exposing values.",
-            ]
-
-        if not panel["next_steps"]:
-            panel["next_steps"] = [
-                "Review the result in context.",
-                "Move the candidate into Workbench if it deserves deeper evaluation.",
-            ]
-        return panel
+        return self.response_builder.build_answer_panel(intent, result, plan, message)

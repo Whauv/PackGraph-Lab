@@ -1,67 +1,4 @@
-const state = {
-  materials: [],
-  products: [],
-  suppliers: [],
-  applications: [],
-  regulations: [],
-  exploreTab: "materials",
-  exploreView: "cards",
-  currentSection: "dashboard",
-  exploreResults: [],
-  selectedExploreDetail: null,
-  contributionRoles: [],
-  selectedContributionRoleId: "fellow",
-  contributionData: { submissions: [], status_summary: [] },
-  communityChannels: [],
-  selectedCommunityChannelId: "polymers",
-  communityPosts: [],
-  selectedCommunityPostId: null,
-  filteredMaterials: [],
-  selectedMaterialId: null,
-  selectedMaterialDetail: null,
-  selectedGraphNodeId: null,
-  compareResults: [],
-  workspaces: [],
-  investigations: [],
-  scenarioHistory: [],
-  analyticsOverview: null,
-  currentInvestigationId: null,
-  graphZoom: 1,
-  graphPan: { x: 0, y: 0 },
-  graphFilter: "all",
-  graphPreset: "full",
-  graphIsolateSelection: false,
-  currentGraph: null,
-  theme: "light",
-  currentUser: null,
-  sessionToken: window.localStorage.getItem("packgraph-session-token") || "",
-  currentPage: "overview",
-  notifications: [],
-  savedSearches: [],
-  latestQuestion: "",
-  latestGlobalSearch: "",
-  latestSupplierId: null,
-  supplierRegionSummary: [],
-  privateDataStatus: { private_data_active: false, dataset_count: 0, record_count: 0 },
-  projectMemory: null,
-  reviewQueue: [],
-  reviewSummary: { total: 0, pending: 0 },
-  selectedReviewCandidateId: null,
-  activeCase: null,
-  commandCenterResults: null,
-  notificationFilter: "all",
-  graphCollapsedTypes: [],
-  graphPinnedNodeIds: [],
-  scenarioComparisons: [],
-  roleDashboardProfile: null,
-  graphRenderSignature: "",
-  personalWorkspace: {
-    bookmarks: [],
-    recent_entities: [],
-    quick_note: "",
-    reminders: [],
-  },
-};
+const state = window.PackGraphState.createDefaultState();
 
 const REQUEST_TIMEOUT_MS = 12000;
 const REQUEST_RETRY_ATTEMPTS = 1;
@@ -77,11 +14,11 @@ function applyTheme(theme) {
   document.body.setAttribute("data-theme", theme);
   const button = document.getElementById("theme-toggle");
   if (button) button.textContent = theme === "dark" ? "Light mode" : "Dark mode";
-  window.localStorage.setItem("packgraph-theme", theme);
+  window.localStorage.setItem(window.PackGraphState.storageKeys.theme, theme);
 }
 
 function setupThemeToggle() {
-  const savedTheme = window.localStorage.getItem("packgraph-theme");
+  const savedTheme = window.localStorage.getItem(window.PackGraphState.storageKeys.theme);
   const preferredDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyTheme(savedTheme || (preferredDark ? "dark" : "light"));
   document.getElementById("theme-toggle").addEventListener("click", () => applyTheme(state.theme === "dark" ? "light" : "dark"));
@@ -98,78 +35,49 @@ function authHeaders(extra = {}) {
 function setSessionToken(token) {
   state.sessionToken = token || "";
   if (state.sessionToken) {
-    window.localStorage.setItem("packgraph-session-token", state.sessionToken);
+    window.localStorage.setItem(window.PackGraphState.storageKeys.sessionToken, state.sessionToken);
   } else {
-    window.localStorage.removeItem("packgraph-session-token");
+    window.localStorage.removeItem(window.PackGraphState.storageKeys.sessionToken);
   }
 }
 
 function defaultActiveCase() {
-  return {
-    case_id: `CASE-${Date.now()}`,
-    name: "Active packaging case",
-    status: "discover",
-    focus_material_id: null,
-    shortlist_material_ids: [],
-    latest_question: "",
-    latest_search: "",
-    scenario_type: "",
-    evidence_strength: "unknown",
-    review_state: "not_requested",
-    note: "",
-    workflow_step: "Discover",
-  };
+  return window.PackGraphState.defaultActiveCase();
 }
 
 function loadActiveCase() {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem("packgraph-active-case") || "null");
-    state.activeCase = stored ? { ...defaultActiveCase(), ...stored } : defaultActiveCase();
-  } catch {
-    state.activeCase = defaultActiveCase();
-  }
+  const stored = window.PackGraphState.loadJson(window.PackGraphState.storageKeys.activeCase, null);
+  state.activeCase = stored ? { ...defaultActiveCase(), ...stored } : defaultActiveCase();
 }
 
 function persistActiveCase() {
-  window.localStorage.setItem("packgraph-active-case", JSON.stringify(state.activeCase));
+  window.PackGraphState.saveJson(window.PackGraphState.storageKeys.activeCase, state.activeCase);
 }
 
 function loadUiWorkspaceState() {
-  try {
-    state.graphPinnedNodeIds = JSON.parse(window.localStorage.getItem("packgraph-graph-pins") || "[]");
-  } catch {
-    state.graphPinnedNodeIds = [];
-  }
-  try {
-    state.graphCollapsedTypes = JSON.parse(window.localStorage.getItem("packgraph-graph-collapsed") || "[]");
-  } catch {
-    state.graphCollapsedTypes = [];
-  }
+  state.graphPinnedNodeIds = window.PackGraphState.loadJson(window.PackGraphState.storageKeys.graphPins, []);
+  state.graphCollapsedTypes = window.PackGraphState.loadJson(window.PackGraphState.storageKeys.graphCollapsed, []);
 }
 
 function persistGraphUiState() {
-  window.localStorage.setItem("packgraph-graph-pins", JSON.stringify(state.graphPinnedNodeIds || []));
-  window.localStorage.setItem("packgraph-graph-collapsed", JSON.stringify(state.graphCollapsedTypes || []));
+  window.PackGraphState.saveJson(window.PackGraphState.storageKeys.graphPins, state.graphPinnedNodeIds || []);
+  window.PackGraphState.saveJson(window.PackGraphState.storageKeys.graphCollapsed, state.graphCollapsedTypes || []);
 }
 
 function loadPersonalWorkspace() {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem("packgraph-personal-workspace") || "null");
-    if (stored) {
-      state.personalWorkspace = {
-        bookmarks: stored.bookmarks || [],
-        recent_entities: stored.recent_entities || [],
-        quick_note: stored.quick_note || "",
-        reminders: stored.reminders || [],
-      };
-    }
-  } catch {
-    state.personalWorkspace = { bookmarks: [], recent_entities: [], quick_note: "", reminders: [] };
+  const stored = window.PackGraphState.loadJson(window.PackGraphState.storageKeys.personalWorkspace, null);
+  if (stored) {
+    state.personalWorkspace = {
+      bookmarks: stored.bookmarks || [],
+      recent_entities: stored.recent_entities || [],
+      quick_note: stored.quick_note || "",
+      reminders: stored.reminders || [],
+    };
   }
 }
 
 function persistPersonalWorkspace() {
-  window.localStorage.setItem("packgraph-personal-workspace", JSON.stringify(state.personalWorkspace));
+  window.PackGraphState.saveJson(window.PackGraphState.storageKeys.personalWorkspace, state.personalWorkspace);
 }
 
 function setupDraftPersistence() {
@@ -780,13 +688,26 @@ function renderCommandCenterResults() {
   container.innerHTML = groups.map(([title, items]) => `
     <div class="command-center-group">
       <h4>${escapeHtml(title)}</h4>
-      <div class="card-list compact-list">
-        ${items.map((item) => `
-          <button type="button" class="row-card saved-search-card" data-command-open="${escapeHtml(item.entity_type)}::${escapeHtml(item.entity_id)}">
-            <strong>${escapeHtml(item.title)}</strong>
-            <small>${escapeHtml(item.subtitle || item.entity_type || "")}</small>
-          </button>`).join("")}
-      </div>
+      ${window.PackGraphUI?.tableList
+        ? window.PackGraphUI.tableList(
+            items.map((item) => `
+              <button type="button" class="saved-search-card command-center-result ui-table-row" data-command-open="${escapeHtml(item.entity_type)}::${escapeHtml(item.entity_id)}">
+                <div class="ui-table-row-main">
+                  <span class="section-label">${escapeHtml(item.entity_type || "record")}</span>
+                  <strong>${escapeHtml(item.title || item.label || item.entity_id)}</strong>
+                </div>
+                <small class="ui-table-row-meta">${escapeHtml(item.subtitle || item.entity_type || "")}</small>
+              </button>`),
+            "No matches",
+            `No ${escapeHtml(title.toLowerCase())} matched this search.`,
+          )
+        : `<div class="card-list compact-list">
+            ${items.map((item) => `
+              <button type="button" class="row-card saved-search-card" data-command-open="${escapeHtml(item.entity_type)}::${escapeHtml(item.entity_id)}">
+                <strong>${escapeHtml(item.title)}</strong>
+                <small>${escapeHtml(item.subtitle || item.entity_type || "")}</small>
+              </button>`).join("")}
+          </div>`}
     </div>
   `).join("");
   container.querySelectorAll("[data-command-open]").forEach((button) => {

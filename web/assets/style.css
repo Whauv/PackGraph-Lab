@@ -39,7 +39,7 @@
   --banner-min-height: 96px;
   --nav-button-height: 62px;
   --theme-toggle-width: 108px;
-  --page-body-min-height: 620px;
+  --page-body-min-height: 420px;
 }
 
 body[data-theme="dark"] {
@@ -101,6 +101,7 @@ h2,
 h3,
 h4 {
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 button,
@@ -144,7 +145,7 @@ textarea {
   background: var(--canvas);
   padding: var(--app-shell-side-padding);
   display: grid;
-  gap: 16px;
+  gap: 14px;
   align-content: start;
   align-items: start;
 }
@@ -262,7 +263,7 @@ textarea {
 
 .page-section {
   display: none;
-  gap: 12px;
+  gap: 10px;
   min-height: var(--page-body-min-height);
 }
 
@@ -273,7 +274,7 @@ textarea {
 
 .product-section {
   display: none;
-  gap: 12px;
+  gap: 10px;
   min-height: var(--page-body-min-height);
 }
 
@@ -987,22 +988,22 @@ textarea {
 
 .workspace-header {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   padding: 8px 0 4px;
   border: none;
   background: transparent;
-  min-height: var(--topbar-min-height);
+  min-height: auto;
   align-content: start;
 }
 
 .product-shell-nav {
   display: grid;
-  gap: 12px;
-  padding: 6px 0 2px;
+  gap: 10px;
+  padding: 2px 0;
   border: none;
   background: transparent;
   align-content: start;
-  min-height: var(--topbar-min-height);
+  min-height: auto;
 }
 
 .product-top-nav {
@@ -1029,7 +1030,7 @@ textarea {
 }
 
 .workflow-map-panel {
-  padding: 18px 20px 20px;
+  padding: 16px 18px 18px;
 }
 
 .workflow-map,
@@ -1085,7 +1086,7 @@ textarea {
   max-width: 18ch;
   font-size: 1.18rem;
   line-height: 1.12;
-  min-height: 2.2em;
+  min-height: 0;
 }
 
 .workspace-nav {
@@ -1145,7 +1146,7 @@ textarea {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px 18px;
   align-items: start;
-  padding: 0 0 8px;
+  padding: 0 0 4px;
   border-bottom: none;
   min-height: var(--banner-min-height);
   align-content: start;
@@ -3268,8 +3269,8 @@ body[data-theme="light"] .overview-compliance {
 
 .shell-nav-row {
   grid-template-columns: minmax(0, 1fr) minmax(420px, 540px);
-  align-items: end;
-  min-height: 68px;
+  align-items: center;
+  min-height: auto;
 }
 
 .context-ribbon {
@@ -3333,8 +3334,8 @@ body[data-theme="light"] .overview-compliance {
 
 .command-center-panel {
   display: grid;
-  gap: 12px;
-  padding: 18px 20px 20px;
+  gap: 10px;
+  padding: 16px 18px 18px;
   align-content: start;
 }
 
@@ -3367,7 +3368,67 @@ body[data-theme="light"] .overview-compliance {
 }
 
 .context-ribbon-panel {
-  padding: 18px 20px 20px;
+  padding: 16px 18px 18px;
+}
+
+.ui-banner,
+.ui-table-list,
+.ui-table-row,
+.ui-action-row {
+  display: grid;
+  gap: 10px;
+}
+
+.ui-banner {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+}
+
+.ui-banner-copy,
+.ui-table-row-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ui-banner-copy p,
+.ui-banner-copy h3,
+.ui-banner-copy strong,
+.ui-table-row strong,
+.ui-table-row p {
+  margin: 0;
+}
+
+.ui-banner-copy p,
+.ui-table-row-meta {
+  color: var(--muted);
+}
+
+.ui-action-row {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  justify-content: start;
+}
+
+.ui-table-list {
+  border-top: 1px solid var(--line);
+}
+
+.ui-table-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ui-table-row-main strong,
+.ui-table-row-meta {
+  overflow-wrap: anywhere;
 }
 
 .context-ribbon-panel h3,

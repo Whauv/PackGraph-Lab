@@ -1,5 +1,9 @@
 .venv/
+.tmp-ci-venv/
+.tmp-ci-venv2/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 __pycache__/
 *.pyc
 *.pyo
@@ -39,6 +43,8 @@ data/runtime/*.sqlite3
 data/runtime/review_exports/
 data/runtime/audit_logs/
 data/runtime/status-output/
+data/runtime/tmp/
+data/runtime/cache/
 smoke-test-output/
 *.smoke.json
 review-exports/
