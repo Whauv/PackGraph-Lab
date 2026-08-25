@@ -5,12 +5,15 @@ from typing import Any
 
 
 class QueryPlanner:
-    def plan(self, question: str, repository=None) -> dict[str, Any]:
+    def plan(self, question: str, repository=None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         text = question.lower().strip()
         if len(text) < 8:
             return self._ambiguous(question, "Question is too short to safely route.")
 
-        extracted = self._extract_entities(question, repository) if repository else {}
+        extracted = self._extract_entities(question, repository, context) if repository else {}
+        selected_plan = self._plan_from_selected_context(question, text, extracted, context, repository)
+        if selected_plan:
+            return selected_plan
         rules: list[tuple[str, str, str, list[str]]] = [
             ("suppliers_for_material", r"(show|list|find|which|who).*(suppliers?|sources?).*(for|of|used by|qualified|this|that|it)", "List qualified suppliers for a selected material", ["material_id"]),
             ("material_lookup", r"(tell me about|show me|details on|what is)\b", "Summarize a material from the demo graph", ["material_id"]),
@@ -41,7 +44,7 @@ class QueryPlanner:
                 }
         return self._ambiguous(question, "No reviewed intent matched the request.")
 
-    def _extract_entities(self, question: str, repository) -> dict[str, Any]:
+    def _extract_entities(self, question: str, repository, context: dict[str, Any] | None = None) -> dict[str, Any]:
         text = question.lower()
         materials = []
         suppliers = []
@@ -97,7 +100,7 @@ class QueryPlanner:
             and token != (location_hint or "")
         ]
 
-        return {
+        entities = {
             "material_id": materials[0] if materials else None,
             "material_ids": materials,
             "supplier_id": suppliers[0] if suppliers else None,
@@ -114,6 +117,144 @@ class QueryPlanner:
             "location_hint": location_hint,
             "entity_target": entity_target,
             "search_keywords": search_keywords[:8],
+        }
+        if context:
+            if context.get("entity_id"):
+                entities["selected_entity_id"] = context.get("entity_id")
+            if context.get("entity_name"):
+                entities["selected_entity_name"] = context.get("entity_name")
+            if context.get("entity_type"):
+                entities["selected_entity_type"] = str(context.get("entity_type")).lower()
+            history = context.get("history") or []
+            if history:
+                entities["selected_context_history"] = history[:4]
+        return entities
+
+    def _plan_from_selected_context(
+        self,
+        question: str,
+        text: str,
+        entities: dict[str, Any],
+        context: dict[str, Any] | None,
+        repository,
+    ) -> dict[str, Any] | None:
+        if not context:
+            return None
+        entity_type = str(context.get("entity_type") or "").lower()
+        entity_id = context.get("entity_id")
+        entity_name = context.get("entity_name")
+        history = context.get("history") or []
+        compare_requested = "compare selected" in text or "compare these" in text or "compare this to" in text
+        if compare_requested and history:
+            material_ids = [item.get("entity_id") for item in [context, *history] if str(item.get("entity_type") or "").lower() == "material" and item.get("entity_id")]
+            if len(material_ids) >= 2:
+                entities["material_ids"] = list(dict.fromkeys(material_ids[:4]))
+                return self._selected_template(
+                    "compare_materials",
+                    "COMPARE_MATERIALS",
+                    "Compare the selected materials from active chat context.",
+                    ["material_ids"],
+                    entities,
+                )
+
+        if entity_type in {"document", "report", "test_report", "component", "source", "source_document", "uploaded_record"}:
+            entities["record_id"] = entity_id
+            return self._selected_template(
+                "uploaded_record_lookup",
+                "UPLOADED_RECORD_LOOKUP",
+                "Inspect the selected uploaded or source-backed record.",
+                ["record_id"],
+                entities,
+            )
+
+        if entity_type == "supplier":
+            entities["supplier_id"] = entity_id
+            entities["supplier_ids"] = [entity_id] if entity_id else []
+            if any(token in text for token in ["material", "supplied", "supplies"]):
+                return self._selected_template(
+                    "selected_supplier_lookup",
+                    "SELECTED_SUPPLIER_LOOKUP",
+                    "Inspect the selected supplier directly from graph context.",
+                    ["supplier_id"],
+                    entities,
+                )
+            if not any(token in text for token in ["rank", "ranking", "top suppliers", "compare suppliers"]):
+                return self._selected_template(
+                    "selected_supplier_lookup",
+                    "SELECTED_SUPPLIER_LOOKUP",
+                    "Inspect the selected supplier directly from graph context.",
+                    ["supplier_id"],
+                    entities,
+                )
+
+        if entity_type == "material":
+            entities["material_id"] = entity_id
+            if any(token in text for token in ["supplier", "source", "qualified"]):
+                return self._selected_template(
+                    "suppliers_for_material",
+                    "SUPPLIERS_FOR_MATERIAL",
+                    "List qualified suppliers for the selected material.",
+                    ["material_id"],
+                    entities,
+                )
+            if any(token in text for token in ["evidence", "proof", "source", "document", "datasheet", "lab report", "declaration"]):
+                return self._selected_template(
+                    "evidence_for_material",
+                    "EVIDENCE_FOR_MATERIAL",
+                    "Trace evidence documents for the selected material.",
+                    ["material_id"],
+                    entities,
+                )
+            if any(token in text for token in ["substitute", "alternative", "replacement"]):
+                return self._selected_template(
+                    "find_recyclable_substitutes",
+                    "FIND_RECYCLABLE_SUBSTITUTES",
+                    "Find substitutes for the selected material.",
+                    ["material_id"],
+                    entities,
+                )
+            return self._selected_template(
+                "selected_material_lookup",
+                "SELECTED_MATERIAL_LOOKUP",
+                "Inspect the selected material directly from graph context.",
+                ["material_id"],
+                entities,
+            )
+
+        if entity_id or entity_name:
+            resolved = repository.selected_entity_lookup(entity_type or None, entity_id, entity_name) if repository else None
+            if resolved:
+                resolved_entity = resolved["entity"]
+                entities["selected_entity_type"] = resolved_entity["type"]
+                entities["selected_entity_id"] = resolved_entity["id"]
+            return self._selected_template(
+                "selected_entity_lookup",
+                "SELECTED_ENTITY_LOOKUP",
+                "Resolve the selected entity against likely graph labels before fallback.",
+                ["selected_entity_id"],
+                entities,
+            )
+        return None
+
+    def _selected_template(
+        self,
+        intent: str,
+        template_name: str,
+        explanation: str,
+        parameters_needed: list[str],
+        entities: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "intent": intent,
+            "cypher_template": template_name,
+            "parameters_needed": parameters_needed,
+            "explanation": explanation,
+            "entities": entities,
+            "audit": {
+                "reviewed_template": True,
+                "ambiguity": False,
+                "fallback_used": False,
+            },
         }
 
     def _ambiguous(self, question: str, reason: str) -> dict[str, Any]:

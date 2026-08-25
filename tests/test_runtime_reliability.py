@@ -100,7 +100,11 @@ class RuntimeApiReliabilityTests(unittest.TestCase):
         os.environ["PACKGRAPH_MATCH_DECISION_CACHE_PATH"] = str(runtime_dir / "match_decision_cache.json")
         os.environ["PACKGRAPH_OBSERVABILITY_LOG_PATH"] = str(runtime_dir / "app_events.jsonl")
         os.environ["PACKGRAPH_METRICS_PATH"] = str(runtime_dir / "metrics_snapshot.json")
-        os.environ["GRAPH_BACKEND"] = "local"
+        os.environ["PACKGRAPH_NEO4J_TEST_STUB"] = "true"
+        os.environ["NEO4J_URI"] = "bolt://localhost:7687"
+        os.environ["NEO4J_USER"] = "neo4j"
+        os.environ["NEO4J_PASSWORD"] = "packgraph123"
+        os.environ["NEO4J_DATABASE"] = "neo4j"
         from app.core.config import get_settings
         from app.repositories.data_store import get_data_store
 

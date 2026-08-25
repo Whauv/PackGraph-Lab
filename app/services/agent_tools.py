@@ -111,7 +111,10 @@ class AgentToolbelt:
     def retrieve_source_documents(self, result: Any, entities: dict[str, Any]) -> dict[str, Any]:
         material_id = entities.get("material_id")
         if not material_id and isinstance(result, dict):
-            material_id = result.get("material", {}).get("material_id") or result.get("material_id")
+            material = result.get("material")
+            if isinstance(material, dict):
+                material_id = material.get("material_id")
+            material_id = material_id or result.get("material_id")
         rows: list[dict[str, Any]] = []
         if material_id:
             payload = self.repository.evidence_for_material(material_id)

@@ -5,7 +5,7 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.core.runtime_db import build_runtime_db
-from app.repositories.graph_repository import LocalGraphRepository
+from app.repositories.graph_repository import GraphConnectionError, GraphQueryFailure, LocalGraphRepository
 from app.services.agent_memory import ProjectMemoryStore
 from app.services.agent_orchestrator import AgentOrchestrationRecorder
 from app.services.agent_review import ReviewCandidateStore
@@ -37,7 +37,7 @@ class QueryEngine:
     def ask(self, question: str, options: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         options = options or {}
         resolved_question = self._merge_context_into_question(question, context)
-        plan = self.planner.plan(resolved_question, self.repository)
+        plan = self.planner.plan(resolved_question, self.repository, context)
         private_status = self.private_data.private_status() if self.private_data else {"private_data_active": False, "dataset_count": 0, "record_count": 0}
         private_lookup = self.private_data.query(resolved_question) if self.private_data and private_status["private_data_active"] else {"rows": []}
         intent = plan["intent"]
@@ -120,6 +120,28 @@ class QueryEngine:
         if intent == "recommend_food_packaging":
             result = self._recommend_materials(question, entities)
             message = self._summarize_material_list(result, "Recommended materials from the synthetic packaging graph")
+        elif intent == "selected_material_lookup":
+            material_id = entities.get("material_id") or entities.get("selected_entity_id")
+            result = self.repository.selected_material_lookup(material_id) if material_id else None
+            message = self._summarize_selected_material_lookup(result, material_id)
+        elif intent == "selected_supplier_lookup":
+            supplier_id = entities.get("supplier_id") or entities.get("selected_entity_id")
+            result = self.repository.selected_supplier_lookup(supplier_id) if supplier_id else None
+            message = self._summarize_selected_supplier_lookup(result, supplier_id)
+        elif intent == "selected_entity_lookup":
+            result = self.repository.selected_entity_lookup(
+                entities.get("selected_entity_type"),
+                entities.get("selected_entity_id"),
+                entities.get("selected_entity_name") or entities.get("context_name"),
+            )
+            message = self._summarize_selected_entity_lookup(result)
+        elif intent == "uploaded_record_lookup":
+            result = self.repository.uploaded_record_lookup(
+                entities.get("selected_entity_type"),
+                entities.get("record_id") or entities.get("selected_entity_id"),
+                entities.get("selected_entity_name") or entities.get("context_name"),
+            )
+            message = self._summarize_uploaded_record_lookup(result)
         elif intent == "suppliers_for_material":
             material_id = entities.get("material_id") or "MAT-001"
             material = self.repository.get_material(material_id)
@@ -261,6 +283,7 @@ class QueryEngine:
         entity_id = context.get("entity_id")
         entity_name = context.get("entity_name")
         metadata = context.get("metadata") or {}
+        history = context.get("history") or []
         entities: dict[str, Any] = {}
         if entity_type == "material":
             entities["material_id"] = entity_id
@@ -275,8 +298,15 @@ class QueryEngine:
             entities["material_id"] = metadata["material_id"]
         if entity_name:
             entities["context_name"] = entity_name
+            entities["selected_entity_name"] = entity_name
+        if entity_type:
+            entities["selected_entity_type"] = entity_type
+        if entity_id:
+            entities["selected_entity_id"] = entity_id
         if metadata.get("region") and not entities.get("region"):
             entities["region"] = metadata["region"]
+        if history:
+            entities["selected_context_history"] = history[:4]
         return {key: value for key, value in entities.items() if value not in (None, "", [])}
 
     def _merge_context_into_question(self, question: str, context: dict[str, Any] | None) -> str:
@@ -301,6 +331,45 @@ class QueryEngine:
                 suffix_parts.append(f"in {metadata['region']}")
             return f"{question} for {' '.join(suffix_parts)}"
         return question
+
+    def _summarize_selected_material_lookup(self, material: dict[str, Any] | None, material_id: str | None) -> str:
+        if not material:
+            return f"The graph query completed, but no material node matched {material_id or 'the selected context'}."
+        return self._summarize_material_detail(material)
+
+    def _summarize_selected_supplier_lookup(self, supplier: dict[str, Any] | None, supplier_id: str | None) -> str:
+        if not supplier:
+            return f"The graph query completed, but no supplier node matched {supplier_id or 'the selected context'}."
+        return (
+            f"{supplier['name']} serves {', '.join(supplier.get('regions_served', [])[:3])} with lead time {supplier.get('lead_time_days', 'n/a')} days.\n"
+            f"Disruption risk {supplier.get('disruption_risk_score', 'n/a')} | ESG {supplier.get('esg_score', 'n/a')} | "
+            f"Supplied materials {len(supplier.get('supplied_materials', []))}."
+        )
+
+    def _summarize_selected_entity_lookup(self, payload: dict[str, Any] | None) -> str:
+        if not payload or not payload.get("entity"):
+            return "The graph query completed, but the selected entity could not be resolved against likely graph labels."
+        entity = payload["entity"]
+        if entity["type"] == "material" and payload.get("material"):
+            return self._summarize_material_detail(payload["material"])
+        if entity["type"] == "supplier" and payload.get("supplier"):
+            return self._summarize_selected_supplier_lookup(payload["supplier"], entity["id"])
+        if entity["type"] in {"document", "report"} and payload.get("document"):
+            document = payload["document"]
+            return f"{document.get('title', entity['label'])} is available as selected evidence with confidence {document.get('confidence_summary', 'n/a')}."
+        if entity["type"] == "component" and payload.get("component"):
+            component = payload["component"]
+            return f"{component.get('name', entity['label'])} is stored as a discovered component for future packaging lookups."
+        return f"Resolved the selected entity as {entity['label']} ({entity['type']})."
+
+    def _summarize_uploaded_record_lookup(self, payload: dict[str, Any] | None) -> str:
+        if not payload or not payload.get("record"):
+            return "The lookup completed, but no uploaded or source-backed record matched the selected context."
+        record = payload["record"]
+        record_type = payload.get("record_type", "record")
+        if record_type == "component":
+            return f"{record.get('name', 'Selected component')} is stored as a discovered component with related material links."
+        return f"{record.get('title', 'Selected evidence')} is available as a {record_type} with extracted fields and confidence metadata."
 
     def _summarize_material_list(self, materials: list[dict[str, Any]], intro: str) -> str:
         if not materials:
@@ -361,6 +430,8 @@ class QueryEngine:
         )
 
     def _route_question(self, plan: dict[str, Any], private_lookup: dict[str, Any]) -> str:
+        if plan["intent"] == "uploaded_record_lookup":
+            return "graph"
         if private_lookup.get("rows") and (
             plan["intent"] in {"catalog_lookup", "refuse_or_clarify"}
             or (plan["intent"] == "compare_suppliers" and not plan.get("entities", {}).get("supplier_ids"))
@@ -424,6 +495,51 @@ class QueryEngine:
                             "preview": " | ".join(f"{field['label']}: {field['value']}" for field in item.get("fields", [])[:3]),
                         }
                     )
+                return rows
+            if result.get("material"):
+                material = result["material"]
+                rows.append(
+                    {
+                        "entity_type": "material",
+                        "entity_id": material.get("material_id"),
+                        "label": material.get("name"),
+                        "score": material.get("sustainability_score"),
+                        "preview": f"{material.get('category', '')} | compliance {material.get('compliance_state', '')}",
+                    }
+                )
+            if result.get("supplier"):
+                supplier = result["supplier"]
+                rows.append(
+                    {
+                        "entity_type": "supplier",
+                        "entity_id": supplier.get("supplier_id"),
+                        "label": supplier.get("name"),
+                        "score": max(1, 100 - float(supplier.get("disruption_risk_score", 0) or 0)),
+                        "preview": f"Lead time {supplier.get('lead_time_days', 'n/a')} | risk {supplier.get('disruption_risk_score', 'n/a')}",
+                    }
+                )
+            if result.get("entity"):
+                entity = result["entity"]
+                rows.append(
+                    {
+                        "entity_type": entity.get("type"),
+                        "entity_id": entity.get("id"),
+                        "label": entity.get("label"),
+                        "score": 100,
+                        "preview": f"Resolved selected {entity.get('type', 'entity')}",
+                    }
+                )
+            if result.get("record"):
+                record = result["record"]
+                rows.append(
+                    {
+                        "entity_type": result.get("record_type", "record"),
+                        "entity_id": record.get("document_id") or record.get("report_id") or record.get("component_id"),
+                        "label": record.get("title") or record.get("name"),
+                        "score": 100,
+                        "preview": record.get("preview_text") or record.get("summary") or "Selected uploaded record",
+                    }
+                )
             return rows
         return []
 

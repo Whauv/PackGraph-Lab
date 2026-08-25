@@ -19,10 +19,11 @@ class Settings:
     sqlite_ingest_path: Path | None = None
     runtime_db_path: Path = Path("./data/runtime/packgraph_runtime.db")
     neo4j_uri: str = "bolt://localhost:7687"
-    neo4j_username: str = "neo4j"
+    neo4j_user: str = "neo4j"
     neo4j_password: str = "packgraph123"
     neo4j_database: str = "neo4j"
     neo4j_auto_ingest: bool = False
+    neo4j_test_stub: bool = False
     ingest_parser_name: str = "packgraph-local-ingest"
     ingest_parser_version: str = "2.0"
     ingest_schema_version: str = "2026.08.02"
@@ -66,7 +67,7 @@ class Settings:
 def get_settings() -> Settings:
     settings = Settings(
         runtime_profile=os.getenv("PACKGRAPH_RUNTIME_PROFILE", "local-demo"),
-        graph_backend=os.getenv("GRAPH_BACKEND", "neo4j"),
+        graph_backend="neo4j",
         packgraph_data_dir=Path(os.getenv("PACKGRAPH_DATA_DIR", "./data/generated")),
         packgraph_runtime_dir=Path(os.getenv("PACKGRAPH_RUNTIME_DIR", "./data/runtime")),
         packgraph_staging_dir=Path(os.getenv("PACKGRAPH_STAGING_DIR", "./data/staging")),
@@ -75,10 +76,11 @@ def get_settings() -> Settings:
         sqlite_ingest_path=Path(os.getenv("PACKGRAPH_SQLITE_INGEST_PATH")) if os.getenv("PACKGRAPH_SQLITE_INGEST_PATH") else None,
         runtime_db_path=Path(os.getenv("PACKGRAPH_RUNTIME_DB_PATH", "./data/runtime/packgraph_runtime.db")),
         neo4j_uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-        neo4j_username=os.getenv("NEO4J_USERNAME", "neo4j"),
+        neo4j_user=os.getenv("NEO4J_USER", os.getenv("NEO4J_USERNAME", "neo4j")),
         neo4j_password=os.getenv("NEO4J_PASSWORD", "packgraph123"),
         neo4j_database=os.getenv("NEO4J_DATABASE", "neo4j"),
         neo4j_auto_ingest=os.getenv("NEO4J_AUTO_INGEST", "false").lower() in {"1", "true", "yes", "on"},
+        neo4j_test_stub=os.getenv("PACKGRAPH_NEO4J_TEST_STUB", "false").lower() in {"1", "true", "yes", "on"},
         ingest_parser_name=os.getenv("PACKGRAPH_INGEST_PARSER_NAME", "packgraph-local-ingest"),
         ingest_parser_version=os.getenv("PACKGRAPH_INGEST_PARSER_VERSION", "2.0"),
         ingest_schema_version=os.getenv("PACKGRAPH_INGEST_SCHEMA_VERSION", "2026.08.02"),

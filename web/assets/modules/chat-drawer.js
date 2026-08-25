@@ -1,9 +1,11 @@
 (function () {
   const STORAGE_KEY = "packgraph-chat-context";
+  const HISTORY_KEY = "packgraph-chat-context-history";
   const OPEN_KEY = "packgraph-chat-open";
 
   const state = {
     context: null,
+    history: [],
     request: null,
     onResult: null,
     initialized: false,
@@ -58,6 +60,25 @@
     return document.getElementById("graph-chat-input");
   }
 
+  function contextPlaceholder(context) {
+    switch ((context?.entity_type || "").toLowerCase()) {
+      case "material":
+        return `Ask about ${context.entity_name || "this material"}: suppliers, evidence, substitutes, or risk`;
+      case "supplier":
+        return `Ask about ${context.entity_name || "this supplier"}: supplied materials, evidence, or risk`;
+      case "product":
+        return `Ask about ${context.entity_name || "this product"}: linked materials, alternatives, or evidence`;
+      case "document":
+      case "report":
+      case "test_report":
+      case "source":
+      case "uploaded_record":
+        return `Ask about ${context.entity_name || "this record"}: extracted fields, provenance, or linked entities`;
+      default:
+        return "Ask the graph about the selected entity";
+    }
+  }
+
   function setStatus(message = "", tone = "") {
     const node = document.getElementById("graph-chat-status");
     if (!node) return;
@@ -70,6 +91,11 @@
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.context));
     } else {
       window.localStorage.removeItem(STORAGE_KEY);
+    }
+    if (state.history.length) {
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
+    } else {
+      window.localStorage.removeItem(HISTORY_KEY);
     }
   }
 
@@ -97,8 +123,12 @@
   function renderContext() {
     const target = document.getElementById("graph-chat-context");
     const quickActions = document.getElementById("graph-chat-quick-actions");
+    const messageInput = input();
     if (!target || !quickActions) return;
     if (!state.context) {
+      if (messageInput) {
+        messageInput.placeholder = "Select an entity, then ask the graph a focused question";
+      }
       target.innerHTML = `
         <div class="graph-chat-context-empty">
           <strong>No selected entity</strong>
@@ -106,6 +136,9 @@
         </div>`;
       quickActions.innerHTML = "";
       return;
+    }
+    if (messageInput) {
+      messageInput.placeholder = contextPlaceholder(state.context);
     }
 
     const metadata = Object.entries(state.context.metadata || {})
@@ -187,7 +220,10 @@
     try {
       const response = await state.request({
         question,
-        context: state.context,
+        context: {
+          ...state.context,
+          history: state.history,
+        },
       });
       renderMessage("PackGraph", response.message || "No answer returned.");
       if (typeof state.onResult === "function") {
@@ -206,7 +242,20 @@
   }
 
   function setContext(context, options = {}) {
-    state.context = normalizeContext(context);
+    const normalized = normalizeContext(context);
+    const previous = state.context;
+    if (
+      previous
+      && normalized
+      && (previous.entity_id !== normalized.entity_id || previous.entity_type !== normalized.entity_type)
+    ) {
+      state.history = [previous, ...state.history.filter((item) => !(item.entity_id === previous.entity_id && item.entity_type === previous.entity_type))]
+        .slice(0, 4);
+    }
+    if (!normalized) {
+      state.history = [];
+    }
+    state.context = normalized;
     persistContext();
     renderContext();
     if (options.prompt && input()) {
@@ -236,9 +285,11 @@
     });
 
     const stored = normalizeContext(safeParse(window.localStorage.getItem(STORAGE_KEY)));
+    const storedHistory = safeParse(window.localStorage.getItem(HISTORY_KEY), []);
     if (stored) {
       state.context = stored;
     }
+    state.history = Array.isArray(storedHistory) ? storedHistory.map((item) => normalizeContext(item)).filter(Boolean).slice(0, 4) : [];
     renderContext();
     if (window.localStorage.getItem(OPEN_KEY) === "1") {
       open();
@@ -253,7 +304,13 @@
     submit,
     setContext,
     getContext() {
-      return state.context ? { ...state.context, metadata: { ...(state.context.metadata || {}) } } : null;
+      return state.context
+        ? {
+            ...state.context,
+            metadata: { ...(state.context.metadata || {}) },
+            history: state.history.map((item) => ({ ...item, metadata: { ...(item.metadata || {}) } })),
+          }
+        : null;
     },
   };
 })();

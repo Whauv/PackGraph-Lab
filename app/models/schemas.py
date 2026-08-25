@@ -28,6 +28,7 @@ class QueryContext(BaseModel):
     entity_id: str | None = None
     entity_name: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+    history: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class QueryRequest(BaseModel):

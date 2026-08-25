@@ -250,7 +250,10 @@ async function fetchJson(url, options = {}) {
         detail: response.ok ? "" : "The server returned a non-JSON response.",
       }));
       if (!response.ok || payload.status === "error") {
-        const message = payload.detail || payload.error || `Request failed with status ${response.status}`;
+        const rawMessage = payload.detail || payload.error || `Request failed with status ${response.status}`;
+        const message = /traceback|exception|line \d+|file \"/i.test(rawMessage)
+          ? "The request failed on the server."
+          : rawMessage;
         const error = new Error(message);
         error.code = payload.error || `http_${response.status}`;
         error.status = response.status;
@@ -404,6 +407,20 @@ function buildExploreDetailChatContext(detail) {
     entity_id: detail.entity_id || "",
     entity_name: detail.title || detail.summary || "Selected entity",
     metadata: facts,
+  };
+}
+
+function buildUploadedRecordChatContext(detail) {
+  if (!detail) return null;
+  return {
+    entity_type: detail.report_id ? "report" : "document",
+    entity_id: detail.document_id || detail.report_id || "",
+    entity_name: detail.title || "Selected record",
+    metadata: {
+      document_type: detail.document_type || detail.lab || "",
+      confidence: detail.confidence_summary || "",
+      material_id: detail.material_id || "",
+    },
   };
 }
 
@@ -1918,6 +1935,7 @@ async function loadDocumentPreview(documentId) {
   const container = document.getElementById("document-preview-panel");
   if (!container || !documentId) return;
   const detail = await fetchJson(`/documents/${encodeURIComponent(documentId)}`);
+  setChatContext(buildUploadedRecordChatContext(detail));
   container.innerHTML = `
     <div class="detail-card">
       <h5>${escapeHtml(detail.document_type || detail.lab || "Evidence")}</h5>

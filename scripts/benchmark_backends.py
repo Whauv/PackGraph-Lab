@@ -26,9 +26,9 @@ def time_query(repo: Neo4jAdminRepository, query: str) -> float:
     return round((time.perf_counter() - started) * 1000, 2)
 
 
-def benchmark(uri: str, username: str, password: str, label: str) -> dict:
+def benchmark(uri: str, user: str, password: str, label: str) -> dict:
     try:
-        repo = Neo4jAdminRepository(uri, username, password)
+        repo = Neo4jAdminRepository(uri, user, password)
         timings = {name: time_query(repo, query) for name, query in QUERIES.items()}
         repo.close()
         return {"backend": label, "status": "ok", "timings_ms": timings}
@@ -40,7 +40,7 @@ def main() -> None:
     settings = get_settings()
     results = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "neo4j": benchmark(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password, "neo4j"),
+        "neo4j": benchmark(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password, "neo4j"),
         "notes": [
             "Use the same generated dataset and ingestion script for Neo4j-backed verification.",
             "Inspect timing, query plan behavior, and private-data expansion coverage together.",

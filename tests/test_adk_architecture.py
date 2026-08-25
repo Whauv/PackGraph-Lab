@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import unittest
 
 from fastapi.testclient import TestClient
+
+os.environ.setdefault("PACKGRAPH_NEO4J_TEST_STUB", "true")
+os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
+os.environ.setdefault("NEO4J_USER", "neo4j")
+os.environ.setdefault("NEO4J_PASSWORD", "packgraph123")
+os.environ.setdefault("NEO4J_DATABASE", "neo4j")
 
 from adk_architecture.api import app
 from adk_architecture.tool_runtime import list_tool_names, run_function_tool
