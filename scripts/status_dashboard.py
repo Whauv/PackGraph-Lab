@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> dict:
     reports = _load_recent_reports(settings.ingest_report_dir, args.limit)
     payload = {
         "backend_mode": {
-            "graph_backend": settings.graph_backend,
+            "graph_backend": "neo4j",
             "llm_enabled": settings.llm_enabled,
             "llm_backend": settings.llm_backend,
             "embeddings_backend": settings.embeddings_backend,
@@ -36,6 +36,7 @@ def main(argv: list[str] | None = None) -> dict:
             "adjudicator_backend": settings.adjudicator_backend,
             "neo4j_uri": _redact_connection(settings.neo4j_uri),
             "neo4j_database": settings.neo4j_database,
+            "neo4j_test_stub": settings.neo4j_test_stub,
         },
         "artifact_locations": {
             "reports": safe_path_hint(settings.ingest_report_dir),

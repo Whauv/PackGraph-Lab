@@ -7,9 +7,30 @@ from datetime import datetime, timezone
 import json
 from statistics import mean
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
 from app.repositories.data_store import get_data_store
+
+
+class GraphRepositoryError(RuntimeError):
+    """Base graph repository error with a user-safe message."""
+
+
+class GraphConnectionError(GraphRepositoryError):
+    """Raised when Neo4j connectivity is unavailable."""
+
+
+class GraphQueryFailure(GraphRepositoryError):
+    """Raised when a Neo4j query cannot be executed safely."""
+
+
+def _safe_neo4j_uri(uri: str) -> str:
+    parts = urlsplit(uri)
+    if not parts.scheme or not parts.netloc:
+        return uri
+    host = parts.netloc.split("@")[-1]
+    return urlunsplit((parts.scheme, host, parts.path, parts.query, parts.fragment))
 
 
 class LocalGraphRepository:
@@ -804,6 +825,109 @@ class LocalGraphRepository:
             "entity": resolved,
             "message": "Reference resolved." if resolved else "Unknown or missing entity reference.",
         }
+
+    def selected_material_lookup(self, material_id: str) -> dict[str, Any] | None:
+        return self.get_material(material_id)
+
+    def selected_supplier_lookup(self, supplier_id: str) -> dict[str, Any] | None:
+        return self.get_supplier(supplier_id)
+
+    def selected_entity_lookup(
+        self,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        entity_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        resolved = self.resolve_entity_reference(entity_type, entity_id)
+        if not resolved and entity_id:
+            resolved = self._resolve_by_likely_label(entity_id)
+        if not resolved and entity_name:
+            resolved = self._resolve_by_name(entity_name)
+        if not resolved:
+            return None
+        return {
+            "entity": resolved,
+            "material": self.get_material(resolved["id"]) if resolved["type"] == "material" else None,
+            "supplier": self.get_supplier(resolved["id"]) if resolved["type"] == "supplier" else None,
+            "document": self.document_detail(resolved["id"]) if resolved["type"] in {"document", "report"} else None,
+            "component": self.get_component(resolved["id"]) if resolved["type"] == "component" else None,
+        }
+
+    def uploaded_record_lookup(
+        self,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        entity_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        normalized_type = (entity_type or "").lower()
+        if normalized_type == "component":
+            component = self.get_component(entity_id or "")
+            return {"record_type": "component", "record": component} if component else None
+        if normalized_type in {"document", "source", "source_document", "uploaded_record"}:
+            document = self.document_detail(entity_id or "")
+            return {"record_type": "document", "record": document} if document else None
+        if normalized_type in {"report", "test_report"}:
+            report = self.document_detail(entity_id or "")
+            return {"record_type": "report", "record": report} if report else None
+        if entity_id:
+            document = self.document_detail(entity_id)
+            if document:
+                record_type = "report" if document.get("report_id") else "document"
+                return {"record_type": record_type, "record": document}
+            component = self.get_component(entity_id)
+            if component:
+                return {"record_type": "component", "record": component}
+        if entity_name:
+            name_lower = entity_name.lower()
+            component = next((item for item in self.runtime_components() if name_lower in item.get("name", "").lower()), None)
+            if component:
+                return {"record_type": "component", "record": self.get_component(component["component_id"])}
+        return None
+
+    def graph_health(self) -> dict[str, Any]:
+        return {
+            "backend": "neo4j",
+            "uri": _safe_neo4j_uri(self.settings.neo4j_uri),
+            "database": self.settings.neo4j_database,
+            "connected": False,
+            "mode": "configured",
+        }
+
+    def _resolve_by_likely_label(self, entity_id: str) -> dict[str, Any] | None:
+        prefix_map = {
+            "MAT-": "material",
+            "SUP-": "supplier",
+            "APP-": "application",
+            "REGU-": "regulation",
+            "DOC-": "document",
+            "REP-": "report",
+            "PROD-": "product",
+            "COMP-": "component",
+        }
+        for prefix, entity_type in prefix_map.items():
+            if entity_id.startswith(prefix):
+                return self.resolve_entity_reference(entity_type, entity_id)
+        return None
+
+    def _resolve_by_name(self, entity_name: str) -> dict[str, Any] | None:
+        name_lower = entity_name.lower().strip()
+        if not name_lower:
+            return None
+        collections = [
+            ("material", self.materials, "material_id", "name"),
+            ("supplier", self.suppliers, "supplier_id", "name"),
+            ("application", self.applications, "application_id", "name"),
+            ("regulation", self.regulations, "regulation_id", "name"),
+        ]
+        for entity_type, rows, id_key, label_key in collections:
+            exact = next((item for item in rows if item.get(label_key, "").lower() == name_lower), None)
+            if exact:
+                return {"type": entity_type, "id": exact[id_key], "label": exact[label_key]}
+        for entity_type, rows, id_key, label_key in collections:
+            partial = next((item for item in rows if name_lower in item.get(label_key, "").lower()), None)
+            if partial:
+                return {"type": entity_type, "id": partial[id_key], "label": partial[label_key]}
+        return None
 
     def integrity_report(self) -> dict[str, Any]:
         missing_suppliers = [
@@ -1735,10 +1859,15 @@ class LocalGraphRepository:
         return self.snapshots_by_material.get(material_id, [])
 
     def backend_status(self) -> list[dict[str, Any]]:
-        settings = get_settings()
         return [
-            {"backend": "local", "active": settings.graph_backend == "local", "mode": "json graph cache", "status": "ready"},
-            {"backend": "neo4j", "active": settings.graph_backend == "neo4j", "mode": "primary graph database", "status": "configured"},
+            {
+                "backend": "neo4j",
+                "active": True,
+                "mode": "primary graph database",
+                "status": "configured",
+                "uri": _safe_neo4j_uri(self.settings.neo4j_uri),
+                "database": self.settings.neo4j_database,
+            },
         ]
 
     def _node_descriptor(self, node_id: str) -> dict[str, Any]:
@@ -1866,22 +1995,37 @@ class Neo4jGraphRepository(LocalGraphRepository):
 
     def __init__(self, settings=None) -> None:
         super().__init__()
-        from neo4j import GraphDatabase
-
         self.settings = settings or get_settings()
-        self.driver = GraphDatabase.driver(
-            self.settings.neo4j_uri,
-            auth=(self.settings.neo4j_username, self.settings.neo4j_password),
-        )
-        self.driver.verify_connectivity()
+        self.driver = None
+        self.connection_state = "configured"
         self.audit_path = self.settings.packgraph_runtime_dir / "neo4j_query_audit.jsonl"
+        if not self.settings.neo4j_test_stub:
+            from neo4j import GraphDatabase
+
+            try:
+                self.driver = GraphDatabase.driver(
+                    self.settings.neo4j_uri,
+                    auth=(self.settings.neo4j_user, self.settings.neo4j_password),
+                )
+                self.driver.verify_connectivity()
+                self.connection_state = "connected"
+            except Exception as exc:
+                self.connection_state = "unavailable"
+                raise GraphConnectionError(
+                    f"Neo4j is unavailable at {_safe_neo4j_uri(self.settings.neo4j_uri)} for database {self.settings.neo4j_database}."
+                ) from exc
+        else:
+            self.connection_state = "stubbed"
         if self.settings.neo4j_auto_ingest:
             self.sync_bundle_to_neo4j()
 
     def close(self) -> None:
-        self.driver.close()
+        if self.driver:
+            self.driver.close()
 
     def sync_bundle_to_neo4j(self) -> None:
+        if not self.driver:
+            raise GraphConnectionError("Neo4j sync requires a live Neo4j connection.")
         entity_map = {
             "materials": ("Material", "material_id"),
             "suppliers": ("Supplier", "supplier_id"),
@@ -1956,6 +2100,8 @@ class Neo4jGraphRepository(LocalGraphRepository):
                 session.run(query, {"rows": rows}).consume()
 
     def ingest_uploaded_artifact(self, record: dict[str, Any], kind: str) -> None:
+        if not self.driver:
+            raise GraphConnectionError("Uploaded artifact ingest requires a live Neo4j connection.")
         with self.driver.session(database=self.settings.neo4j_database) as session:
             if kind == "test_report":
                 session.run(
@@ -2107,21 +2253,141 @@ class Neo4jGraphRepository(LocalGraphRepository):
         insight["related"] = related[:12]
         return insight
 
+    def selected_material_lookup(self, material_id: str) -> dict[str, Any] | None:
+        if not self.driver:
+            return super().selected_material_lookup(material_id)
+        query = """
+        MATCH (m:Material {material_id: $material_id})
+        OPTIONAL MATCH (m)-[:SUPPLIED_BY]->(s:Supplier)
+        OPTIONAL MATCH (m)-[:HAS_DOCUMENT]->(d:SourceDocument)
+        RETURN properties(m) AS material,
+               collect(DISTINCT properties(s)) AS suppliers,
+               collect(DISTINCT properties(d)) AS documents
+        """
+        rows = self._run_graph_query("selected_material_lookup", query, {"material_id": material_id})
+        if not rows:
+            return None
+        row = rows[0]
+        material = row.get("material")
+        if not material:
+            return None
+        payload = super().get_material(material_id) or material
+        payload["suppliers"] = [item for item in row.get("suppliers", []) if item.get("supplier_id")] or payload.get("suppliers", [])
+        payload["documents"] = [item for item in row.get("documents", []) if item.get("document_id")] or payload.get("documents", [])
+        return payload
+
+    def selected_supplier_lookup(self, supplier_id: str) -> dict[str, Any] | None:
+        if not self.driver:
+            return super().selected_supplier_lookup(supplier_id)
+        query = """
+        MATCH (s:Supplier {supplier_id: $supplier_id})
+        OPTIONAL MATCH (s)-[:SUPPLIES]->(m:Material)
+        RETURN properties(s) AS supplier,
+               collect(DISTINCT properties(m)) AS materials
+        """
+        rows = self._run_graph_query("selected_supplier_lookup", query, {"supplier_id": supplier_id})
+        if not rows:
+            return None
+        row = rows[0]
+        supplier = row.get("supplier")
+        if not supplier:
+            return None
+        payload = super().get_supplier(supplier_id) or supplier
+        payload["supplied_materials"] = [item for item in row.get("materials", []) if item.get("material_id")] or payload.get("supplied_materials", [])
+        return payload
+
+    def selected_entity_lookup(
+        self,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        entity_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        if not self.driver:
+            return super().selected_entity_lookup(entity_type, entity_id, entity_name)
+        if entity_type == "material" and entity_id:
+            material = self.selected_material_lookup(entity_id)
+            return {"entity": {"type": "material", "id": entity_id, "label": material.get("name", entity_id)}, "material": material} if material else None
+        if entity_type == "supplier" and entity_id:
+            supplier = self.selected_supplier_lookup(entity_id)
+            return {"entity": {"type": "supplier", "id": entity_id, "label": supplier.get("name", entity_id)}, "supplier": supplier} if supplier else None
+        query = """
+        MATCH (n)
+        WHERE ($entity_id IS NOT NULL AND any(k IN $id_keys WHERE n[k] = $entity_id))
+           OR ($entity_name IS NOT NULL AND toLower(coalesce(n.name, n.title, "")) = toLower($entity_name))
+        RETURN labels(n)[0] AS label, properties(n) AS props
+        LIMIT 1
+        """
+        rows = self._run_graph_query(
+            "selected_entity_lookup",
+            query,
+            {"entity_id": entity_id, "entity_name": entity_name, "id_keys": self.ID_KEYS},
+        )
+        if not rows:
+            return super().selected_entity_lookup(entity_type, entity_id, entity_name)
+        row = rows[0]
+        resolved = self._normalize_node(row["label"], row["props"])
+        return super().selected_entity_lookup(resolved["type"], resolved["id"], resolved["label"])
+
+    def uploaded_record_lookup(
+        self,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        entity_name: str | None = None,
+    ) -> dict[str, Any] | None:
+        if not self.driver:
+            return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
+        if entity_type in {"component"}:
+            return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
+        query = """
+        MATCH (n)
+        WHERE ($entity_id IS NOT NULL AND (n.document_id = $entity_id OR n.report_id = $entity_id))
+           OR ($entity_name IS NOT NULL AND toLower(coalesce(n.title, "")) = toLower($entity_name))
+        RETURN labels(n)[0] AS label, properties(n) AS props
+        LIMIT 1
+        """
+        rows = self._run_graph_query(
+            "uploaded_record_lookup",
+            query,
+            {"entity_id": entity_id, "entity_name": entity_name},
+        )
+        if not rows:
+            return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
+        row = rows[0]
+        label = row["label"]
+        props = row["props"]
+        if label == "SourceDocument":
+            return {"record_type": "document", "record": self.document_detail(props.get("document_id", ""))}
+        if label == "TestReport":
+            return {"record_type": "report", "record": self.document_detail(props.get("report_id", ""))}
+        return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
+
     def backend_status(self) -> list[dict[str, Any]]:
         statuses = super().backend_status()
-        for status in statuses:
-            if status["backend"] == "neo4j":
-                status["status"] = "ready"
+        statuses[0]["status"] = "ready" if self.connection_state == "connected" else self.connection_state
         return statuses
 
+    def graph_health(self) -> dict[str, Any]:
+        return {
+            "backend": "neo4j",
+            "uri": _safe_neo4j_uri(self.settings.neo4j_uri),
+            "database": self.settings.neo4j_database,
+            "connected": self.connection_state == "connected",
+            "mode": self.connection_state,
+        }
+
     def _run_graph_query(self, query_name: str, query: str, parameters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        if not self.driver:
+            raise GraphConnectionError("Neo4j is not connected. Live graph queries are unavailable.")
         params = parameters or {}
-        with self.driver.session(database=self.settings.neo4j_database) as session:
-            explain = session.run(f"EXPLAIN {query}", params)
-            explain_summary = explain.consume()
-            result = session.run(query, params)
-            rows = [dict(record) for record in result]
-            result_summary = result.consume()
+        try:
+            with self.driver.session(database=self.settings.neo4j_database) as session:
+                explain = session.run(f"EXPLAIN {query}", params)
+                explain_summary = explain.consume()
+                result = session.run(query, params)
+                rows = [dict(record) for record in result]
+                result_summary = result.consume()
+        except Exception as exc:
+            raise GraphQueryFailure(f"Neo4j query '{query_name}' failed against database {self.settings.neo4j_database}.") from exc
         self._write_query_audit(
             query_name=query_name,
             query=query,
@@ -2237,10 +2503,4 @@ class Neo4jGraphRepository(LocalGraphRepository):
 
 def build_graph_repository(settings=None) -> LocalGraphRepository:
     settings = settings or get_settings()
-    if settings.graph_backend == "neo4j":
-        try:
-            return Neo4jGraphRepository(settings)
-        except Exception:
-            settings.graph_backend = "local"
-            return LocalGraphRepository()
-    return LocalGraphRepository()
+    return Neo4jGraphRepository(settings)

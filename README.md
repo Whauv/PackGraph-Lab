@@ -246,7 +246,7 @@ python scripts/review_workflow.py export --output review-exports/pending-raw.jso
 Notes:
 
 - This path assumes Neo4j Community Edition is available at `bolt://localhost:7687` if you want live graph execution.
-- If Neo4j is unavailable, the app can still fall back to the local JSON-backed repository for UI review and non-live demo flows.
+- PackGraph now expects Neo4j as the only supported graph backend. Use `python scripts/check_neo4j_health.py` or `GET /health/graph` to verify the configured URI and database safely before starting interactive work.
 
 ## Ingest and verification commands
 
@@ -393,15 +393,6 @@ This starts:
 
 ## Runtime modes
 
-### Local JSON-backed mode
-
-Useful for:
-
-- UI iteration
-- demo review without a graph database
-- frontend feature work
-- local-first portfolio walkthroughs
-
 ### Neo4j-backed mode
 
 Useful for:
@@ -412,7 +403,7 @@ Useful for:
 - node context retrieval
 - query-audit and plan-oriented graph behavior
 
-When `GRAPH_BACKEND=neo4j`, the app writes graph query audit output to `data/runtime/neo4j_query_audit.jsonl`.
+PackGraph writes graph query audit output to `data/runtime/neo4j_query_audit.jsonl`.
 
 ## Agent staging and review flow
 
@@ -436,9 +427,11 @@ The chat backend now behaves like a controlled graph assistant without becoming 
 ## Observability and health
 
 - `GET /health` returns backend mode, private-data activity, runtime DB state, and job summary.
+- `GET /health/graph` returns the active Neo4j URI and database safely, plus connection status, without exposing credentials.
 - `GET /health/live` and `GET /health/ready` support container and orchestrator checks.
 - `GET /metrics` returns request counters and per-route latency aggregates.
 - Structured runtime events are written to `data/runtime/app_events.jsonl`.
+- `python scripts/check_neo4j_health.py` provides the same safe connection summary from the CLI.
 
 ## Parallel Google ADK architecture
 

@@ -503,6 +503,10 @@ def build_router(state) -> APIRouter:
             ),
         }
 
+    @router.get("/health/graph")
+    def graph_health():
+        return {"status": "ok", "data": state.repository.graph_health()}
+
     @router.get("/project-memory")
     def project_memory():
         return {"status": "ok", "data": state.query_engine.project_memory.load()}

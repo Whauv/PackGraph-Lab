@@ -15,7 +15,7 @@ from app.api.routes import build_router
 from app.core.config import get_settings
 from app.core.request_controls import IdempotencyService, RateLimiter
 from app.core.runtime_db import build_runtime_db
-from app.repositories.graph_repository import build_graph_repository
+from app.repositories.graph_repository import GraphConnectionError, GraphQueryFailure, build_graph_repository
 from app.services.auth_service import AuthService
 from app.services.agent_review import ReviewCandidateStore
 from app.services.community_service import CommunityService
@@ -143,14 +143,12 @@ class AppState:
         return {"status": "accepted", "kind": kind, "payload": payload}
 
     def _repository_status(self) -> dict:
-        requested = self.requested_graph_backend
-        active = "neo4j" if self.repository.__class__.__name__ == "Neo4jGraphRepository" else "local"
-        degraded = requested == "neo4j" and active != "neo4j"
         return {
-            "requested_backend": requested,
-            "active_backend": active,
-            "degraded": degraded,
-            "fallback_reason": "Neo4j was unavailable at startup, so PackGraph continued in local graph mode." if degraded else None,
+            "requested_backend": "neo4j",
+            "active_backend": "neo4j",
+            "degraded": False,
+            "fallback_reason": None,
+            "graph": self.repository.graph_health(),
         }
 
 
@@ -193,7 +191,28 @@ async def request_controls(request: Request, call_next):
 @app.exception_handler(Exception)
 async def generic_exception_handler(_: Request, exc: Exception):
     state.observability.log_event("unhandled_exception", {"error": str(exc)})
-    return JSONResponse(status_code=500, content={"status": "error", "error": "internal_error", "detail": str(exc)})
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "error": "internal_error", "detail": "An unexpected server error occurred."},
+    )
+
+
+@app.exception_handler(GraphConnectionError)
+async def graph_connection_exception_handler(_: Request, exc: GraphConnectionError):
+    state.observability.log_event("graph_connection_error", {"detail": str(exc)})
+    return JSONResponse(
+        status_code=503,
+        content={"status": "error", "error": "graph_connection_unavailable", "detail": str(exc)},
+    )
+
+
+@app.exception_handler(GraphQueryFailure)
+async def graph_query_exception_handler(_: Request, exc: GraphQueryFailure):
+    state.observability.log_event("graph_query_failure", {"detail": str(exc)})
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "error": "graph_query_failed", "detail": str(exc)},
+    )
 
 
 @app.exception_handler(HTTPException)
@@ -240,7 +259,7 @@ def health():
         "status": "ok",
         "data": {
             "service": "PackGraph Lab",
-            "backend": state.settings.graph_backend,
+            "backend": "neo4j",
             "runtime_profile": state.settings.runtime_profile,
             "repository_status": state.repository_status,
             "private_data_active": state.private_data.has_data(),
@@ -259,16 +278,14 @@ def health_live():
 
 @app.get("/health/ready")
 def health_ready():
-    ready = True
-    warnings: list[str] = []
-    if state.repository_status["degraded"]:
-        warnings.append(state.repository_status["fallback_reason"])
+    ready = state.repository.graph_health()["connected"] or state.settings.neo4j_test_stub
+    warnings: list[str] = [] if ready else ["Neo4j is configured but not connected."]
     return {
         "status": "ok",
         "data": {
             "ready": ready,
             "warnings": warnings,
-            "graph_backend": state.settings.graph_backend,
+            "graph_backend": "neo4j",
             "repository_status": state.repository_status,
             "runtime_db": state.runtime_db.health(),
         },

@@ -140,7 +140,7 @@ def main(argv: list[str] | None = None) -> dict:
     store = get_data_store().load_bundle()
     repo = None
     try:
-        repo = connect_with_retry(settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password)
+        repo = connect_with_retry(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
         for query in CONSTRAINTS:
             repo.run(query)
 

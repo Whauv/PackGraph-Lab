@@ -34,7 +34,11 @@ class AgenticQueryEngineTests(unittest.TestCase):
         os.environ["PACKGRAPH_REVIEW_CANDIDATES_PATH"] = str(staging_dir / "agent_review_candidates.json")
         os.environ["PACKGRAPH_AGENT_AUDIT_PATH"] = str(runtime_dir / "agent_audit.jsonl")
         os.environ["PACKGRAPH_RUNTIME_DB_PATH"] = str(runtime_dir / "packgraph_runtime.db")
-        os.environ["GRAPH_BACKEND"] = "local"
+        os.environ["PACKGRAPH_NEO4J_TEST_STUB"] = "true"
+        os.environ["NEO4J_URI"] = "bolt://localhost:7687"
+        os.environ["NEO4J_USER"] = "neo4j"
+        os.environ["NEO4J_PASSWORD"] = "packgraph123"
+        os.environ["NEO4J_DATABASE"] = "neo4j"
 
     def tearDown(self):
         get_settings.cache_clear()
@@ -76,6 +80,40 @@ class AgenticQueryEngineTests(unittest.TestCase):
         self.assertIn("material Film A11", payload["resolved_question"])
         self.assertTrue(payload["rows"])
         self.assertTrue(any(row.get("supplier_id") for row in payload["rows"]))
+
+    def test_selected_supplier_routes_to_selected_supplier_lookup(self):
+        repository = LocalGraphRepository()
+        engine = QueryEngine(repository)
+
+        payload = engine.ask(
+            "show me this supplier",
+            context={
+                "entity_type": "supplier",
+                "entity_id": "SUP-001",
+                "entity_name": "Sable Circuit Packaging",
+                "metadata": {"region": "North America"},
+            },
+        )
+
+        self.assertEqual(payload["plan"]["intent"], "selected_supplier_lookup")
+        self.assertEqual(payload["plan"]["cypher_template"], "SELECTED_SUPPLIER_LOOKUP")
+
+    def test_ambiguous_selected_entity_routes_to_selected_entity_lookup(self):
+        repository = LocalGraphRepository()
+        engine = QueryEngine(repository)
+
+        payload = engine.ask(
+            "what is this",
+            context={
+                "entity_type": "entity",
+                "entity_id": "SUP-001",
+                "entity_name": "Sable Circuit Packaging",
+                "metadata": {},
+            },
+        )
+
+        self.assertEqual(payload["plan"]["intent"], "selected_entity_lookup")
+        self.assertEqual(payload["plan"]["cypher_template"], "SELECTED_ENTITY_LOOKUP")
 
 
 if __name__ == "__main__":
