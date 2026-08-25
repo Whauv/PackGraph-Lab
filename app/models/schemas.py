@@ -37,6 +37,54 @@ class QueryRequest(BaseModel):
     context: QueryContext | None = None
 
 
+class DecisionPanelItem(BaseModel):
+    label: str
+    detail: str = ""
+
+
+class DecisionPanel(BaseModel):
+    title: str
+    summary: str
+    recommendations: list[DecisionPanelItem] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    risk_flags: list[str] = Field(default_factory=list)
+    next_steps: list[str] = Field(default_factory=list)
+    debug: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReviewGatePayload(BaseModel):
+    status: str
+    reason: str
+    writeback_allowed: bool = False
+
+
+class QueryAnswerPayload(BaseModel):
+    question: str
+    resolved_question: str
+    context: dict[str, Any] = Field(default_factory=dict)
+    plan: dict[str, Any] = Field(default_factory=dict)
+    result: Any = None
+    message: str
+    panel: DecisionPanel
+    classifier: dict[str, Any] = Field(default_factory=dict)
+    retrieval: dict[str, Any] = Field(default_factory=dict)
+    scoring: dict[str, Any] = Field(default_factory=dict)
+    review_gate: ReviewGatePayload
+    pipeline_trace: list[dict[str, Any]] = Field(default_factory=list)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
+    private_data_active: bool = False
+    source: str = "graph"
+    agent_state_machine: list[dict[str, Any]] = Field(default_factory=list)
+    agent_tools: list[dict[str, Any]] = Field(default_factory=list)
+    agent_orchestration: dict[str, Any] = Field(default_factory=dict)
+    investigation_plan: dict[str, Any] = Field(default_factory=dict)
+    evidence_profile: dict[str, Any] = Field(default_factory=dict)
+    missing_evidence: list[str] = Field(default_factory=list)
+    project_memory: dict[str, Any] = Field(default_factory=dict)
+    review_candidate: dict[str, Any] | None = None
+    entity_resolution: dict[str, Any] = Field(default_factory=dict)
+
+
 class ProjectMemoryPatchRequest(BaseModel):
     saved_entities: list[Any] = Field(default_factory=list)
     saved_suppliers: list[Any] = Field(default_factory=list)
