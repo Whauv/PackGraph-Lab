@@ -174,6 +174,15 @@ app.add_middleware(
 )
 
 
+def _error_payload(code: str, detail: str, *, errors: list[dict] | None = None) -> dict:
+    return {
+        "status": "error",
+        "error": code,
+        "detail": detail,
+        "errors": errors or [],
+    }
+
+
 @app.middleware("http")
 async def request_controls(request: Request, call_next):
     started = time.perf_counter()
@@ -181,7 +190,7 @@ async def request_controls(request: Request, call_next):
     limiter_key = f"{client}:{request.url.path}"
     if not state.rate_limiter.check(limiter_key, time.time()):
         state.observability.log_event("rate_limited", {"path": request.url.path, "client": client})
-        return JSONResponse(status_code=429, content={"status": "error", "error": "rate_limited", "detail": "Too many requests. Retry later."})
+        return JSONResponse(status_code=429, content=_error_payload("rate_limited", "Too many requests. Retry later."))
     response = await call_next(request)
     elapsed_ms = (time.perf_counter() - started) * 1000
     state.observability.record_request(request.url.path, response.status_code, elapsed_ms)
@@ -193,7 +202,7 @@ async def generic_exception_handler(_: Request, exc: Exception):
     state.observability.log_event("unhandled_exception", {"error": str(exc)})
     return JSONResponse(
         status_code=500,
-        content={"status": "error", "error": "internal_error", "detail": "An unexpected server error occurred."},
+        content=_error_payload("internal_error", "An unexpected server error occurred."),
     )
 
 
@@ -202,7 +211,7 @@ async def graph_connection_exception_handler(_: Request, exc: GraphConnectionErr
     state.observability.log_event("graph_connection_error", {"detail": str(exc)})
     return JSONResponse(
         status_code=503,
-        content={"status": "error", "error": "graph_connection_unavailable", "detail": str(exc)},
+        content=_error_payload("graph_connection_unavailable", str(exc)),
     )
 
 
@@ -211,7 +220,7 @@ async def graph_query_exception_handler(_: Request, exc: GraphQueryFailure):
     state.observability.log_event("graph_query_failure", {"detail": str(exc)})
     return JSONResponse(
         status_code=500,
-        content={"status": "error", "error": "graph_query_failed", "detail": str(exc)},
+        content=_error_payload("graph_query_failed", str(exc)),
     )
 
 
@@ -221,16 +230,17 @@ async def http_exception_handler(_: Request, exc: HTTPException):
     state.observability.log_event("http_exception", {"status_code": exc.status_code, "detail": detail})
     return JSONResponse(
         status_code=exc.status_code,
-        content={"status": "error", "error": f"http_{exc.status_code}", "detail": detail},
+        content=_error_payload(f"http_{exc.status_code}", detail),
     )
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_: Request, exc: RequestValidationError):
-    state.observability.log_event("validation_error", {"errors": exc.errors()})
+    errors = exc.errors()
+    state.observability.log_event("validation_error", {"errors": errors})
     return JSONResponse(
         status_code=422,
-        content={"status": "error", "error": "validation_error", "detail": json.dumps(exc.errors())},
+        content=_error_payload("validation_error", "Request validation failed.", errors=errors),
     )
 
 

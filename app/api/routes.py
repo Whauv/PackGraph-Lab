@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import ApiEnvelope, CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, QueryAnswerEnvelope, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -71,7 +71,7 @@ def build_router(state) -> APIRouter:
             loader=loader,
         )
 
-    @router.get("/materials")
+    @router.get("/materials", response_model=ApiEnvelope)
     def list_materials():
         return {"status": "ok", "data": state.repository.list_materials(), "meta": state.repository.manifest["counts"]}
 
@@ -106,7 +106,7 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.get("/materials/{material_id}")
+    @router.get("/materials/{material_id}", response_model=ApiEnvelope)
     def get_material(material_id: str):
         material = state.repository.get_material(material_id)
         if not material:
@@ -117,7 +117,7 @@ def build_router(state) -> APIRouter:
     def material_timeline(material_id: str):
         return {"status": "ok", "data": state.repository.timeline_for_material(material_id)}
 
-    @router.get("/suppliers")
+    @router.get("/suppliers", response_model=ApiEnvelope)
     def list_suppliers(region: str | None = None, search: str | None = None, page: int = 1, limit: int = 24):
         def load():
             records = state.repository.list_suppliers(region=region)
@@ -144,7 +144,7 @@ def build_router(state) -> APIRouter:
     def supplier_region_summary():
         return {"status": "ok", "data": state.repository.supplier_region_summary()}
 
-    @router.get("/suppliers/{supplier_id}")
+    @router.get("/suppliers/{supplier_id}", response_model=ApiEnvelope)
     def get_supplier(supplier_id: str):
         supplier = state.repository.get_supplier(supplier_id)
         if not supplier:
@@ -159,7 +159,7 @@ def build_router(state) -> APIRouter:
     def list_products():
         return {"status": "ok", "data": state.repository.list_products()}
 
-    @router.get("/explore/entities")
+    @router.get("/explore/entities", response_model=ApiEnvelope)
     def explore_entities(
         tab: str = "materials",
         search: str | None = None,
@@ -206,7 +206,7 @@ def build_router(state) -> APIRouter:
     def explore_autocomplete(query: str):
         return {"status": "ok", "data": state.repository.explore_autocomplete(query)}
 
-    @router.get("/explore/detail")
+    @router.get("/explore/detail", response_model=ApiEnvelope)
     def explore_detail(entity_type: str, entity_id: str):
         detail = state.repository.explore_detail(entity_type, entity_id)
         if not detail:
@@ -217,7 +217,7 @@ def build_router(state) -> APIRouter:
     def list_regulations():
         return {"status": "ok", "data": state.repository.list_regulations()}
 
-    @router.get("/regulations/{regulation_id}")
+    @router.get("/regulations/{regulation_id}", response_model=ApiEnvelope)
     def get_regulation(regulation_id: str):
         regulation = state.repository.get_regulation(regulation_id)
         if not regulation:
@@ -280,7 +280,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="No identifiable component or element was found from the current input")
         return {"status": "ok", "data": payload}
 
-    @router.get("/search/command")
+    @router.get("/search/command", response_model=ApiEnvelope)
     def command_search(query: str, request: Request):
         current_user = state.auth.current_user(_session_token(request))
         def load():
@@ -492,7 +492,7 @@ def build_router(state) -> APIRouter:
     def compare_materials(request: MaterialCompareRequest):
         return {"status": "ok", "data": state.repository.compare_materials(request.material_ids, request.weights)}
 
-    @router.post("/query/ask")
+    @router.post("/query/ask", response_model=QueryAnswerEnvelope)
     def ask(request: QueryRequest):
         return {
             "status": "ok",
@@ -503,31 +503,31 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.get("/health/graph")
+    @router.get("/health/graph", response_model=ApiEnvelope)
     def graph_health():
         return {"status": "ok", "data": state.repository.graph_health()}
 
-    @router.get("/project-memory")
+    @router.get("/project-memory", response_model=ApiEnvelope)
     def project_memory():
         return {"status": "ok", "data": state.query_engine.project_memory.load()}
 
-    @router.patch("/project-memory")
+    @router.patch("/project-memory", response_model=ApiEnvelope)
     def update_project_memory(payload: ProjectMemoryPatchRequest):
         return {"status": "ok", "data": state.query_engine.project_memory.update(payload.model_dump())}
 
-    @router.get("/review-candidates")
+    @router.get("/review-candidates", response_model=ApiEnvelope)
     def review_candidates(request: Request, status: str | None = None, page: int = 1, limit: int = 24):
         current_user = current_user_or_401(request)
         rows = state.review_store.list(status=status, org_id=current_user["org_id"], limit=500)
         page_rows, meta = paginate_records(rows, page=page, limit=limit)
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/review-candidates/summary")
+    @router.get("/review-candidates/summary", response_model=ApiEnvelope)
     def review_candidates_summary(request: Request):
         current_user = current_user_or_401(request)
         return {"status": "ok", "data": state.review_store.summary(org_id=current_user["org_id"])}
 
-    @router.get("/review-candidates/{candidate_id}")
+    @router.get("/review-candidates/{candidate_id}", response_model=ApiEnvelope)
     def review_candidate_detail(candidate_id: str, request: Request):
         current_user = current_user_or_401(request)
         candidate = state.review_store.get(candidate_id, org_id=current_user["org_id"])

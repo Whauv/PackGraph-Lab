@@ -61,6 +61,10 @@ class AgenticQueryEngineTests(unittest.TestCase):
         self.assertTrue(any(item["name"] == "classify_question" for item in payload["agent_tools"]))
         self.assertTrue(any(item["name"] == "retrieve_source_documents" for item in payload["agent_tools"]))
         self.assertTrue(payload["project_memory"]["prior_questions"])
+        self.assertIn("panel", payload)
+        self.assertIn("recommended_action", payload["panel"])
+        self.assertIn("workflow", payload["panel"])
+        self.assertIn("missing_evidence_count", payload["panel"]["workflow"])
 
     def test_context_injection_resolves_selected_material_suppliers(self):
         repository = LocalGraphRepository()

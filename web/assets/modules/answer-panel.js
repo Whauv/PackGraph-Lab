@@ -18,11 +18,13 @@ window.PackGraphAnswerPanel = {
     container.innerHTML = normalized.length
       ? normalized.map((item) => {
         if (typeof item === "string") {
-          return `<div class="row-card"><strong>${this.escape(item)}</strong></div>`;
+          return `<div class="row-card ui-state-card"><strong>${this.escape(item)}</strong></div>`;
         }
-        return `<div class="row-card"><strong>${this.escape(item.label || "Item")}</strong><p>${this.escape(item.detail || "")}</p></div>`;
+        return `<div class="row-card ui-state-card"><strong>${this.escape(item.label || "Item")}</strong><p>${this.escape(item.detail || "")}</p></div>`;
       }).join("")
-      : `<div class="row-card"><p>${this.escape(emptyMessage)}</p></div>`;
+      : (window.PackGraphUI?.emptyState
+        ? window.PackGraphUI.emptyState("Nothing yet", emptyMessage)
+        : `<div class="row-card"><p>${this.escape(emptyMessage)}</p></div>`);
   },
 
   renderMeta(meta) {
@@ -33,6 +35,8 @@ window.PackGraphAnswerPanel = {
       { label: "Evidence strength", value: meta.evidence_strength || "Unknown" },
       { label: "Review state", value: meta.review_state || "Not requested" },
       { label: "Workflow step", value: meta.workflow_step || "Discover" },
+      { label: "Structured rows", value: meta.result_count ?? 0 },
+      { label: "Missing proof", value: meta.missing_evidence ?? 0 },
     ];
     container.innerHTML = items.map((item) => `
       <div class="status-card answer-meta-card">

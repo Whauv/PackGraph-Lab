@@ -253,6 +253,13 @@ function addMessage(author, text, detail = "") {
 function setChatContext(context, options = {}) {
   if (!window.PackGraphChat?.setContext) return;
   window.PackGraphChat.setContext(context, options);
+  if (context) {
+    syncActiveCase({
+      focus_entity_type: context.entity_type || state.activeCase?.focus_entity_type || "material",
+      focus_entity_id: context.entity_id || state.activeCase?.focus_entity_id || null,
+      focus_entity_name: context.entity_name || state.activeCase?.focus_entity_name || "",
+    });
+  }
 }
 
 function buildMaterialChatContext(material) {
@@ -341,27 +348,54 @@ function buildComponentChatContext(label) {
   };
 }
 
+function workflowStateFromResponse(response) {
+  const action = response?.panel?.recommended_action || {};
+  const evidenceStrength = response?.evidence_profile?.evidence_strength || "unknown";
+  const missingEvidenceCount = (response?.missing_evidence || []).length;
+  return {
+    status: action.status || (response?.review_candidate ? "approve" : evidenceStrength === "weak" ? "validate" : "evaluate"),
+    workflow_step: action.workflow_step || (response?.review_candidate ? "Approve" : evidenceStrength === "weak" ? "Validate" : "Evaluate"),
+    review_state: response?.review_candidate ? "pending_human_review" : response?.review_gate?.status || "cleared",
+    confidence: `${Math.round((response?.classifier?.confidence || 0) * 100)}%`,
+    next_action_label: action.label || "Refine on Overview",
+    next_action_target: action.target || "overview",
+    next_action_reason: action.reason || "Use the current result to choose the most useful next workspace.",
+    last_result_count: (response?.rows || []).length,
+    missing_evidence_count: missingEvidenceCount,
+    evidence_strength: evidenceStrength,
+  };
+}
+
 function handleChatResult(question, response) {
   state.latestQuestion = question;
   addMessage("Question", question);
   addMessage("PackGraph", response.message);
+  const workflow = workflowStateFromResponse(response);
   renderStructuredAnswer({
     panel: response.panel,
     meta: {
-      confidence: `${Math.round((response.classifier?.confidence || 0) * 100)}%`,
-      evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
-      review_state: response.review_candidate ? response.review_gate?.status || "review_required" : response.review_gate?.status || "cleared",
-      workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
+      confidence: workflow.confidence,
+      evidence_strength: workflow.evidence_strength,
+      review_state: workflow.review_state,
+      workflow_step: workflow.workflow_step,
+      result_count: workflow.last_result_count,
+      missing_evidence: workflow.missing_evidence_count,
     },
   });
   renderQueryRows(response.rows || []);
   renderExecutionDebug(response);
   syncActiveCase({
     latest_question: question,
-    evidence_strength: response.evidence_profile?.evidence_strength || "unknown",
-    review_state: response.review_candidate ? "pending_human_review" : response.review_gate?.status || "cleared",
-    status: response.review_candidate ? "approve" : response.evidence_profile?.evidence_strength === "weak" ? "validate" : "evaluate",
-    workflow_step: response.review_candidate ? "Approve" : response.evidence_profile?.evidence_strength === "weak" ? "Validate" : "Evaluate",
+    evidence_strength: workflow.evidence_strength,
+    review_state: workflow.review_state,
+    status: workflow.status,
+    workflow_step: workflow.workflow_step,
+    confidence: workflow.confidence,
+    next_action_label: workflow.next_action_label,
+    next_action_target: workflow.next_action_target,
+    next_action_reason: workflow.next_action_reason,
+    last_result_count: workflow.last_result_count,
+    missing_evidence_count: workflow.missing_evidence_count,
     note: response.panel?.summary || "",
   }, { syncMemory: true });
 }
@@ -723,6 +757,7 @@ function renderCaseWorkspace() {
   if (!container) return;
   const activeCase = state.activeCase || defaultActiveCase();
   const material = state.materials.find((item) => item.material_id === activeCase.focus_material_id);
+  const supplier = state.suppliers.find((item) => item.supplier_id === activeCase.focus_supplier_id);
   const shortlist = (activeCase.shortlist_material_ids || [])
     .map((id) => state.materials.find((item) => item.material_id === id)?.name)
     .filter(Boolean);
@@ -730,17 +765,22 @@ function renderCaseWorkspace() {
     <div class="status-card case-workspace-card">
       <span>Workflow</span>
       <strong>${escapeHtml(activeCase.workflow_step)}</strong>
-      <small>${escapeHtml(activeCase.status.replaceAll("_", " "))}</small>
+      <small>${escapeHtml(activeCase.status.replaceAll("_", " "))} | confidence ${escapeHtml(activeCase.confidence || "pending")}</small>
     </div>
     <div class="status-card case-workspace-card">
-      <span>Focus material</span>
-      <strong>${escapeHtml(material?.name || "Not selected yet")}</strong>
+      <span>Active entity</span>
+      <strong>${escapeHtml(activeCase.focus_entity_name || material?.name || supplier?.name || "Not selected yet")}</strong>
       <small>${escapeHtml(activeCase.latest_question || "Ask a question or pick a material to begin.")}</small>
     </div>
     <div class="status-card case-workspace-card">
-      <span>Shortlist</span>
+      <span>Next move</span>
+      <strong>${escapeHtml(activeCase.next_action_label || "Start in Overview")}</strong>
+      <small>${escapeHtml(activeCase.next_action_reason || "Search or ask a focused question to begin.")}</small>
+    </div>
+    <div class="status-card case-workspace-card">
+      <span>Decision state</span>
       <strong>${shortlist.length ? escapeHtml(shortlist.join(", ")) : "No candidates yet"}</strong>
-      <small>Evidence ${escapeHtml(activeCase.evidence_strength)} | Review ${escapeHtml(activeCase.review_state.replaceAll("_", " "))}</small>
+      <small>Evidence ${escapeHtml(activeCase.evidence_strength)} | Review ${escapeHtml(activeCase.review_state.replaceAll("_", " "))} | Missing proof ${escapeHtml(String(activeCase.missing_evidence_count || 0))}</small>
     </div>`;
 }
 
@@ -882,16 +922,26 @@ function renderWorkflowMap() {
   const activeStep = (state.activeCase?.status || "discover").toLowerCase();
   const stepIndex = workflowSteps().findIndex((step) => step.id === activeStep);
   container.innerHTML = workflowSteps().map((step, index) => `
-    <div class="workflow-map-step ${index === stepIndex ? "active" : index < stepIndex ? "complete" : ""}">
+    <button type="button" class="workflow-map-step workflow-map-step-button ${index === stepIndex ? "active" : index < stepIndex ? "complete" : ""}" data-workflow-target="${step.id}">
       <span>${escapeHtml(step.label)}</span>
       <strong>${index + 1}</strong>
       <small>${escapeHtml(step.description)}</small>
-    </div>`).join("");
+    </button>`).join("");
   if (summary) {
-    summary.textContent = state.activeCase?.latest_question
-      ? `${state.activeCase.workflow_step}: ${state.activeCase.latest_question}`
-      : "Start in Overview, then move to Workbench only when the answer is strong enough.";
+    summary.textContent = state.activeCase?.next_action_reason
+      ? `${state.activeCase.workflow_step}: ${state.activeCase.next_action_reason}`
+      : state.activeCase?.latest_question
+        ? `${state.activeCase.workflow_step}: ${state.activeCase.latest_question}`
+        : "Start in Overview, then move forward only when the answer is strong enough.";
   }
+  container.querySelectorAll("[data-workflow-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.workflowTarget;
+      if (target === "discover" || target === "evaluate") setPage("overview");
+      else if (target === "compare" || target === "export") setPage("workbench");
+      else setPage("intelligence");
+    });
+  });
 }
 
 function setupOverviewOnboardingHint() {
@@ -1316,6 +1366,10 @@ async function openMaterial(materialId, page = "overview") {
   }
   syncActiveCase({
     focus_material_id: materialId,
+    focus_supplier_id: null,
+    focus_entity_type: "material",
+    focus_entity_id: materialId,
+    focus_entity_name: material?.name || "",
     status: page === "overview" ? "discover" : page === "workbench" ? "compare" : "validate",
     workflow_step: page === "overview" ? "Discover" : page === "workbench" ? "Compare" : "Validate",
   });
@@ -1328,6 +1382,15 @@ async function openSupplierProfile(supplierId) {
   setChatContext(buildSupplierChatContext(supplier));
   pushRecentEntity({ id: supplierId, label: supplier.name, type: "supplier" });
   setPage("intelligence");
+  syncActiveCase({
+    focus_supplier_id: supplierId,
+    focus_entity_type: "supplier",
+    focus_entity_id: supplierId,
+    focus_entity_name: supplier.name,
+    next_action_label: "Inspect supplier graph context",
+    next_action_target: "intelligence",
+    next_action_reason: "Review supplier-linked materials, risk trend, and nearby evidence before deciding.",
+  });
   renderCrossPageContext();
 }
 
@@ -1337,6 +1400,14 @@ async function openRegulationDetail(regulationId) {
   setChatContext(buildRegulationChatContext(regulation));
   pushRecentEntity({ id: regulationId, label: regulation.name, type: "regulation" });
   setPage("intelligence");
+  syncActiveCase({
+    focus_entity_type: "regulation",
+    focus_entity_id: regulationId,
+    focus_entity_name: regulation.name,
+    next_action_label: "Validate exposed materials",
+    next_action_target: "intelligence",
+    next_action_reason: "Use regulation detail to review affected materials, evidence gaps, and likely actions.",
+  });
   renderCrossPageContext();
 }
 
@@ -1510,11 +1581,13 @@ function renderCrossPageContext() {
     `<span class="pill">Case step: ${escapeHtml(activeCase.workflow_step)}</span>`,
     material ? `<span class="pill">Material: ${escapeHtml(material.name)}</span>` : "",
     supplier ? `<span class="pill">Supplier: ${escapeHtml(supplier.name)}</span>` : "",
+    activeCase.focus_entity_name ? `<span class="pill">Context: ${escapeHtml(activeCase.focus_entity_name)}</span>` : "",
     state.latestQuestion ? `<span class="pill">Question: ${escapeHtml(state.latestQuestion)}</span>` : "",
     state.latestGlobalSearch ? `<span class="pill">Search: ${escapeHtml(state.latestGlobalSearch)}</span>` : "",
     shortlist.length ? `<span class="pill">Shortlist: ${escapeHtml(shortlist.map((item) => item.name).join(", "))}</span>` : "",
     `<span class="pill">Evidence: ${escapeHtml(activeCase.evidence_strength)}</span>`,
     `<span class="pill">Review: ${escapeHtml(activeCase.review_state.replaceAll("_", " "))}</span>`,
+    `<span class="pill">Next: ${escapeHtml(activeCase.next_action_label || "Start in Overview")}</span>`,
   ].filter(Boolean);
   container.innerHTML = chips.length ? chips.join("") : `<span class="pill">No cross-page context captured yet</span>`;
 }
@@ -1522,36 +1595,17 @@ function renderCrossPageContext() {
 function renderRecommendedNextAction(panel) {
   const container = document.getElementById("answer-next-action");
   if (!container) return;
-  const risks = panel?.risk_flags || [];
-  const recommendations = panel?.recommendations || [];
-  let title = "Move this candidate into comparison.";
-  let body = "The current answer is strong enough to carry into Workbench for side-by-side evaluation.";
-  let action = "Compare in Workbench";
-  let target = "workbench";
-
-  if (risks.length) {
-    title = "Inspect the risk context before deciding.";
-    body = "The answer includes risk pressure, so the best next move is to inspect graph context, supplier exposure, or regulation links.";
-    action = "Inspect in Intelligence";
-    target = "intelligence";
-  } else if (!recommendations.length) {
-    title = "Refine the question or use filters.";
-    body = "The current answer is not specific enough yet, so narrow the portfolio or ask a more targeted question.";
-    action = "Refine on Overview";
-    target = "overview";
-  }
-
-  syncActiveCase({
-    status: target === "workbench" ? "compare" : target === "intelligence" ? "validate" : "discover",
-    workflow_step: target === "workbench" ? "Compare" : target === "intelligence" ? "Validate" : "Discover",
-  });
+  const actionPayload = panel?.recommended_action || {};
+  const title = actionPayload.label || "Refine on Overview";
+  const body = actionPayload.reason || "Use the current result to decide the best next workspace.";
+  const target = actionPayload.target || "overview";
 
   container.innerHTML = `
     <span class="section-label">Recommended next action</span>
     <strong>${escapeHtml(title)}</strong>
     <p>${escapeHtml(body)}</p>
     <div class="row-actions">
-      <button type="button" class="secondary overview-nav-button" data-jump-page="${target}">${escapeHtml(action)}</button>
+      <button type="button" class="secondary overview-nav-button" data-jump-page="${target}">${escapeHtml(title)}</button>
     </div>`;
 }
 
@@ -1630,11 +1684,13 @@ async function loadProjectMemory() {
     const memory = state.projectMemory || {};
     const savedEntities = memory.saved_entities || [];
     const comparedEntities = memory.compared_entities || [];
-    syncActiveCase({
+  syncActiveCase({
       focus_material_id: state.activeCase?.focus_material_id || savedEntities[0] || null,
       shortlist_material_ids: state.activeCase?.shortlist_material_ids?.length ? state.activeCase.shortlist_material_ids : comparedEntities,
       latest_question: state.activeCase?.latest_question || (memory.prior_questions || []).slice(-1)[0] || "",
       note: state.activeCase?.note || (memory.investigation_notes || []).slice(-1)[0] || "",
+      focus_entity_id: state.activeCase?.focus_entity_id || savedEntities[0] || null,
+      focus_entity_name: state.activeCase?.focus_entity_name || "",
     });
   } catch {
     state.projectMemory = null;
@@ -1840,6 +1896,9 @@ async function loadProvenance(searchQuery = "") {
     evidence_strength: material.documents?.length || material.test_reports?.length ? "moderate" : "weak",
     status: "validate",
     workflow_step: "Validate",
+    next_action_label: "Inspect evidence detail",
+    next_action_target: "workbench",
+    next_action_reason: "Use Workbench to confirm extracted fields, confidence, and missing proof before approval.",
   });
   bindDocumentPreviewActions();
 }
@@ -1873,7 +1932,18 @@ async function loadDocumentPreview(documentId) {
       ${(detail.field_confidence || []).length ? `<div class="subsection"><div class="subsection-heading">Field confidence</div>${detail.field_confidence.map((field) => `<div class="score-row"><span>${escapeHtml(field.field_name)}</span><strong>${escapeHtml(Math.round((field.confidence || 0) * 100))}%</strong></div>`).join("")}</div>` : ""}
       ${(detail.citation_spans || []).length ? `<div class="subsection"><div class="subsection-heading">Citation spans</div>${detail.citation_spans.map((item) => `<div class="row-card"><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
     </div>`;
-  syncActiveCase({ evidence_strength: "strong", status: "validate", workflow_step: "Validate" });
+  syncActiveCase({
+    focus_entity_type: "document",
+    focus_entity_id: documentId,
+    focus_entity_name: detail.title || documentId,
+    evidence_strength: "strong",
+    status: "validate",
+    workflow_step: "Validate",
+    next_action_label: "Keep validating evidence",
+    next_action_target: "workbench",
+    next_action_reason: "Review missing fields, citation spans, and source confidence before approving the case.",
+    missing_evidence_count: (detail.missing_fields || []).length,
+  });
 }
 
 async function loadCompliance() {
@@ -2043,6 +2113,11 @@ function renderReviewQueue() {
         <span class="tag">Decision ${escapeHtml(selected.decision_state || "new")}</span>
         <span class="tag">Review before writeback ${selected.review_before_writeback ? "yes" : "no"}</span>
       </div>
+      <div class="structured-next-action review-guidance-card">
+        <span class="section-label">Review guidance</span>
+        <strong>${escapeHtml(selected.assigned_reviewer_id ? "Decision can be taken now." : "Assign this item before deciding.")}</strong>
+        <p>${escapeHtml((payload.missing_evidence || []).length ? "Missing proof is present, so keep the decision grounded in evidence before approving." : "Use the candidate summary and top rows to decide whether the item can move forward.")}</p>
+      </div>
       ${(payload.missing_evidence || []).length ? `<div class="subsection"><div class="subsection-heading">Missing evidence</div>${payload.missing_evidence.map((item) => `<div class="row-card"><p>${escapeHtml(item)}</p></div>`).join("")}</div>` : ""}
       ${(payload.top_rows || []).length ? `<div class="subsection"><div class="subsection-heading">Top rows</div>${payload.top_rows.map((row) => `<div class="row-card"><strong>${escapeHtml(row.label || row.material_id || row.entity_id || "Candidate")}</strong><p>Score ${escapeHtml(String(row.score ?? ""))}</p></div>`).join("")}</div>` : ""}
     </div>`;
@@ -2086,6 +2161,11 @@ async function applyReviewDecision(status) {
       review_state: status,
       status: "approve",
       workflow_step: "Approve",
+      next_action_label: status === "approved" ? "Export the case" : "Continue validation",
+      next_action_target: "workbench",
+      next_action_reason: status === "approved"
+        ? "The review cleared. Package the decision for stakeholders or export the case snapshot."
+        : "Keep validating evidence and rationale before moving the case forward.",
     });
     await Promise.all([loadReviewQueue(), loadNotifications()]);
   } catch (error) {
@@ -3235,6 +3315,9 @@ async function saveInvestigation() {
       status: "approve",
       workflow_step: "Approve",
       review_state: result.project_status || "active",
+      next_action_label: "Export or send for approval",
+      next_action_target: "workbench",
+      next_action_reason: "The shortlist and rationale are saved. Finish approval or export the case package.",
     }, { syncMemory: true });
     await loadInvestigations();
   } catch (error) {
@@ -3270,6 +3353,9 @@ async function resumeInvestigation(investigationId) {
     status: "compare",
     workflow_step: "Compare",
     review_state: investigation.project_status || investigation.status || "active",
+    next_action_label: "Resume comparison",
+    next_action_target: "workbench",
+    next_action_reason: "Continue comparing shortlisted materials, validate evidence, or move the case toward approval.",
   });
   setStatus("investigation-status", `Resumed ${investigation.title}.`, "success");
 }

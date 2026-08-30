@@ -121,6 +121,31 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("resolved_question", payload)
         self.assertTrue(payload["rows"])
 
+    def test_query_ask_returns_structured_workflow_output(self):
+        response = self.client.post(
+            "/query/ask",
+            json={
+                "question": "compare Film A11 against alternatives",
+                "options": {"material_id": "MAT-001"},
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]
+        self.assertIn("panel", payload)
+        self.assertIn("recommended_action", payload["panel"])
+        self.assertIn("workflow", payload["panel"])
+        self.assertEqual(payload["panel"]["recommended_action"]["target"], "workbench")
+        self.assertEqual(payload["panel"]["workflow"]["current_stage"], "Compare")
+
+    def test_validation_errors_are_normalized(self):
+        response = self.client.post("/query/ask", json={"options": {}})
+        self.assertEqual(response.status_code, 422)
+        payload = response.json()
+        self.assertEqual(payload["status"], "error")
+        self.assertEqual(payload["error"], "validation_error")
+        self.assertEqual(payload["detail"], "Request validation failed.")
+        self.assertTrue(payload["errors"])
+
 
 if __name__ == "__main__":
     unittest.main()

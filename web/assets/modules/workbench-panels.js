@@ -3,7 +3,9 @@ window.PackGraphWorkbenchPanels = {
     const container = document.getElementById("comparison-matrix");
     if (!container) return;
     if (!results || !results.length) {
-      container.innerHTML = "<table><tbody><tr><td>No shortlisted materials selected yet.</td></tr></tbody></table>";
+      container.innerHTML = window.PackGraphUI?.emptyState
+        ? window.PackGraphUI.emptyState("No shortlist yet", "Select materials in Overview or Explore, then compare them here.")
+        : "<table><tbody><tr><td>No shortlisted materials selected yet.</td></tr></tbody></table>";
       return;
     }
     const metrics = [
@@ -51,7 +53,9 @@ window.PackGraphWorkbenchPanels = {
           <small>Confidence ${this.escape(Math.round((item.extraction_confidence || 0) * 100))}%</small>
           ${(item.missing_fields || []).length ? `<div class="tags">${item.missing_fields.map((field) => `<span class="tag">Missing ${this.escape(field)}</span>`).join("")}</div>` : ""}
         </div>`).join("")
-      : `<div class="row-card"><p>Upload or search evidence to see extracted fields and missing-data flags.</p></div>`;
+      : (window.PackGraphUI?.emptyState
+        ? window.PackGraphUI.emptyState("No extracted evidence yet", "Upload or search evidence to see extracted fields, confidence, and missing-data flags.")
+        : `<div class="row-card"><p>Upload or search evidence to see extracted fields and missing-data flags.</p></div>`);
   },
 
   renderInvestigations(investigations, onResume) {
@@ -70,7 +74,9 @@ window.PackGraphWorkbenchPanels = {
             <a class="mini-action link-action" href="/investigations/${item.investigation_id}/export.pdf" target="_blank">PDF</a>
           </div>
         </div>`).join("")
-      : `<div class="row-card"><p>No investigations saved yet.</p></div>`;
+      : (window.PackGraphUI?.emptyState
+        ? window.PackGraphUI.emptyState("No investigations yet", "Save a shortlist with rationale to create a reusable case workspace.")
+        : `<div class="row-card"><p>No investigations saved yet.</p></div>`);
     container.querySelectorAll("[data-resume-investigation]").forEach((button) => {
       button.addEventListener("click", () => onResume(button.dataset.resumeInvestigation));
     });
@@ -89,7 +95,9 @@ window.PackGraphWorkbenchPanels = {
             <button type="button" class="mini-action" data-resume-workspace="${item.workspace_id}">Resume context</button>
           </div>
         </div>`).join("")
-      : `<div class="row-card"><p>No workspaces saved yet.</p></div>`;
+      : (window.PackGraphUI?.emptyState
+        ? window.PackGraphUI.emptyState("No saved views yet", "Save filters and selected materials to resume the same decision context later.")
+        : `<div class="row-card"><p>No workspaces saved yet.</p></div>`);
     container.querySelectorAll("[data-resume-workspace]").forEach((button) => {
       button.addEventListener("click", () => onResume(button.dataset.resumeWorkspace));
     });
@@ -105,14 +113,19 @@ window.PackGraphWorkbenchPanels = {
     }
     if (!listContainer) return;
     if (!records?.length) {
-      listContainer.innerHTML = `<div class="row-card"><p>No review candidates are waiting right now.</p></div>`;
+      listContainer.innerHTML = window.PackGraphUI?.emptyState
+        ? window.PackGraphUI.emptyState("Queue is clear", "Nothing is waiting for approval right now. New evidence or private-data findings will appear here.")
+        : `<div class="row-card"><p>No review candidates are waiting right now.</p></div>`;
       return;
     }
     listContainer.innerHTML = records.map((item) => `
       <button type="button" class="row-card review-queue-card ${selectedId === item.candidate_id ? "is-selected" : ""}" data-review-candidate="${item.candidate_id}">
-        <strong>${this.escape(item.reason || item.candidate_type)}</strong>
-        <p>${this.escape(item.candidate_type.replaceAll("_", " "))} | ${this.escape(item.status.replaceAll("_", " "))}</p>
-        <small>${this.escape(item.assigned_reviewer_id || "Unassigned")}</small>
+        <div class="explore-result-top">
+          <strong>${this.escape(item.reason || item.candidate_type)}</strong>
+          ${window.PackGraphUI?.tonePill ? window.PackGraphUI.tonePill(item.status.replaceAll("_", " "), item.status === "pending_human_review" ? "warning" : "neutral") : ""}
+        </div>
+        <p>${this.escape(item.candidate_type.replaceAll("_", " "))}</p>
+        <small>${this.escape(item.assigned_reviewer_id || "Unassigned")} | writeback ${item.review_before_writeback ? "guarded" : "clear"}</small>
       </button>`).join("");
     listContainer.querySelectorAll("[data-review-candidate]").forEach((button) => {
       button.addEventListener("click", () => onSelect(button.dataset.reviewCandidate));
