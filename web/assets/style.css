@@ -1055,6 +1055,26 @@ textarea {
   align-content: start;
 }
 
+.workflow-map-step-button {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.workflow-map-step-button:hover,
+.workflow-map-step-button:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--panel);
+  transform: translateY(-1px);
+}
+
+.workflow-map-step-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .workflow-map-step span {
   font-size: 0.72rem;
   letter-spacing: 0.1em;
@@ -3278,12 +3298,17 @@ body[data-theme="light"] .overview-compliance {
 }
 
 .structured-answer-meta {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .case-workspace-card,
 .answer-meta-card {
   padding: 12px;
+}
+
+.ui-state-card {
+  min-height: 76px;
+  align-content: start;
 }
 
 .case-workspace-card strong,
@@ -3450,6 +3475,10 @@ body[data-theme="light"] .overview-compliance {
 .workflow-map-panel .panel-kicker {
   text-align: left;
   justify-self: end;
+}
+
+.review-guidance-card {
+  margin-top: 12px;
 }
 
 .command-center-group h4,

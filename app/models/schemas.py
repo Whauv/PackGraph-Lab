@@ -21,6 +21,7 @@ class ErrorEnvelope(BaseModel):
     status: Literal["error"] = "error"
     error: str
     detail: str | None = None
+    errors: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class QueryContext(BaseModel):
@@ -49,6 +50,8 @@ class DecisionPanel(BaseModel):
     reasons: list[str] = Field(default_factory=list)
     risk_flags: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)
+    recommended_action: dict[str, Any] = Field(default_factory=dict)
+    workflow: dict[str, Any] = Field(default_factory=dict)
     debug: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -83,6 +86,12 @@ class QueryAnswerPayload(BaseModel):
     project_memory: dict[str, Any] = Field(default_factory=dict)
     review_candidate: dict[str, Any] | None = None
     entity_resolution: dict[str, Any] = Field(default_factory=dict)
+
+
+class QueryAnswerEnvelope(BaseModel):
+    status: Literal["ok"] = "ok"
+    data: QueryAnswerPayload
+    meta: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProjectMemoryPatchRequest(BaseModel):
