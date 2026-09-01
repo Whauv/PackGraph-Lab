@@ -2883,8 +2883,85 @@ body[data-theme="light"] .overview-compliance {
 }
 
 .sidebar-workspace-form input,
+.sidebar-workspace-form select,
 .sidebar-workspace-form button {
   min-height: 38px;
+}
+
+.active-case-actions {
+  margin-top: 10px;
+}
+
+.entity-action-strip {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
+}
+
+.entity-action-strip-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.entity-action-strip-copy strong,
+.entity-action-strip-copy small {
+  overflow-wrap: anywhere;
+}
+
+.entity-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.entity-action-buttons .mini-action {
+  justify-content: center;
+  min-width: 0;
+  padding-inline: 8px;
+}
+
+.saved-preset-card {
+  width: 100%;
+  text-align: left;
+}
+
+.role-dashboard-panel {
+  padding: 16px;
+}
+
+.role-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.role-dashboard-card {
+  min-height: 72px;
+}
+
+.operations-health-card {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.scenario-compare-card {
+  gap: 12px;
+}
+
+.scenario-before-after {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scenario-before-after > div {
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-muted);
 }
 
 .compact .row-card,

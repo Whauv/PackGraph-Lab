@@ -36,6 +36,12 @@ class ExportServiceTests(unittest.TestCase):
         content = self.service.compliance_pack_pdf(self.payload)
         self.assertIn(b"PackGraph Lab Compliance Pack", content)
 
+    def test_executive_summary_pdf_includes_decision_and_evidence_sections(self):
+        content = self.service.executive_summary_pdf(self.payload)
+        self.assertIn(b"Decision snapshot", content)
+        self.assertIn(b"Supplier snapshot", content)
+        self.assertIn(b"Evidence appendix", content)
+
 
 if __name__ == "__main__":
     unittest.main()

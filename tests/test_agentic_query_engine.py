@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.repositories.data_store import get_data_store
 from app.repositories.graph_repository import LocalGraphRepository
 from app.services.query_engine import QueryEngine
+from app.services.workflow_service import WorkflowService
 
 
 class AgenticQueryEngineTests(unittest.TestCase):
@@ -118,6 +119,13 @@ class AgenticQueryEngineTests(unittest.TestCase):
 
         self.assertEqual(payload["plan"]["intent"], "selected_entity_lookup")
         self.assertEqual(payload["plan"]["cypher_template"], "SELECTED_ENTITY_LOOKUP")
+
+    def test_workflow_service_routes_private_matches_to_review(self):
+        workflow = WorkflowService().for_intent("catalog_lookup", {"rows": [{"label": "Private supplier"}]})
+
+        self.assertEqual(workflow["current_stage"], "Review")
+        self.assertEqual(workflow["recommended_action"]["target"], "workbench")
+        self.assertEqual(workflow["recommended_action"]["status"], "review")
 
 
 if __name__ == "__main__":

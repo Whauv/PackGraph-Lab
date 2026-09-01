@@ -77,8 +77,14 @@ class ExportService:
 
     def executive_summary_pdf(self, payload: dict[str, Any]) -> bytes:
         material = payload["material"]
+        evidence_count = len(payload["documents"]) + len(payload["test_reports"])
+        decision_signal = "Proceed to review" if material["compliance_state"] == "compliant" and evidence_count else "Validate evidence before approval"
         lines = [
             "PackGraph Lab Executive Summary",
+            "",
+            "Decision snapshot",
+            f"Recommendation: {decision_signal}",
+            f"Rationale: {material['name']} has sustainability {material['sustainability_score']}, recyclability {material['recyclability_score']}, and {len(payload['suppliers'])} qualified suppliers.",
             "",
             f"Material: {material['name']} ({material['category']})",
             f"Composition: {material['composition']}",
@@ -88,8 +94,12 @@ class ExportService:
             f"Compostability: {material['compostability_score']}",
             f"Cost range: {material['cost_range']['low']} to {material['cost_range']['high']} {material['cost_range']['currency']}",
             "",
-            "Qualified suppliers:",
+            "Supplier snapshot:",
             *[f"- {item['name']} | ESG {item['esg_score']} | risk {item['disruption_risk_score']}" for item in payload["suppliers"][:5]],
+            "",
+            "Evidence appendix:",
+            *([f"- {item['title']} | {item.get('document_type', 'document')}" for item in payload["documents"][:5]] or ["- No supporting documents linked."]),
+            *([f"- {item['title']} | {item.get('lab', 'lab report')}" for item in payload["test_reports"][:5]] or ["- No lab reports linked."]),
             "",
             "Current alerts:",
             *([f"- {item['title']}: {item['detail']}" for item in payload["alerts"][:5]] or ["- No active alerts for this material."]),
@@ -136,6 +146,8 @@ class ExportService:
             "Evidence set:",
             f"- Documents: {len(payload['documents'])}",
             f"- Test reports: {len(payload['test_reports'])}",
+            *([f"- {item['title']} | {item.get('document_type', 'document')}" for item in payload["documents"][:4]] or []),
+            *([f"- {item['title']} | {item.get('lab', 'lab report')}" for item in payload["test_reports"][:4]] or []),
             "",
             "Open alert context:",
             *([f"- {item['title']}" for item in payload["alerts"][:6]] or ["- No active alerts."]),

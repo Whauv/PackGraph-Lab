@@ -28,6 +28,7 @@ from app.services.investigation_service import InvestigationService
 from app.services.job_service import JobService
 from app.services.lineage_service import LineageService
 from app.services.observability_service import ObservabilityService
+from app.services.operations_service import OperationsService
 from app.services.private_data_service import PrivateDataService
 from app.services.query_engine import QueryEngine
 from app.services.response_cache_service import ResponseCacheService
@@ -83,6 +84,7 @@ class AppState:
         self.jobs.register_handler("document_parse", self._job_document_parse)
         self.jobs.register_handler("export_bundle", self._job_export_bundle)
         self.repository_status = self._repository_status()
+        self.operations = OperationsService(self)
         self.observability.set_gauge("graph_backend_active", self.repository_status["active_backend"])
         self.observability.set_gauge("graph_backend_requested", self.repository_status["requested_backend"])
 

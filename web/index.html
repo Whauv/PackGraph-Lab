@@ -55,6 +55,7 @@
         <section class="sidebar-section">
           <div class="section-label">Active case</div>
           <div id="case-workspace-panel" class="case-workspace-panel"></div>
+          <div id="active-case-actions" class="active-case-actions"></div>
           <div class="row-actions">
             <button type="button" id="case-sync" class="secondary">Sync case</button>
             <button type="button" id="case-reset" class="secondary">Reset case</button>
@@ -71,9 +72,17 @@
           <div class="section-label">Save view</div>
           <form id="workspace-form" class="stack-form sidebar-workspace-form">
             <input id="workspace-name" type="text" placeholder="Name this view" />
+            <select id="workspace-preset-type">
+              <option value="case">Case setup</option>
+              <option value="filters">Filters</option>
+              <option value="graph">Graph layout</option>
+              <option value="supplier">Supplier view</option>
+              <option value="investigation">Investigation</option>
+            </select>
             <button type="submit">Save view</button>
           </form>
           <div id="workspace-status" class="upload-status"></div>
+          <div id="saved-preset-list" class="card-list compact-list"></div>
         </section>
 
         <section class="sidebar-section">
@@ -241,6 +250,8 @@
                 </div>
                 <button type="button" id="dismiss-overview-hint" class="secondary">Hide hint</button>
               </section>
+
+              <section id="role-dashboard-panel" class="panel role-dashboard-panel"></section>
 
               <section class="hero overview-hero">
                 <div class="hero-copy">
@@ -973,6 +984,25 @@
               </div>
               <div id="trend-charts" class="card-list compact-list"></div>
             </article>
+            <article class="panel intelligence-operations-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Operations</p>
+                  <h3>Production health</h3>
+                </div>
+              </div>
+              <div id="operations-health-cards" class="metric-grid"></div>
+              <div class="split-grid">
+                <div>
+                  <div class="subsection-heading">Slow routes</div>
+                  <div id="operations-latency-list" class="card-list compact-list"></div>
+                </div>
+                <div>
+                  <div class="subsection-heading">Artifacts</div>
+                  <div id="operations-artifact-list" class="card-list compact-list"></div>
+                </div>
+              </div>
+            </article>
             <article class="panel intelligence-material-timeline-panel">
               <div class="panel-header">
                 <div>
@@ -1369,6 +1399,8 @@
     <script src="/assets/modules/trend-charts.js?v=20260821"></script>
     <script src="/assets/modules/chat-drawer.js?v=20260821"></script>
     <script src="/assets/modules/app-state.js?v=20260825"></script>
+    <script src="/assets/modules/workflow-system.js?v=20260901"></script>
+    <script src="/assets/modules/entity-actions.js?v=20260901"></script>
     <script src="/assets/app.js?v=20260821"></script>
     <button type="button" id="graph-chat-launcher" class="graph-chat-launcher">Graph chat</button>
     <button type="button" id="guided-tour-button" class="guided-tour-button">Guided tour</button>
