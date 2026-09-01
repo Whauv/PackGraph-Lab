@@ -147,15 +147,22 @@ class QueryResponseBuilder:
             ]
         elif intent == "catalog_lookup" and isinstance(result, dict):
             rows = result.get("rows", [])
+            is_source_intake = any(item.get("entity_type") == "uploaded_record" for item in rows)
             panel["recommendations"] = [
-                {"label": item["label"], "detail": " | ".join(f"{field['label']}: {field['value']}" for field in item.get("fields", [])[:2])}
+                {
+                    "label": item["label"],
+                    "detail": item.get("preview")
+                    or " | ".join(f"{field['label']}: {field['value']}" for field in item.get("fields", [])[:2])
+                    or f"{len(item.get('schema_fields', []))} extracted schema fields",
+                }
                 for item in rows[:5]
             ]
-            panel["reasons"] = [f"Matched a private {item['entity_type']} record with score {item['score']}." for item in rows[:4]]
-            panel["risk_flags"] = ["Private records are read-only until a human review clears write-back."] if rows else ["No private match was found."]
+            source_label = "uploaded source" if is_source_intake else "private"
+            panel["reasons"] = [f"Matched a {source_label} {item['entity_type']} record with score {item['score']}." for item in rows[:4]]
+            panel["risk_flags"] = [f"{source_label.title()} records are read-only until a human review clears write-back."] if rows else ["No local source match was found."]
             panel["next_steps"] = [
-                "Review the matching private records before turning them into graph entities.",
-                "Use the schema summary if you need to confirm available fields without exposing values.",
+                "Review the matching source records before turning them into graph entities.",
+                "Use the schema summary to confirm available fields and missing evidence.",
             ]
         if not panel["next_steps"]:
             panel["next_steps"] = [

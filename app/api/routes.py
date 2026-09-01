@@ -352,6 +352,40 @@ def build_router(state) -> APIRouter:
     def private_data_schema():
         return {"status": "ok", "data": state.private_data.inspect_schema()}
 
+    @router.get("/source-intake/sources", response_model=ApiEnvelope)
+    def source_intake_sources(request: Request, limit: int = 25):
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        return {"status": "ok", "data": state.source_intake.list_sources(limit=limit, org_id=org_id)}
+
+    @router.get("/source-intake/search", response_model=ApiEnvelope)
+    def source_intake_search(request: Request, query: str, limit: int = 8):
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        return {"status": "ok", "data": state.source_intake.search(query, limit=limit, org_id=org_id)}
+
+    @router.post("/source-intake/upload", response_model=ApiEnvelope)
+    async def source_intake_upload(
+        request: Request,
+        file: UploadFile = File(...),
+        source_type: str | None = Form(None),
+        title: str | None = Form(None),
+    ):
+        content = await file.read()
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        result = state.source_intake.upload(
+            filename=file.filename or "uploaded-source",
+            content=content,
+            source_type=source_type,
+            title=title,
+            owner_id=current_user["user_id"] if current_user else None,
+            org_id=org_id,
+        )
+        state.cache.invalidate_prefix("route:source_intake")
+        state.cache.invalidate_prefix("route:notifications")
+        return {"status": "ok", "data": result}
+
     @router.get("/investigations", response_model=ApiEnvelope)
     def list_investigations(request: Request):
         current_user = state.auth.current_user(_session_token(request))
