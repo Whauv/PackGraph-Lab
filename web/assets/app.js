@@ -72,6 +72,7 @@ function loadPersonalWorkspace() {
       recent_entities: stored.recent_entities || [],
       quick_note: stored.quick_note || "",
       reminders: stored.reminders || [],
+      activity_events: stored.activity_events || [],
     };
   }
 }
@@ -349,21 +350,7 @@ function buildComponentChatContext(label) {
 }
 
 function workflowStateFromResponse(response) {
-  const action = response?.panel?.recommended_action || {};
-  const evidenceStrength = response?.evidence_profile?.evidence_strength || "unknown";
-  const missingEvidenceCount = (response?.missing_evidence || []).length;
-  return {
-    status: action.status || (response?.review_candidate ? "approve" : evidenceStrength === "weak" ? "validate" : "evaluate"),
-    workflow_step: action.workflow_step || (response?.review_candidate ? "Approve" : evidenceStrength === "weak" ? "Validate" : "Evaluate"),
-    review_state: response?.review_candidate ? "pending_human_review" : response?.review_gate?.status || "cleared",
-    confidence: `${Math.round((response?.classifier?.confidence || 0) * 100)}%`,
-    next_action_label: action.label || "Refine on Overview",
-    next_action_target: action.target || "overview",
-    next_action_reason: action.reason || "Use the current result to choose the most useful next workspace.",
-    last_result_count: (response?.rows || []).length,
-    missing_evidence_count: missingEvidenceCount,
-    evidence_strength: evidenceStrength,
-  };
+  return window.PackGraphWorkflow.stateFromResponse(response);
 }
 
 function handleChatResult(question, response) {
@@ -761,27 +748,78 @@ function renderCaseWorkspace() {
   const shortlist = (activeCase.shortlist_material_ids || [])
     .map((id) => state.materials.find((item) => item.material_id === id)?.name)
     .filter(Boolean);
-  container.innerHTML = `
-    <div class="status-card case-workspace-card">
-      <span>Workflow</span>
-      <strong>${escapeHtml(activeCase.workflow_step)}</strong>
-      <small>${escapeHtml(activeCase.status.replaceAll("_", " "))} | confidence ${escapeHtml(activeCase.confidence || "pending")}</small>
-    </div>
-    <div class="status-card case-workspace-card">
-      <span>Active entity</span>
-      <strong>${escapeHtml(activeCase.focus_entity_name || material?.name || supplier?.name || "Not selected yet")}</strong>
-      <small>${escapeHtml(activeCase.latest_question || "Ask a question or pick a material to begin.")}</small>
-    </div>
-    <div class="status-card case-workspace-card">
-      <span>Next move</span>
-      <strong>${escapeHtml(activeCase.next_action_label || "Start in Overview")}</strong>
-      <small>${escapeHtml(activeCase.next_action_reason || "Search or ask a focused question to begin.")}</small>
-    </div>
-    <div class="status-card case-workspace-card">
-      <span>Decision state</span>
-      <strong>${shortlist.length ? escapeHtml(shortlist.join(", ")) : "No candidates yet"}</strong>
-      <small>Evidence ${escapeHtml(activeCase.evidence_strength)} | Review ${escapeHtml(activeCase.review_state.replaceAll("_", " "))} | Missing proof ${escapeHtml(String(activeCase.missing_evidence_count || 0))}</small>
-    </div>`;
+  container.innerHTML = window.PackGraphWorkflow.caseCards(activeCase, { material, supplier, shortlist })
+    .map((card) => `
+      <div class="status-card case-workspace-card">
+        <span>${escapeHtml(card.label)}</span>
+        <strong>${escapeHtml(card.value)}</strong>
+        <small>${escapeHtml(card.detail)}</small>
+      </div>`).join("");
+  renderActiveCaseActions();
+}
+
+function activeCaseContext() {
+  const activeCase = state.activeCase || defaultActiveCase();
+  const material = state.materials.find((item) => item.material_id === (activeCase.focus_material_id || state.selectedMaterialId));
+  const supplier = state.suppliers.find((item) => item.supplier_id === activeCase.focus_supplier_id || item.supplier_id === state.latestSupplierId);
+  return {
+    entity_type: activeCase.focus_entity_type || (supplier ? "supplier" : "material"),
+    entity_id: activeCase.focus_entity_id || supplier?.supplier_id || material?.material_id || state.selectedMaterialId || "",
+    entity_name: activeCase.focus_entity_name || supplier?.name || material?.name || "Current case",
+    metadata: {
+      material_id: material?.material_id || state.selectedMaterialId || "",
+      supplier_id: supplier?.supplier_id || "",
+      workflow_step: activeCase.workflow_step,
+      evidence_strength: activeCase.evidence_strength,
+      review_state: activeCase.review_state,
+    },
+  };
+}
+
+function renderActiveCaseActions() {
+  const container = document.getElementById("active-case-actions");
+  if (!container || !window.PackGraphEntityActions) return;
+  window.PackGraphEntityActions.render(container, activeCaseContext(), {
+    shortlist: async (context) => {
+      const materialId = context.metadata?.material_id || state.selectedMaterialId;
+      addMaterialToShortlist(materialId);
+      setStatus("case-status", "Added the active material to the shortlist.", "success");
+    },
+    compare: async (context) => {
+      const materialId = context.metadata?.material_id || state.selectedMaterialId;
+      addMaterialToShortlist(materialId);
+      setPage("workbench");
+      await runComparison();
+    },
+    graph: async (context) => {
+      const materialId = context.metadata?.material_id || state.selectedMaterialId;
+      await openMaterial(materialId, "intelligence");
+    },
+    evidence: async () => {
+      setPage("workbench");
+      await loadProvenance();
+    },
+    scenario: async () => {
+      setPage("workbench");
+      document.getElementById("scenario-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    review: async (context) => {
+      await sendEntityToReview(
+        `${context.entity_type || "entity"}_decision`,
+        `Review requested for ${context.entity_name || "current entity"}.`,
+        {
+          entity_id: context.entity_id,
+          entity_type: context.entity_type,
+          display_name: context.entity_name,
+          provenance_snippets: [`Active case step: ${context.metadata?.workflow_step || "Discover"}`],
+        }
+      );
+    },
+    export: (context) => {
+      const materialId = context.metadata?.material_id || state.selectedMaterialId;
+      window.open(`/exports/executive-summary.pdf?material_id=${encodeURIComponent(materialId)}`, "_blank", "noopener");
+    },
+  });
 }
 
 function roleDashboardProfile() {
@@ -829,9 +867,37 @@ function roleDashboardProfile() {
 
 function renderRoleDashboard() {
   state.roleDashboardProfile = roleDashboardProfile();
+  const panel = document.getElementById("role-dashboard-panel");
   const heroNote = document.getElementById("overview-selected-material-note");
   const onboarding = document.querySelector("#overview-onboarding .onboarding-hint-copy p");
   const workflowSummary = document.getElementById("workflow-summary");
+  if (panel) {
+    const profile = state.roleDashboardProfile;
+    const roleTitle = state.currentUser?.role_title || profile.label;
+    panel.innerHTML = `
+      <div class="panel-header compact-panel-header">
+        <div>
+          <p class="eyebrow">Role dashboard</p>
+          <h3>${escapeHtml(roleTitle)}</h3>
+        </div>
+        <div class="panel-kicker">${escapeHtml(profile.next)}</div>
+      </div>
+      <p class="panel-helper">${escapeHtml(profile.summary)}</p>
+      <div class="role-dashboard-grid">
+        <div class="status-card role-dashboard-card">
+          <span>Focus</span>
+          <strong>${escapeHtml(profile.focus)}</strong>
+        </div>
+        <div class="status-card role-dashboard-card">
+          <span>Review backlog</span>
+          <strong>${escapeHtml(String(state.reviewSummary?.pending || 0))}</strong>
+        </div>
+        <div class="status-card role-dashboard-card">
+          <span>Open signals</span>
+          <strong>${escapeHtml(String((state.notifications || []).length))}</strong>
+        </div>
+      </div>`;
+  }
   if (heroNote && state.selectedMaterialDetail) {
     heroNote.textContent = `${state.roleDashboardProfile.label}. ${state.roleDashboardProfile.summary}`;
   }
@@ -895,6 +961,7 @@ function renderActivityTimeline() {
   const container = document.getElementById("activity-timeline");
   if (!container) return;
   const timeline = [
+    ...(state.personalWorkspace.activity_events || []).slice(0, 5),
     ...(state.notifications || []).slice(0, 4).map((item) => ({ title: item.title, detail: item.detail, type: item.type })),
     ...(state.scenarioHistory || []).slice(0, 3).map((item) => ({ title: titleCase(item.scenario_type), detail: item.after?.summary || "Scenario completed", type: "scenario" })),
     ...(state.investigations || []).slice(0, 3).map((item) => ({ title: item.title, detail: `${item.project_status || item.status} | due ${item.due_date || "not set"}`, type: "case" })),
@@ -904,22 +971,72 @@ function renderActivityTimeline() {
     : `<div class="row-card"><p>No activity yet.</p></div>`;
 }
 
+function addActivityEvent(title, detail, type = "activity") {
+  state.personalWorkspace.activity_events = [
+    { title, detail, type, at: new Date().toISOString() },
+    ...(state.personalWorkspace.activity_events || []),
+  ].slice(0, 20);
+  persistPersonalWorkspace();
+  renderActivityTimeline();
+}
+
+function renderOperationsDashboard() {
+  const cards = document.getElementById("operations-health-cards");
+  const latency = document.getElementById("operations-latency-list");
+  const artifacts = document.getElementById("operations-artifact-list");
+  if (!cards || !latency || !artifacts) return;
+  const dashboard = state.operationsDashboard || {};
+  const healthCards = dashboard.health_cards || [];
+  cards.innerHTML = healthCards.length
+    ? healthCards.map((item) => `
+      <div class="metric operations-health-card">
+        <div class="value">${escapeHtml(String(item.value))}</div>
+        <div>${escapeHtml(item.label)}</div>
+        ${window.PackGraphUI?.tonePill ? window.PackGraphUI.tonePill(item.tone || "neutral", item.tone || "neutral") : ""}
+      </div>`).join("")
+    : (window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No operations signal yet", "Use the app to generate request, graph, review, and job telemetry.")
+      : `<div class="table-empty">No operations signal yet.</div>`);
+  latency.innerHTML = (dashboard.query_latency || []).length
+    ? dashboard.query_latency.map((item) => `
+      <div class="row-card">
+        <strong>${escapeHtml(item.path)}</strong>
+        <small>${escapeHtml(String(item.count || 0))} requests | avg ${escapeHtml(String(item.avg || 0))} ms | max ${escapeHtml(String(item.max || 0))} ms</small>
+      </div>`).join("")
+    : (window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No latency samples", "Route timing appears here after requests are recorded.")
+      : `<div class="row-card"><p>No latency samples.</p></div>`);
+  const runtime = dashboard.runtime_artifacts || {};
+  const locations = dashboard.artifact_locations || {};
+  artifacts.innerHTML = [
+    ["Runtime files", runtime.runtime_files ?? 0, locations.runtime],
+    ["Staging files", runtime.staging_files ?? 0, locations.staging],
+    ["Report files", runtime.report_files ?? 0, locations.reports],
+  ].map(([label, value, path]) => `
+    <div class="row-card">
+      <strong>${escapeHtml(String(value))} ${escapeHtml(label)}</strong>
+      <small>${escapeHtml(path || "local runtime")}</small>
+    </div>`).join("");
+}
+
+async function loadOperationsDashboard() {
+  try {
+    state.operationsDashboard = await fetchJson("/operations/dashboard");
+  } catch {
+    state.operationsDashboard = null;
+  }
+  renderOperationsDashboard();
+}
+
 function workflowSteps() {
-  return [
-    { id: "discover", label: "Discover", description: "Browse, search, and find the material worth evaluating." },
-    { id: "evaluate", label: "Evaluate", description: "Ask the workspace for a structured recommendation." },
-    { id: "compare", label: "Compare", description: "Shortlist and rank the real candidate set." },
-    { id: "validate", label: "Validate", description: "Review documents, extracted fields, and evidence gaps." },
-    { id: "approve", label: "Approve", description: "Move the decision through assignment and sign-off." },
-    { id: "export", label: "Export", description: "Package the current case for stakeholders." },
-  ];
+  return window.PackGraphWorkflow.steps;
 }
 
 function renderWorkflowMap() {
   const container = document.getElementById("workflow-map");
   const summary = document.getElementById("workflow-summary");
   if (!container) return;
-  const activeStep = (state.activeCase?.status || "discover").toLowerCase();
+  const activeStep = window.PackGraphWorkflow.normalizeStatus((state.activeCase?.status || "discover").toLowerCase());
   const stepIndex = workflowSteps().findIndex((step) => step.id === activeStep);
   container.innerHTML = workflowSteps().map((step, index) => `
     <button type="button" class="workflow-map-step workflow-map-step-button ${index === stepIndex ? "active" : index < stepIndex ? "complete" : ""}" data-workflow-target="${step.id}">
@@ -937,9 +1054,8 @@ function renderWorkflowMap() {
   container.querySelectorAll("[data-workflow-target]").forEach((button) => {
     button.addEventListener("click", () => {
       const target = button.dataset.workflowTarget;
-      if (target === "discover" || target === "evaluate") setPage("overview");
-      else if (target === "compare" || target === "export") setPage("workbench");
-      else setPage("intelligence");
+      const step = workflowSteps().find((item) => item.id === target);
+      setPage(step?.targetPage || "overview");
     });
   });
 }
@@ -1348,7 +1464,7 @@ async function sendEntityToReview(candidateType, reason, payload = {}) {
   });
   setPage("workbench");
   setStatus("review-status", "Moved the current context into the review queue.", "success");
-  syncActiveCase({ review_state: "pending_human_review", status: "approve", workflow_step: "Approve" });
+  syncActiveCase({ review_state: "pending_human_review", status: "review", workflow_step: "Review" });
   await Promise.all([loadReviewQueue(), loadNotifications()]);
 }
 
@@ -1577,19 +1693,16 @@ function renderCrossPageContext() {
   const shortlist = selectedMaterialRecordsFromCompare();
   const supplier = state.suppliers.find((item) => item.supplier_id === state.latestSupplierId);
   const activeCase = state.activeCase || defaultActiveCase();
-  const chips = [
-    `<span class="pill">Case step: ${escapeHtml(activeCase.workflow_step)}</span>`,
-    material ? `<span class="pill">Material: ${escapeHtml(material.name)}</span>` : "",
-    supplier ? `<span class="pill">Supplier: ${escapeHtml(supplier.name)}</span>` : "",
-    activeCase.focus_entity_name ? `<span class="pill">Context: ${escapeHtml(activeCase.focus_entity_name)}</span>` : "",
-    state.latestQuestion ? `<span class="pill">Question: ${escapeHtml(state.latestQuestion)}</span>` : "",
-    state.latestGlobalSearch ? `<span class="pill">Search: ${escapeHtml(state.latestGlobalSearch)}</span>` : "",
-    shortlist.length ? `<span class="pill">Shortlist: ${escapeHtml(shortlist.map((item) => item.name).join(", "))}</span>` : "",
-    `<span class="pill">Evidence: ${escapeHtml(activeCase.evidence_strength)}</span>`,
-    `<span class="pill">Review: ${escapeHtml(activeCase.review_state.replaceAll("_", " "))}</span>`,
-    `<span class="pill">Next: ${escapeHtml(activeCase.next_action_label || "Start in Overview")}</span>`,
-  ].filter(Boolean);
-  container.innerHTML = chips.length ? chips.join("") : `<span class="pill">No cross-page context captured yet</span>`;
+  const chips = window.PackGraphWorkflow.contextChips(activeCase, {
+    materialName: material?.name,
+    supplierName: supplier?.name,
+    latestQuestion: state.latestQuestion,
+    latestGlobalSearch: state.latestGlobalSearch,
+    shortlistNames: shortlist.map((item) => item.name),
+  });
+  container.innerHTML = chips.length
+    ? chips.map((chip) => `<span class="pill">${escapeHtml(chip.label)}: ${escapeHtml(chip.value)}</span>`).join("")
+    : `<span class="pill">No cross-page context captured yet</span>`;
 }
 
 function renderRecommendedNextAction(panel) {
@@ -1639,10 +1752,7 @@ function setPage(pageName) {
   currentUrl.searchParams.set("section", "dashboard");
   currentUrl.searchParams.set("page", pageName);
   window.history.replaceState({}, "", currentUrl);
-  syncActiveCase({
-    status: pageName === "overview" ? "discover" : pageName === "workbench" ? "compare" : "validate",
-    workflow_step: pageName === "overview" ? "Discover" : pageName === "workbench" ? "Compare" : "Validate",
-  });
+  syncActiveCase(window.PackGraphWorkflow.stateFromPage(pageName));
 }
 
 function setSection(sectionName) {
@@ -1656,10 +1766,9 @@ function setSection(sectionName) {
     currentUrl.searchParams.delete("page");
   }
   window.history.replaceState({}, "", currentUrl);
-  if (sectionName === "explore") {
-    syncActiveCase({ status: "discover", workflow_step: "Discover" });
-  } else if (sectionName === "contribute" || sectionName === "community") {
-    syncActiveCase({ status: "approve", workflow_step: "Approve" });
+  const workflowState = window.PackGraphWorkflow.stateFromSection(sectionName);
+  if (workflowState) {
+    syncActiveCase(workflowState);
   }
 }
 
@@ -2037,6 +2146,7 @@ async function loadWorkspaces() {
   if (window.PackGraphWorkbenchPanels) {
     window.PackGraphWorkbenchPanels.renderWorkspaces(workspaces, resumeWorkspace);
   }
+  renderSavedPresets();
 }
 
 async function loadNotifications() {
@@ -2049,6 +2159,7 @@ async function loadNotifications() {
     setNotificationFilter(state.notificationFilter);
   }
   renderActivityTimeline();
+  renderRoleDashboard();
 }
 
 async function loadSavedSearches() {
@@ -2080,6 +2191,7 @@ async function loadReviewQueue() {
     state.selectedReviewCandidateId = null;
   }
   renderReviewQueue();
+  renderRoleDashboard();
 }
 
 function renderReviewQueue() {
@@ -2159,15 +2271,15 @@ async function applyReviewDecision(status) {
     setStatus("review-status", `Review item moved to ${status.replaceAll("_", " ")}.`, "success");
     syncActiveCase({
       review_state: status,
-      status: "approve",
-      workflow_step: "Approve",
+      status: "review",
+      workflow_step: "Review",
       next_action_label: status === "approved" ? "Export the case" : "Continue validation",
       next_action_target: "workbench",
       next_action_reason: status === "approved"
         ? "The review cleared. Package the decision for stakeholders or export the case snapshot."
         : "Keep validating evidence and rationale before moving the case forward.",
     });
-    await Promise.all([loadReviewQueue(), loadNotifications()]);
+    await Promise.all([loadReviewQueue(), loadNotifications(), loadOperationsDashboard()]);
   } catch (error) {
     setStatus("review-status", error.message, "error");
   }
@@ -2205,6 +2317,33 @@ function renderSavedSearches() {
   });
 }
 
+function renderSavedPresets() {
+  const container = document.getElementById("saved-preset-list");
+  if (!container) return;
+  const presets = (state.workspaces || []).slice(0, 5);
+  if (!presets.length) {
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No saved presets", "Save a graph, filter, supplier, or investigation setup to restore it later.")
+      : `<div class="row-card"><p>No saved presets yet.</p></div>`;
+    return;
+  }
+  container.innerHTML = presets.map((item) => {
+    const presetType = item.filters?.preset_type || "case";
+    const graphSummary = item.filters?.graph_preset ? ` | ${item.filters.graph_preset} graph` : "";
+    return `
+      <button type="button" class="row-card saved-search-card saved-preset-card" data-resume-preset="${escapeHtml(item.workspace_id)}">
+        <strong>${escapeHtml(item.name)}</strong>
+        <small>${escapeHtml(titleCase(presetType))} | ${escapeHtml(titleCase(item.active_tab || "overview"))}${escapeHtml(graphSummary)}</small>
+      </button>`;
+  }).join("");
+  container.querySelectorAll("[data-resume-preset]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await resumeWorkspace(button.dataset.resumePreset);
+      setStatus("workspace-status", "Restored the saved preset.", "success");
+    });
+  });
+}
+
 async function saveCurrentExploreSearch() {
   const payload = {
     name: `${titleCase(state.exploreTab)} search`,
@@ -2222,7 +2361,7 @@ async function saveCurrentExploreSearch() {
     },
   };
   const optimistic = {
-    search_id: `local-search-${Date.now()}`,
+    saved_search_id: `local-search-${Date.now()}`,
     name: payload.name,
     filters: payload.filters,
     tab: payload.tab,
@@ -2240,7 +2379,7 @@ async function saveCurrentExploreSearch() {
     setStatus("explore-status", "Saved the current Explore search.", "success");
     await loadSavedSearches();
   } catch (error) {
-    state.savedSearches = (state.savedSearches || []).filter((item) => item.search_id !== optimistic.search_id);
+    state.savedSearches = (state.savedSearches || []).filter((item) => item.saved_search_id !== optimistic.saved_search_id);
     renderSavedSearches();
     throw error;
   }
@@ -2596,6 +2735,8 @@ async function useCommunityPostInCase(postId) {
     workflow_step: "Compare",
     status: "compare",
   }, { syncMemory: true });
+  addBookmark({ id: post.post_id, label: post.title, type: "community_post" });
+  addActivityEvent("Community finding added", post.title, "community");
   setStatus("investigation-status", `Added ${post.title} into the current case draft.`, "success");
 }
 
@@ -2678,14 +2819,27 @@ function renderScenarioComparison() {
   const container = document.getElementById("scenario-comparison");
   if (!container) return;
   if (!state.scenarioComparisons.length) {
-    container.innerHTML = `<div class="row-card"><p>Run two scenarios to compare their impacts side by side.</p></div>`;
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No scenario comparison yet", "Run two scenarios to compare before and after impact summaries side by side.")
+      : `<div class="row-card"><p>Run two scenarios to compare their impacts side by side.</p></div>`;
     return;
   }
   container.innerHTML = state.scenarioComparisons.map((item, index) => `
-    <div class="row-card">
-      <strong>${escapeHtml(titleCase(item.scenario))}</strong>
-      <p>${escapeHtml(item.summary || "Scenario completed")}</p>
-      <small>${escapeHtml(index === 0 ? "Earlier comparison slot" : "Latest comparison slot")}</small>
+    <div class="row-card scenario-compare-card">
+      <div>
+        <strong>${escapeHtml(titleCase(item.scenario))}</strong>
+        <small>${escapeHtml(index === 0 ? "Earlier comparison slot" : "Latest comparison slot")}</small>
+      </div>
+      <div class="scenario-before-after">
+        <div>
+          <span class="section-label">Before</span>
+          <p>${escapeHtml(item.before?.material_id || "portfolio")} | ${escapeHtml(item.before?.supplier_id || item.before?.options?.regulation_id || "auto scope")}</p>
+        </div>
+        <div>
+          <span class="section-label">After</span>
+          <p>${escapeHtml(item.summary || "Scenario completed")}</p>
+        </div>
+      </div>
       <div class="tags">${Object.entries(item.metrics || {}).slice(0, 4).map(([key, value]) => `<span class="tag">${escapeHtml(titleCase(key))}: ${escapeHtml(String(value))}</span>`).join("")}</div>
     </div>
   `).join("");
@@ -2732,6 +2886,7 @@ async function loadGraph() {
   const links = await fetchJson(`/graph/relationships?material_id=${state.selectedMaterialId}`);
   document.getElementById("relationship-list").innerHTML = links.slice(0, 14).map((item) => `<div class="row-card relationship-row"><span>${item.from}</span><strong>${titleCase(item.type)}</strong><span>${item.to}</span></div>`).join("");
   await loadGraphNodeInsight(state.selectedGraphNodeId);
+  addActivityEvent("Graph updated", `Loaded ${graph.nodes.length} nodes and ${graph.edges.length} relationships.`, "graph");
 }
 
 async function loadGraphPath() {
@@ -3254,7 +3409,15 @@ async function runScenario() {
     body: JSON.stringify(payload),
   });
   renderScenarioResult(result);
-  state.scenarioComparisons = [...state.scenarioComparisons.slice(-1), { scenario: payload.scenario, summary: result.summary, metrics: result.metrics || {} }];
+  state.scenarioComparisons = [
+    ...state.scenarioComparisons.slice(-1),
+    {
+      scenario: payload.scenario,
+      before: { material_id: payload.material_id, supplier_id: payload.supplier_id, options: payload.options },
+      summary: result.summary,
+      metrics: result.metrics || {},
+    },
+  ];
   renderScenarioComparison();
   syncActiveCase({
     scenario_type: payload.scenario,
@@ -3262,7 +3425,8 @@ async function runScenario() {
     workflow_step: "Validate",
     note: result.summary || state.activeCase?.note || "",
   }, { syncMemory: true });
-  await loadScenarioHistory();
+  addActivityEvent("Scenario run", result.summary || titleCase(payload.scenario), "scenario");
+  await Promise.all([loadScenarioHistory(), loadOperationsDashboard()]);
 }
 
 async function loadTrendCharts() {
@@ -3312,8 +3476,8 @@ async function saveInvestigation() {
     syncActiveCase({
       name: result.title,
       note: result.decision_rationale || result.notes || state.activeCase?.note || "",
-      status: "approve",
-      workflow_step: "Approve",
+      status: "review",
+      workflow_step: "Review",
       review_state: result.project_status || "active",
       next_action_label: "Export or send for approval",
       next_action_target: "workbench",
@@ -3872,6 +4036,11 @@ function setupForms() {
         graph_collapsed_types: state.graphCollapsedTypes,
         graph_pinned_node_ids: state.graphPinnedNodeIds,
         active_case_name: state.activeCase?.name || "",
+        preset_type: document.getElementById("workspace-preset-type")?.value || "case",
+        supplier_id: state.activeCase?.focus_supplier_id || state.latestSupplierId || "",
+        investigation_id: state.currentInvestigationId || "",
+        evidence_strength: state.activeCase?.evidence_strength || "unknown",
+        review_state: state.activeCase?.review_state || "not_requested",
       },
       selected_material_ids: selectedMaterialsFromCompare().length ? selectedMaterialsFromCompare() : [state.selectedMaterialId],
       active_tab: state.currentPage,
@@ -3895,6 +4064,7 @@ function setupForms() {
       document.getElementById("workspace-name").value = "";
       await Promise.all([loadWorkspaces(), loadNotifications()]);
       setStatus("workspace-status", `Saved workspace ${name}.`, "success");
+      addActivityEvent("Saved workspace preset", name, payload.filters.preset_type || "workspace");
       syncActiveCase({
         name,
         shortlist_material_ids: payload.selected_material_ids,
@@ -4132,6 +4302,7 @@ function setupForms() {
       const format = link.textContent.trim();
       const materialName = link.dataset.materialName || "selected material";
       setStatus("export-studio-status", `Preparing branded ${format} deliverable for ${materialName}.`, "success");
+      addActivityEvent("Export prepared", `${format} for ${materialName}`, "export");
     });
   });
 
@@ -4153,7 +4324,7 @@ async function init() {
     }),
     onResult: async (question, response) => {
       handleChatResult(question, response);
-      await Promise.all([loadReviewQueue(), loadNotifications()]);
+      await Promise.all([loadReviewQueue(), loadNotifications(), loadOperationsDashboard()]);
     },
   });
   setupThemeToggle();
@@ -4183,6 +4354,7 @@ async function init() {
     loadReviewQueue(),
     loadSavedSearches(),
     loadNotifications(),
+    loadOperationsDashboard(),
     loadScenarioHistory(),
     loadRecommendationsSummary(),
     loadAnalytics(),

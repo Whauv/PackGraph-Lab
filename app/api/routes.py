@@ -75,7 +75,7 @@ def build_router(state) -> APIRouter:
     def list_materials():
         return {"status": "ok", "data": state.repository.list_materials(), "meta": state.repository.manifest["counts"]}
 
-    @router.get("/materials/filter")
+    @router.get("/materials/filter", response_model=ApiEnvelope)
     def filter_materials(
         region: str | None = None,
         category: str | None = None,
@@ -113,7 +113,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Material not found")
         return {"status": "ok", "data": material}
 
-    @router.get("/materials/{material_id}/timeline")
+    @router.get("/materials/{material_id}/timeline", response_model=ApiEnvelope)
     def material_timeline(material_id: str):
         return {"status": "ok", "data": state.repository.timeline_for_material(material_id)}
 
@@ -140,7 +140,7 @@ def build_router(state) -> APIRouter:
         page_rows, meta = paginate_records(records, page=page, limit=limit)
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/suppliers/regions/summary")
+    @router.get("/suppliers/regions/summary", response_model=ApiEnvelope)
     def supplier_region_summary():
         return {"status": "ok", "data": state.repository.supplier_region_summary()}
 
@@ -151,11 +151,11 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Supplier not found")
         return {"status": "ok", "data": supplier}
 
-    @router.get("/applications")
+    @router.get("/applications", response_model=ApiEnvelope)
     def list_applications():
         return {"status": "ok", "data": state.repository.list_applications()}
 
-    @router.get("/products")
+    @router.get("/products", response_model=ApiEnvelope)
     def list_products():
         return {"status": "ok", "data": state.repository.list_products()}
 
@@ -202,7 +202,7 @@ def build_router(state) -> APIRouter:
         page_rows, meta = paginate_records(records, page=page, limit=limit)
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/explore/autocomplete")
+    @router.get("/explore/autocomplete", response_model=ApiEnvelope)
     def explore_autocomplete(query: str):
         return {"status": "ok", "data": state.repository.explore_autocomplete(query)}
 
@@ -213,7 +213,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Explore entity not found")
         return {"status": "ok", "data": detail}
 
-    @router.get("/regulations")
+    @router.get("/regulations", response_model=ApiEnvelope)
     def list_regulations():
         return {"status": "ok", "data": state.repository.list_regulations()}
 
@@ -224,7 +224,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Regulation not found")
         return {"status": "ok", "data": regulation}
 
-    @router.get("/search/global")
+    @router.get("/search/global", response_model=ApiEnvelope)
     def global_search(query: str):
         def load():
             results = state.repository.global_search(query)
@@ -247,25 +247,25 @@ def build_router(state) -> APIRouter:
         results = cached("global_search", {"query": query}, load, ttl_seconds=state.settings.response_cache_graph_ttl_seconds)
         return {"status": "ok", "data": results}
 
-    @router.get("/components")
+    @router.get("/components", response_model=ApiEnvelope)
     def list_components():
         return {"status": "ok", "data": state.repository.list_components()}
 
-    @router.get("/components/{component_id}")
+    @router.get("/components/{component_id}", response_model=ApiEnvelope)
     def get_component(component_id: str):
         component = state.repository.get_component(component_id)
         if not component:
             raise HTTPException(status_code=404, detail="Component not found")
         return {"status": "ok", "data": component}
 
-    @router.post("/components/discover")
+    @router.post("/components/discover", response_model=ApiEnvelope)
     def discover_component(payload: ComponentDiscoveryRequest):
         discovered = state.components.discover(payload.query)
         if not discovered:
             raise HTTPException(status_code=404, detail="No web-backed component reference could be discovered for this query")
         return {"status": "ok", "data": discovered}
 
-    @router.post("/search/discover")
+    @router.post("/search/discover", response_model=ApiEnvelope)
     async def discover_from_common_search(
         query: str | None = Form(None),
         image: UploadFile | None = File(None),
@@ -344,15 +344,15 @@ def build_router(state) -> APIRouter:
         )
         return {"status": "ok", "data": payload}
 
-    @router.get("/private-data/status")
+    @router.get("/private-data/status", response_model=ApiEnvelope)
     def private_data_status():
         return {"status": "ok", "data": state.private_data.private_status()}
 
-    @router.get("/private-data/schema")
+    @router.get("/private-data/schema", response_model=ApiEnvelope)
     def private_data_schema():
         return {"status": "ok", "data": state.private_data.inspect_schema()}
 
-    @router.get("/investigations")
+    @router.get("/investigations", response_model=ApiEnvelope)
     def list_investigations(request: Request):
         current_user = state.auth.current_user(_session_token(request))
         return {
@@ -363,7 +363,7 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.post("/investigations")
+    @router.post("/investigations", response_model=ApiEnvelope)
     def create_investigation(payload: InvestigationCreate, request: Request):
         current_user = state.auth.current_user(_session_token(request))
         return {
@@ -375,7 +375,7 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.get("/investigations/{investigation_id}")
+    @router.get("/investigations/{investigation_id}", response_model=ApiEnvelope)
     def get_investigation(investigation_id: str, request: Request):
         current_user = maybe_current_user(request)
         investigation = state.investigations.get(investigation_id, org_id=current_user["org_id"] if current_user else None)
@@ -383,7 +383,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Investigation not found")
         return {"status": "ok", "data": investigation}
 
-    @router.patch("/investigations/{investigation_id}")
+    @router.patch("/investigations/{investigation_id}", response_model=ApiEnvelope)
     def update_investigation(investigation_id: str, payload: InvestigationUpdate, request: Request):
         current_user = state.auth.current_user(_session_token(request))
         investigation = state.investigations.update(
@@ -484,11 +484,11 @@ def build_router(state) -> APIRouter:
             headers={"Content-Disposition": 'attachment; filename="supplier-comparison.pdf"'},
         )
 
-    @router.get("/query/recommendations")
+    @router.get("/query/recommendations", response_model=ApiEnvelope)
     def recommendations(prioritize_sustainability: bool = False):
         return {"status": "ok", "data": state.repository.recommend_food_packaging(prioritize_sustainability)}
 
-    @router.post("/materials/compare")
+    @router.post("/materials/compare", response_model=ApiEnvelope)
     def compare_materials(request: MaterialCompareRequest):
         return {"status": "ok", "data": state.repository.compare_materials(request.material_ids, request.weights)}
 
@@ -535,7 +535,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Review candidate not found")
         return {"status": "ok", "data": candidate}
 
-    @router.get("/review-candidates/{candidate_id}/history")
+    @router.get("/review-candidates/{candidate_id}/history", response_model=ApiEnvelope)
     def review_candidate_history(candidate_id: str, request: Request):
         user = require_permission(request, "review:assign")
         candidate = state.review_store.get(candidate_id, org_id=user["org_id"])
@@ -543,7 +543,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Review candidate not found")
         return {"status": "ok", "data": state.review_store.history(candidate_id, org_id=user["org_id"])}
 
-    @router.post("/review-candidates/{candidate_id}/assign")
+    @router.post("/review-candidates/{candidate_id}/assign", response_model=ApiEnvelope)
     def assign_review_candidate(candidate_id: str, payload: ReviewAssignmentRequest, request: Request):
         actor = require_permission(request, "review:assign")
         candidate = state.review_store.assign(candidate_id, payload.reviewer_id, actor["user_id"], actor["org_id"])
@@ -552,7 +552,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
-    @router.post("/review-candidates/{candidate_id}/comment")
+    @router.post("/review-candidates/{candidate_id}/comment", response_model=ApiEnvelope)
     def comment_review_candidate(candidate_id: str, payload: ReviewCommentRequest, request: Request):
         actor = current_user_or_401(request)
         candidate = state.review_store.comment(candidate_id, actor["user_id"], payload.comment, actor["org_id"])
@@ -561,7 +561,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
-    @router.post("/review-candidates/{candidate_id}/decision")
+    @router.post("/review-candidates/{candidate_id}/decision", response_model=ApiEnvelope)
     def decide_review_candidate(candidate_id: str, payload: ReviewDecisionRequest, request: Request):
         actor = require_permission(request, "review:approve")
         candidate = state.review_store.decide(candidate_id, actor["user_id"], payload.status, payload.comment, payload.metadata, actor["org_id"])
@@ -570,7 +570,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
-    @router.post("/review-candidates/manual")
+    @router.post("/review-candidates/manual", response_model=ApiEnvelope)
     def create_manual_review_candidate(payload: ManualReviewCandidateRequest, request: Request):
         actor = current_user_or_401(request)
         candidate = state.review_store.create(
@@ -586,7 +586,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": candidate}
 
-    @router.get("/review-candidates/export")
+    @router.get("/review-candidates/export", response_model=ApiEnvelope)
     def export_review_candidates(output: str, request: Request, include_raw_props: bool = False):
         user = require_permission(request, "review:assign")
         return {
@@ -594,14 +594,14 @@ def build_router(state) -> APIRouter:
             "data": state.review_store.export_pending(Path(output), org_id=user["org_id"], include_raw_props=include_raw_props),
         }
 
-    @router.post("/review-candidates/import")
+    @router.post("/review-candidates/import", response_model=ApiEnvelope)
     def import_review_candidates(request: Request, input_path: str, apply: bool = False):
         user = current_user_or_401(request)
         if apply:
             require_permission(request, "review:approve")
         return {"status": "ok", "data": state.review_store.import_reviewed_decisions(Path(input_path), apply=apply, org_id=user["org_id"])}
 
-    @router.post("/query/scenario")
+    @router.post("/query/scenario", response_model=ApiEnvelope)
     def scenario(request: ScenarioRequest, http_request: Request):
         current_user = state.auth.current_user(_session_token(http_request))
         result = state.query_engine.run_scenario(
@@ -623,21 +623,21 @@ def build_router(state) -> APIRouter:
             "data": result,
         }
 
-    @router.get("/scenarios/history")
+    @router.get("/scenarios/history", response_model=ApiEnvelope)
     def scenario_history(request: Request):
         current_user = state.auth.current_user(_session_token(request))
         return {"status": "ok", "data": state.scenario_history.list(current_user["user_id"] if current_user else None)}
 
-    @router.get("/runtime/backends")
+    @router.get("/runtime/backends", response_model=ApiEnvelope)
     def runtime_backends():
         return {"status": "ok", "data": state.repository.backend_status()}
 
-    @router.get("/benchmarks")
+    @router.get("/benchmarks", response_model=ApiEnvelope)
     def benchmarks():
         data = state.repository.benchmark_coverage(state.benchmarks())
         return {"status": "ok", "data": data}
 
-    @router.get("/compliance/dashboard")
+    @router.get("/compliance/dashboard", response_model=ApiEnvelope)
     def compliance_dashboard():
         data = cached(
             "compliance_dashboard",
@@ -652,11 +652,11 @@ def build_router(state) -> APIRouter:
         )
         return {"status": "ok", "data": data}
 
-    @router.get("/graph/relationships")
+    @router.get("/graph/relationships", response_model=ApiEnvelope)
     def graph_relationships(material_id: str | None = None):
         return {"status": "ok", "data": state.repository.relationship_preview(material_id)}
 
-    @router.get("/graph/subgraph")
+    @router.get("/graph/subgraph", response_model=ApiEnvelope)
     def graph_subgraph(material_id: str):
         data = cached(
             "graph_subgraph",
@@ -666,11 +666,11 @@ def build_router(state) -> APIRouter:
         )
         return {"status": "ok", "data": data}
 
-    @router.get("/graph/path")
+    @router.get("/graph/path", response_model=ApiEnvelope)
     def graph_path(source_id: str, target_id: str):
         return {"status": "ok", "data": state.repository.graph_path(source_id, target_id)}
 
-    @router.get("/graph/node-insight")
+    @router.get("/graph/node-insight", response_model=ApiEnvelope)
     def graph_node_insight(node_id: str):
         data = cached(
             "graph_node_insight",
@@ -680,7 +680,7 @@ def build_router(state) -> APIRouter:
         )
         return {"status": "ok", "data": data}
 
-    @router.get("/documents/search")
+    @router.get("/documents/search", response_model=ApiEnvelope)
     def documents_search(query: str, material_id: str | None = None, page: int = 1, limit: int = 20):
         rows = cached(
             "documents_search",
@@ -691,14 +691,14 @@ def build_router(state) -> APIRouter:
         page_rows, meta = paginate_records(rows, page=page, limit=limit)
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/documents/{document_id}")
+    @router.get("/documents/{document_id}", response_model=ApiEnvelope)
     def document_detail(document_id: str):
         detail = state.repository.document_detail(document_id)
         if not detail:
             raise HTTPException(status_code=404, detail="Document not found")
         return {"status": "ok", "data": detail}
 
-    @router.post("/documents/upload")
+    @router.post("/documents/upload", response_model=ApiEnvelope)
     async def documents_upload(
         request: Request,
         file: UploadFile = File(...),
@@ -758,7 +758,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": result}
 
-    @router.get("/alerts")
+    @router.get("/alerts", response_model=ApiEnvelope)
     def alerts(page: int = 1, limit: int = 10):
         rows = cached(
             "alerts",
@@ -769,7 +769,7 @@ def build_router(state) -> APIRouter:
         page_rows, meta = paginate_records(rows, page=page, limit=limit)
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/analytics/overview")
+    @router.get("/analytics/overview", response_model=ApiEnvelope)
     def analytics_overview():
         data = cached(
             "analytics_overview",
@@ -779,18 +779,24 @@ def build_router(state) -> APIRouter:
         )
         return {"status": "ok", "data": data}
 
-    @router.get("/integrity/report")
+    @router.get("/operations/dashboard", response_model=ApiEnvelope)
+    def operations_dashboard(request: Request):
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        return {"status": "ok", "data": state.operations.dashboard(org_id=org_id)}
+
+    @router.get("/integrity/report", response_model=ApiEnvelope)
     def integrity_report():
         return {"status": "ok", "data": state.repository.integrity_report()}
 
-    @router.post("/auth/login")
+    @router.post("/auth/login", response_model=ApiEnvelope)
     def auth_login(payload: LoginRequest):
         user = state.auth.login(payload.email, payload.password)
         if not user:
             raise HTTPException(status_code=401, detail="Invalid credentials")
         return {"status": "ok", "data": user}
 
-    @router.post("/auth/register")
+    @router.post("/auth/register", response_model=ApiEnvelope)
     def auth_register(payload: RegisterRequest, request: Request):
         def create():
             try:
@@ -800,29 +806,29 @@ def build_router(state) -> APIRouter:
             return {"status": "ok", "data": user}
         return maybe_idempotent(request, payload.model_dump(), create)
 
-    @router.post("/auth/logout")
+    @router.post("/auth/logout", response_model=ApiEnvelope)
     def auth_logout(request: Request):
         state.auth.logout(_session_token(request))
         return {"status": "ok", "data": {"logged_out": True}}
 
-    @router.get("/auth/session")
+    @router.get("/auth/session", response_model=ApiEnvelope)
     def auth_session(request: Request):
         return {"status": "ok", "data": state.auth.current_user(_session_token(request))}
 
-    @router.get("/auth/roles")
+    @router.get("/auth/roles", response_model=ApiEnvelope)
     def auth_roles():
         return {"status": "ok", "data": state.auth.list_roles()}
 
-    @router.get("/auth/organizations")
+    @router.get("/auth/organizations", response_model=ApiEnvelope)
     def auth_organizations():
         return {"status": "ok", "data": state.auth.list_organizations()}
 
-    @router.get("/workspaces")
+    @router.get("/workspaces", response_model=ApiEnvelope)
     def list_workspaces(request: Request):
         user = state.auth.current_user(_session_token(request))
         return {"status": "ok", "data": state.auth.list_workspaces(user["user_id"] if user else None)}
 
-    @router.post("/workspaces")
+    @router.post("/workspaces", response_model=ApiEnvelope)
     def save_workspace(payload: WorkspaceSaveRequest, request: Request):
         user = require_permission(request, "workspaces:write")
         response = maybe_idempotent(
@@ -833,12 +839,12 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return response
 
-    @router.get("/searches")
+    @router.get("/searches", response_model=ApiEnvelope)
     def list_saved_searches(request: Request):
         user = current_user_or_401(request)
         return {"status": "ok", "data": state.auth.list_saved_searches(user["user_id"])}
 
-    @router.post("/searches")
+    @router.post("/searches", response_model=ApiEnvelope)
     def save_search(payload: dict, request: Request):
         user = require_permission(request, "search:save")
         response = maybe_idempotent(
@@ -849,11 +855,11 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return response
 
-    @router.get("/contributions/roles")
+    @router.get("/contributions/roles", response_model=ApiEnvelope)
     def contribution_roles():
         return {"status": "ok", "data": state.contributions.list_roles()}
 
-    @router.get("/contributions")
+    @router.get("/contributions", response_model=ApiEnvelope)
     def list_contributions(request: Request):
         current_user = maybe_current_user(request)
         org_id = current_user["org_id"] if current_user else "ORG-001"
@@ -866,7 +872,7 @@ def build_router(state) -> APIRouter:
             },
         }
 
-    @router.post("/contributions")
+    @router.post("/contributions", response_model=ApiEnvelope)
     def create_contribution(payload: ContributionCreate, request: Request):
         current_user = require_permission(request, "contributions:write")
         if payload.related_entity_type or payload.related_entity_id:
@@ -882,7 +888,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return response
 
-    @router.post("/contributions/{contribution_id}/review")
+    @router.post("/contributions/{contribution_id}/review", response_model=ApiEnvelope)
     def review_contribution(contribution_id: str, payload: ContributionReviewRequest, request: Request):
         reviewer = require_permission(request, "contributions:review")
         record = state.contributions.review(contribution_id, payload.status, reviewer["name"], payload.reviewer_note, org_id=reviewer["org_id"])
@@ -891,7 +897,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": record}
 
-    @router.get("/jobs")
+    @router.get("/jobs", response_model=ApiEnvelope)
     def list_jobs(request: Request, status: str | None = None, page: int = 1, limit: int = 20):
         user = require_permission(request, "jobs:view")
         rows = state.jobs.list(status=status, org_id=user["org_id"], limit=500)
@@ -899,7 +905,7 @@ def build_router(state) -> APIRouter:
         meta["summary"] = state.jobs.summary(org_id=user["org_id"])
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/jobs/{job_id}")
+    @router.get("/jobs/{job_id}", response_model=ApiEnvelope)
     def get_job(job_id: str, request: Request):
         user = require_permission(request, "jobs:view")
         job = state.jobs.get(job_id)
@@ -907,7 +913,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Job not found")
         return {"status": "ok", "data": job}
 
-    @router.post("/jobs")
+    @router.post("/jobs", response_model=ApiEnvelope)
     def enqueue_job(payload: JobEnqueueRequest, request: Request):
         user = require_permission(request, "jobs:write")
         return maybe_idempotent(
@@ -927,17 +933,17 @@ def build_router(state) -> APIRouter:
             },
         )
 
-    @router.post("/jobs/process")
+    @router.post("/jobs/process", response_model=ApiEnvelope)
     def process_jobs(request: Request, limit: int = 10):
         require_permission(request, "jobs:process")
         return {"status": "ok", "data": state.jobs.process_all_available(limit=limit)}
 
-    @router.get("/community/channels")
+    @router.get("/community/channels", response_model=ApiEnvelope)
     def community_channels(request: Request):
         current_user = maybe_current_user(request)
         return {"status": "ok", "data": state.community.list_channels(org_id=current_user["org_id"] if current_user else "ORG-001")}
 
-    @router.get("/community/posts")
+    @router.get("/community/posts", response_model=ApiEnvelope)
     def community_posts(
         request: Request,
         channel_id: str | None = None,
@@ -961,7 +967,7 @@ def build_router(state) -> APIRouter:
         page_rows, meta = paginate_records(rows, page=page, limit=limit)
         return {"status": "ok", "data": page_rows, "meta": meta}
 
-    @router.get("/community/posts/{post_id}")
+    @router.get("/community/posts/{post_id}", response_model=ApiEnvelope)
     def community_post_detail(post_id: str, request: Request):
         current_user = maybe_current_user(request)
         post = state.community.get_post(post_id, current_user["org_id"] if current_user else "ORG-001")
@@ -969,7 +975,7 @@ def build_router(state) -> APIRouter:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
 
-    @router.post("/community/posts")
+    @router.post("/community/posts", response_model=ApiEnvelope)
     def create_community_post(payload: CommunityPostCreate, request: Request):
         current_user = require_permission(request, "community:write")
         author_name = current_user["name"]
@@ -981,7 +987,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return response
 
-    @router.post("/community/posts/{post_id}/upvote")
+    @router.post("/community/posts/{post_id}/upvote", response_model=ApiEnvelope)
     def upvote_community_post(post_id: str, request: Request):
         current_user = current_user_or_401(request)
         post = state.community.upvote(post_id, current_user["org_id"])
@@ -990,7 +996,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:community_posts")
         return {"status": "ok", "data": post}
 
-    @router.post("/community/posts/{post_id}/save")
+    @router.post("/community/posts/{post_id}/save", response_model=ApiEnvelope)
     def save_community_post(post_id: str, request: Request):
         current_user = current_user_or_401(request)
         post = state.community.save_post(post_id, current_user["org_id"])
@@ -999,7 +1005,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:community_posts")
         return {"status": "ok", "data": post}
 
-    @router.post("/community/posts/{post_id}/reply")
+    @router.post("/community/posts/{post_id}/reply", response_model=ApiEnvelope)
     def reply_community_post(post_id: str, payload: CommunityReplyCreate, request: Request):
         current_user = require_permission(request, "community:write")
         post = state.community.add_reply(post_id, payload.body, current_user["name"], current_user["role_title"], current_user["org_id"])
@@ -1008,7 +1014,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:community_posts")
         return {"status": "ok", "data": post}
 
-    @router.post("/community/posts/{post_id}/pin")
+    @router.post("/community/posts/{post_id}/pin", response_model=ApiEnvelope)
     def pin_community_post(post_id: str, request: Request):
         current_user = require_permission(request, "community:pin")
         post = state.community.pin(post_id, current_user["org_id"])
@@ -1018,7 +1024,7 @@ def build_router(state) -> APIRouter:
         state.cache.invalidate_prefix("route:notifications")
         return {"status": "ok", "data": post}
 
-    @router.get("/notifications")
+    @router.get("/notifications", response_model=ApiEnvelope)
     def notifications(request: Request):
         user = state.auth.current_user(_session_token(request))
         def load():
@@ -1073,22 +1079,22 @@ def build_router(state) -> APIRouter:
             "data": payload,
         }
 
-    @router.get("/runtime/maintenance")
+    @router.get("/runtime/maintenance", response_model=ApiEnvelope)
     def runtime_maintenance():
         return {"status": "ok", "data": state.runtime_maintenance.summary()}
 
-    @router.post("/runtime/maintenance/cleanup")
+    @router.post("/runtime/maintenance/cleanup", response_model=ApiEnvelope)
     def runtime_cleanup(request: Request):
         require_permission(request, "jobs:process")
         result = state.runtime_maintenance.cleanup()
         return {"status": "ok", "data": result}
 
-    @router.get("/governance/sources")
+    @router.get("/governance/sources", response_model=ApiEnvelope)
     def governance_sources(request: Request):
         current_user = current_user_or_401(request)
         return {"status": "ok", "data": state.governance.list_sources(current_user["org_id"])}
 
-    @router.get("/governance/lineage")
+    @router.get("/governance/lineage", response_model=ApiEnvelope)
     def governance_lineage(request: Request, entity_type: str, entity_id: str):
         current_user = current_user_or_401(request)
         return {"status": "ok", "data": state.lineage.list_for_entity(entity_type, entity_id, current_user["org_id"])}

@@ -54,6 +54,12 @@ class ApiContractTests(unittest.TestCase):
         self.client.get("/materials")
         metrics = self.client.get("/metrics")
         self.assertEqual(metrics.status_code, 200)
+        operations = self.client.get("/operations/dashboard")
+        self.assertEqual(operations.status_code, 200)
+        operations_payload = operations.json()["data"]
+        self.assertIn("health_cards", operations_payload)
+        self.assertIn("review_backlog", operations_payload)
+        self.assertIn("graph_freshness", operations_payload)
 
     def test_auth_and_jobs_contract(self):
         login = self.client.post("/auth/login", json={"email": "admin@packgraph.local", "password": "packgraph-demo"})
@@ -64,6 +70,27 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(job.status_code, 200)
         listed = self.client.get("/jobs", headers={"Authorization": f"Bearer {token}"})
         self.assertEqual(listed.status_code, 200)
+        preset = self.client.post(
+            "/workspaces",
+            json={
+                "name": "Supplier risk graph preset",
+                "filters": {
+                    "preset_type": "graph",
+                    "graph_preset": "supply",
+                    "graph_filter": "SUPPLIED_BY",
+                    "supplier_id": "SUP-001",
+                    "evidence_strength": "moderate",
+                    "review_state": "not_requested",
+                },
+                "selected_material_ids": ["MAT-001"],
+                "active_tab": "intelligence",
+            },
+            headers={"Authorization": f"Bearer {token}", "Idempotency-Key": "workspace-preset-1"},
+        )
+        self.assertEqual(preset.status_code, 200)
+        workspace_list = self.client.get("/workspaces", headers={"Authorization": f"Bearer {token}"})
+        self.assertEqual(workspace_list.status_code, 200)
+        self.assertEqual(workspace_list.json()["data"][0]["filters"]["preset_type"], "graph")
         memory = self.client.patch(
             "/project-memory",
             json={"saved_entities": ["MAT-001"], "prior_questions": ["Recommend a food-safe recyclable film."]},

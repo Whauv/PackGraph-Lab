@@ -65,12 +65,14 @@ window.PackGraphState = {
       graphPinnedNodeIds: [],
       scenarioComparisons: [],
       roleDashboardProfile: null,
+      operationsDashboard: null,
       graphRenderSignature: "",
       personalWorkspace: {
         bookmarks: [],
         recent_entities: [],
         quick_note: "",
         reminders: [],
+        activity_events: [],
       },
       drawerState: {
         isOpen: false,
