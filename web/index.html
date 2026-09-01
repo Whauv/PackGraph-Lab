@@ -602,6 +602,24 @@
                 <button type="submit">Upload evidence</button>
               </form>
               <div id="document-upload-status" class="upload-status"></div>
+              <div class="subsection source-intake-panel">
+                <div class="subsection-heading">Reusable source intake</div>
+                <p class="panel-kicker">Upload JSON or PDF sources once, extract their schema, and let future questions reuse the local records.</p>
+                <form id="source-intake-form" class="upload-form">
+                  <select id="source-intake-type" name="source_type">
+                    <option value="">Auto detect</option>
+                    <option value="json">JSON</option>
+                    <option value="pdf">PDF</option>
+                  </select>
+                  <input id="source-intake-title" name="title" type="text" placeholder="Source title or component name" />
+                  <input id="source-intake-file" name="file" type="file" accept=".json,.pdf,application/json,application/pdf" />
+                  <button type="submit">Extract schema</button>
+                </form>
+                <div id="source-intake-status" class="upload-status"></div>
+                <div id="source-intake-profile" class="split-grid"></div>
+                <div class="subsection-heading">Stored source records</div>
+                <div id="source-intake-sources" class="table-card"></div>
+              </div>
               <form id="document-search-form" class="inline-form">
                 <input id="document-search-input" type="text" placeholder="Search datasheets, declarations, labs, certifications, or migration status" />
                 <button type="submit">Search</button>

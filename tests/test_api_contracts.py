@@ -164,6 +164,39 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(payload["panel"]["recommended_action"]["target"], "workbench")
         self.assertEqual(payload["panel"]["workflow"]["current_stage"], "Compare")
 
+    def test_source_intake_upload_profiles_and_feeds_chat(self):
+        source_payload = {
+            "materials": [
+                {
+                    "name": "Seaweed Laminate X9",
+                    "category": "biofilm",
+                    "supplier": "BlueKelp Materials",
+                    "compostability_score": 91,
+                }
+            ]
+        }
+        upload = self.client.post(
+            "/source-intake/upload",
+            data={"source_type": "json", "title": "Seaweed laminate source"},
+            files={"file": ("seaweed-source.json", json_bytes(source_payload), "application/json")},
+        )
+        self.assertEqual(upload.status_code, 200)
+        upload_payload = upload.json()["data"]
+        self.assertEqual(upload_payload["schema_profile"]["kind"], "json")
+        self.assertGreater(upload_payload["schema_profile"]["field_count"], 0)
+        source_id = upload_payload["source"]["source_id"]
+
+        listed = self.client.get("/source-intake/sources")
+        self.assertEqual(listed.status_code, 200)
+        self.assertTrue(any(item["source_id"] == source_id for item in listed.json()["data"]))
+
+        answer = self.client.post("/query/ask", json={"question": "What source mentions Seaweed Laminate X9?"})
+        self.assertEqual(answer.status_code, 200)
+        answer_payload = answer.json()["data"]
+        self.assertEqual(answer_payload["source"], "source_intake")
+        self.assertTrue(answer_payload["rows"])
+        self.assertEqual(answer_payload["rows"][0]["entity_type"], "uploaded_record")
+
     def test_validation_errors_are_normalized(self):
         response = self.client.post("/query/ask", json={"options": {}})
         self.assertEqual(response.status_code, 422)
@@ -172,6 +205,12 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(payload["error"], "validation_error")
         self.assertEqual(payload["detail"], "Request validation failed.")
         self.assertTrue(payload["errors"])
+
+
+def json_bytes(payload):
+    import json
+
+    return json.dumps(payload).encode("utf-8")
 
 
 if __name__ == "__main__":

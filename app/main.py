@@ -34,6 +34,7 @@ from app.services.query_engine import QueryEngine
 from app.services.response_cache_service import ResponseCacheService
 from app.services.runtime_maintenance_service import RuntimeMaintenanceService
 from app.services.scenario_history_service import ScenarioHistoryService
+from app.services.source_intake_service import SourceIntakeService
 from scripts.evaluate_entity_resolution import main as evaluate_entity_resolution_main
 from scripts.ingest_graph import main as ingest_main
 
@@ -58,7 +59,8 @@ class AppState:
             schema_version=settings.ingest_schema_version,
             transform_cache_path=settings.transform_cache_path,
         )
-        self.query_engine = QueryEngine(self.repository, self.private_data)
+        self.source_intake = SourceIntakeService(settings.packgraph_runtime_dir)
+        self.query_engine = QueryEngine(self.repository, self.private_data, self.source_intake)
         self.auth = AuthService(settings, self.runtime_db)
         self.auth.ensure_seed()
         self.review_store = ReviewCandidateStore(settings, self.runtime_db)

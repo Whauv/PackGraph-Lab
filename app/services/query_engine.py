@@ -20,12 +20,19 @@ from app.services.query_planner import QueryPlanner
 from app.services.query_response_builder import QueryResponseBuilder
 from app.services.query_result_formatter import QueryResultFormatter
 from app.services.scenario_engine import ScenarioEngine
+from app.services.source_intake_service import SourceIntakeService
 
 
 class QueryEngine:
-    def __init__(self, repository: LocalGraphRepository, private_data: PrivateDataService | None = None):
+    def __init__(
+        self,
+        repository: LocalGraphRepository,
+        private_data: PrivateDataService | None = None,
+        source_intake: SourceIntakeService | None = None,
+    ):
         self.repository = repository
         self.private_data = private_data
+        self.source_intake = source_intake
         self.settings = getattr(repository, "settings", get_settings())
         self.runtime_db = build_runtime_db(self.settings)
         self.planner = QueryPlanner()
@@ -48,10 +55,12 @@ class QueryEngine:
         plan = self.planner.plan(resolved_question, self.repository, context)
         private_status = self.private_data.private_status() if self.private_data else {"private_data_active": False, "dataset_count": 0, "record_count": 0}
         private_lookup = self.private_data.query(resolved_question) if self.private_data and private_status["private_data_active"] else {"rows": []}
+        source_lookup = self.source_intake.search(resolved_question) if self.source_intake else {"rows": []}
         intent = plan["intent"]
-        router = self._route_question(plan, private_lookup)
+        router = "source_intake" if self._should_route_to_source_intake(resolved_question, source_lookup) else self._route_question(plan, private_lookup)
         classifier = self._build_classifier_metadata(plan, router, private_status)
         retrieval = self._build_retrieval_metadata(plan, private_lookup)
+        retrieval["source_intake"] = {"matched_records": len(source_lookup.get("rows", []))}
         tool_runs: list[dict[str, Any]] = []
 
         classify = self.agent_tools.classify_question(resolved_question, plan)
@@ -91,6 +100,20 @@ class QueryEngine:
                 context=context,
                 resolved_question=resolved_question,
             )
+            if router == "source_intake" and source_lookup["rows"]:
+                return self._source_intake_response(
+                    question,
+                    plan,
+                    source_lookup,
+                    classifier,
+                    retrieval,
+                    tool_runs,
+                    proof_requested,
+                    router,
+                    template_name,
+                    context=context,
+                    resolved_question=resolved_question,
+                )
             return self._finalize_response(
                 question=question,
                 plan=plan,
@@ -120,6 +143,20 @@ class QueryEngine:
                 context=context,
                 resolved_question=resolved_question,
             )
+        if router == "source_intake" and source_lookup["rows"]:
+            return self._source_intake_response(
+                question,
+                plan,
+                source_lookup,
+                classifier,
+                retrieval,
+                tool_runs,
+                proof_requested,
+                router,
+                template_name,
+                context=context,
+                resolved_question=resolved_question,
+            )
 
         entities = {**plan.get("entities", {}), **self._entities_from_context(context), **options}
         result, message, source = self.execution_layer.execute(question, intent, entities, private_lookup)
@@ -133,6 +170,20 @@ class QueryEngine:
                 tool_runs,
                 proof_requested,
                 router,
+                template_name,
+                context=context,
+                resolved_question=resolved_question,
+            )
+        if source_lookup["rows"] and (source == "fallback" or self._source_intake_question(resolved_question)):
+            return self._source_intake_response(
+                question,
+                plan,
+                source_lookup,
+                classifier,
+                retrieval,
+                tool_runs,
+                proof_requested,
+                "source_intake",
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
@@ -221,6 +272,27 @@ class QueryEngine:
     def _route_question(self, plan: dict[str, Any], private_lookup: dict[str, Any]) -> str:
         return self.response_builder.route_question(plan, private_lookup)
 
+    def _source_intake_question(self, question: str) -> bool:
+        lowered = question.lower()
+        return any(
+            marker in lowered
+            for marker in [
+                "uploaded",
+                "source",
+                "json",
+                "pdf",
+                "file",
+                "schema",
+                "extracted",
+                "document",
+                "record",
+                "component",
+            ]
+        )
+
+    def _should_route_to_source_intake(self, question: str, source_lookup: dict[str, Any]) -> bool:
+        return bool(source_lookup.get("rows")) and self._source_intake_question(question)
+
     def _build_classifier_metadata(self, plan: dict[str, Any], router: str, private_status: dict[str, Any]) -> dict[str, Any]:
         return self.response_builder.build_classifier_metadata(plan, router, private_status)
 
@@ -280,6 +352,42 @@ class QueryEngine:
             classifier={**classifier, "route": "private_data"},
             retrieval=retrieval,
             source="private_data",
+            tool_runs=tool_runs,
+            proof_requested=proof_requested,
+            route=route,
+            template_name=template_name,
+            context=context,
+            resolved_question=resolved_question,
+        )
+
+    def _source_intake_response(
+        self,
+        question: str,
+        plan: dict[str, Any],
+        source_lookup: dict[str, Any],
+        classifier: dict[str, Any],
+        retrieval: dict[str, Any],
+        tool_runs: list[dict[str, Any]],
+        proof_requested: bool,
+        route: str,
+        template_name: str,
+        context: dict[str, Any] | None = None,
+        resolved_question: str | None = None,
+    ) -> dict[str, Any]:
+        result = {"rows": source_lookup["rows"], "source_query": source_lookup.get("query", {})}
+        top_rows = source_lookup["rows"][:5]
+        message = "Uploaded source intake found reusable local records for this question:\n" + "\n".join(
+            f"{item['label']} | {item['source_type']} | score {item['score']}" for item in top_rows
+        )
+        return self._finalize_response(
+            question=question,
+            plan={**plan, "intent": "source_intake_lookup"},
+            intent="catalog_lookup",
+            result=result,
+            message=message,
+            classifier={**classifier, "route": "source_intake"},
+            retrieval=retrieval,
+            source="source_intake",
             tool_runs=tool_runs,
             proof_requested=proof_requested,
             route=route,
@@ -372,7 +480,11 @@ class QueryEngine:
                     for row in scored_rows[:2]
                 ],
                 "user_assumptions": [f"Intent {intent} routed through {route}."],
-                "uploaded_file_references": [],
+                "uploaded_file_references": [
+                    row.get("entity_id")
+                    for row in scored_rows
+                    if row.get("entity_type") == "uploaded_record" and row.get("entity_id")
+                ],
                 "investigation_notes": [message[:180]],
             }
         )
@@ -405,6 +517,7 @@ class QueryEngine:
             "rows": scored_rows,
             "private_data_active": classifier["private_data_active"],
             "source": source,
+            "source_intake": result.get("source_query", {}) if isinstance(result, dict) and source == "source_intake" else {},
             "agent_state_machine": agent_state_machine,
             "agent_tools": tool_runs,
             "agent_orchestration": orchestration,

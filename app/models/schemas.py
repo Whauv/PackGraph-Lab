@@ -77,6 +77,7 @@ class QueryAnswerPayload(BaseModel):
     rows: list[dict[str, Any]] = Field(default_factory=list)
     private_data_active: bool = False
     source: str = "graph"
+    source_intake: dict[str, Any] = Field(default_factory=dict)
     agent_state_machine: list[dict[str, Any]] = Field(default_factory=list)
     agent_tools: list[dict[str, Any]] = Field(default_factory=list)
     agent_orchestration: dict[str, Any] = Field(default_factory=dict)

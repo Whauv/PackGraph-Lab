@@ -54,6 +54,8 @@ window.PackGraphState = {
       latestSupplierId: null,
       supplierRegionSummary: [],
       privateDataStatus: { private_data_active: false, dataset_count: 0, record_count: 0 },
+      sourceIntakeSources: [],
+      latestSourceIntakeProfile: null,
       projectMemory: null,
       reviewQueue: [],
       reviewSummary: { total: 0, pending: 0 },

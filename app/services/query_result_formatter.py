@@ -114,14 +114,21 @@ class QueryResultFormatter:
             return rows
         if isinstance(result, dict):
             rows = []
-            if source == "private_data":
+            if source in {"private_data", "source_intake"}:
                 for item in result.get("rows", [])[:10]:
+                    fields = item.get("fields", [])
+                    if source == "source_intake":
+                        fields = [
+                            {"label": field.get("path", "field"), "value": ", ".join(field.get("types", []))}
+                            for field in item.get("schema_fields", [])[:3]
+                        ]
                     rows.append(
                         {
                             "entity_type": item.get("entity_type"),
+                            "entity_id": item.get("entity_id"),
                             "label": item.get("label"),
                             "score": item.get("score"),
-                            "preview": " | ".join(f"{field['label']}: {field['value']}" for field in item.get("fields", [])[:3]),
+                            "preview": item.get("preview") or " | ".join(f"{field['label']}: {field['value']}" for field in fields[:3]),
                         }
                     )
                 return rows
