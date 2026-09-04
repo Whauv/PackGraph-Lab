@@ -1815,6 +1815,15 @@ async function loadPrivateDataStatus() {
   renderPromptDiary();
 }
 
+async function loadWorkflowStatus() {
+  try {
+    const payload = await fetchJson("/runtime/workflow-status");
+    window.PackGraphChat?.setWorkflowStatus(payload);
+  } catch {
+    window.PackGraphChat?.setWorkflowStatus(null);
+  }
+}
+
 async function loadMaterials() {
   const payload = await fetch("/materials");
   const body = await payload.json();
@@ -4445,11 +4454,12 @@ async function init() {
   loadUiWorkspaceState();
   loadPersonalWorkspace();
   window.PackGraphChat?.init({
-    request: async ({ question, context }) => fetchJson("/query/ask", {
+    request: async ({ question, context, mode }) => fetchJson("/query/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question,
+        mode: mode || "quick_ask",
         options: { material_id: state.selectedMaterialId, prioritize_sustainability: true },
         context,
       }),
@@ -4475,6 +4485,7 @@ async function init() {
   renderPersonalWorkspace();
   renderActivityTimeline();
   await loadPrivateDataStatus();
+  await loadWorkflowStatus();
   await loadSession();
   await Promise.all([
     loadMaterials(),

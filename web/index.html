@@ -1386,12 +1386,23 @@
         <button type="button" id="graph-chat-close" class="secondary">Close</button>
       </div>
       <div id="graph-chat-status" class="upload-status"></div>
+      <div class="graph-chat-toolbar">
+        <label class="graph-chat-mode">
+          <span>Mode</span>
+          <select id="graph-chat-mode">
+            <option value="quick_ask">Quick Ask</option>
+            <option value="research_review">Research Review</option>
+          </select>
+        </label>
+        <button type="button" id="graph-chat-lock" class="mini-action secondary" aria-pressed="false">Lock context</button>
+      </div>
       <section class="graph-chat-section">
         <div class="graph-chat-section-header">
           <span class="section-label">Selected context</span>
           <button type="button" id="graph-chat-clear-context" class="mini-action secondary">Clear</button>
         </div>
         <div id="graph-chat-context"></div>
+        <div id="graph-chat-context-stack" class="graph-chat-context-stack"></div>
         <div id="graph-chat-quick-actions" class="prompt-row graph-chat-quick-actions"></div>
       </section>
       <section class="graph-chat-section graph-chat-feed-section">

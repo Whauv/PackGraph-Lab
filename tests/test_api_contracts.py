@@ -146,7 +146,55 @@ class ApiContractTests(unittest.TestCase):
         payload = response.json()["data"]
         self.assertEqual(payload["plan"]["intent"], "suppliers_for_material")
         self.assertIn("resolved_question", payload)
+        self.assertIn("route_preview", payload)
+        self.assertIn("answer_quality", payload)
+        self.assertIn("results", payload)
+        self.assertIsInstance(payload["latency_ms"], int)
         self.assertTrue(payload["rows"])
+
+    def test_query_ask_empty_result_returns_enrichment_request(self):
+        response = self.client.post(
+            "/query/ask",
+            json={
+                "question": "Explain zzzqvorr unresolved relation",
+                "mode": "research_review",
+                "context": {
+                    "entity_type": "material",
+                    "entity_id": "MAT-001",
+                    "entity_name": "Film A11",
+                    "metadata": {},
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]
+        self.assertFalse(payload["rows"])
+        self.assertIn("empty_state", payload)
+        self.assertIn("enrichment_request", payload)
+        self.assertEqual(payload["enrichment_request"]["source"], "MAT-001")
+        for key in ["source", "relationship", "target", "confidence", "evidence", "query", "model", "edge_key"]:
+            self.assertIn(key, payload["enrichment_request"])
+
+    def test_query_enrich_and_workflow_status_contracts(self):
+        enrich = self.client.post(
+            "/query/enrich",
+            json={
+                "question": "Add missing supplier evidence for this",
+                "context": {"entity_type": "supplier", "entity_id": "SUP-001", "entity_name": "FiberMint Industrial", "metadata": {}},
+            },
+        )
+        self.assertEqual(enrich.status_code, 200)
+        enrich_payload = enrich.json()["data"]
+        self.assertEqual(enrich_payload["status"], "staged_for_review")
+        self.assertFalse(enrich_payload["writeback_allowed"])
+        self.assertIn("edge_key", enrich_payload["enrichment_request"])
+
+        workflow = self.client.get("/runtime/workflow-status")
+        self.assertEqual(workflow.status_code, 200)
+        workflow_payload = workflow.json()["data"]
+        self.assertIn("chat_modes", workflow_payload)
+        self.assertIn("follow_up_suggestions", workflow_payload)
+        self.assertIn("reviewed_templates", workflow_payload)
 
     def test_query_ask_returns_structured_workflow_output(self):
         response = self.client.post(

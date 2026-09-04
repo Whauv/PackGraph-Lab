@@ -4007,6 +4007,26 @@ small {
   margin: 0;
 }
 
+.graph-chat-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 10px;
+  align-items: end;
+}
+
+.graph-chat-mode {
+  display: grid;
+  gap: 6px;
+}
+
+.graph-chat-mode span,
+.graph-chat-stack-label {
+  color: var(--soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
 .graph-chat-section {
   border: 1px solid var(--line);
   background: var(--panel-muted);
@@ -4052,6 +4072,29 @@ small {
   color: var(--muted);
 }
 
+.graph-chat-context-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.graph-chat-stack-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  padding: 8px 10px;
+  text-align: left;
+  display: grid;
+  gap: 2px;
+}
+
+.graph-chat-stack-item span {
+  color: var(--soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .graph-chat-quick-actions {
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
 }
@@ -4067,6 +4110,52 @@ small {
 .graph-chat-message {
   display: grid;
   gap: 6px;
+}
+
+.graph-chat-answer {
+  gap: 10px;
+}
+
+.graph-chat-answer-summary,
+.graph-chat-enrichment {
+  line-height: 1.5;
+}
+
+.graph-chat-answer-meta,
+.graph-chat-source-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.graph-chat-result-list {
+  display: grid;
+  gap: 8px;
+}
+
+.graph-chat-result-row,
+.graph-chat-enrichment,
+.graph-chat-provenance {
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
+.graph-chat-result-row {
+  display: grid;
+  gap: 5px;
+}
+
+.graph-chat-result-row small,
+.graph-chat-provenance,
+.graph-chat-source-meta {
+  color: var(--muted);
+}
+
+.graph-chat-provenance summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 700;
 }
 
 .graph-chat-message.error {

@@ -534,8 +534,24 @@ def build_router(state) -> APIRouter:
                 request.question,
                 request.options,
                 request.context.model_dump() if request.context else None,
+                request.mode,
             ),
         }
+
+    @router.post("/query/enrich", response_model=ApiEnvelope)
+    def query_enrich(request: QueryRequest):
+        return {
+            "status": "ok",
+            "data": state.query_engine.enrich(
+                request.question,
+                request.options,
+                request.context.model_dump() if request.context else None,
+            ),
+        }
+
+    @router.get("/runtime/workflow-status", response_model=ApiEnvelope)
+    def workflow_status():
+        return {"status": "ok", "data": state.query_engine.workflow_status()}
 
     @router.get("/health/graph", response_model=ApiEnvelope)
     def graph_health():

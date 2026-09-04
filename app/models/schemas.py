@@ -36,6 +36,7 @@ class QueryRequest(BaseModel):
     question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=1200)]
     options: dict[str, Any] = Field(default_factory=dict)
     context: QueryContext | None = None
+    mode: Literal["quick_ask", "research_review"] = "quick_ask"
 
 
 class DecisionPanelItem(BaseModel):
@@ -78,6 +79,15 @@ class QueryAnswerPayload(BaseModel):
     private_data_active: bool = False
     source: str = "graph"
     source_intake: dict[str, Any] = Field(default_factory=dict)
+    route_preview: dict[str, Any] = Field(default_factory=dict)
+    answer_quality: dict[str, Any] = Field(default_factory=dict)
+    empty_state: dict[str, Any] = Field(default_factory=dict)
+    results: list[dict[str, Any]] = Field(default_factory=list)
+    confidence: float = 0.0
+    latency_ms: int = 0
+    provenance: dict[str, Any] = Field(default_factory=dict)
+    execution_metadata: dict[str, Any] = Field(default_factory=dict)
+    enrichment_request: dict[str, Any] | None = None
     agent_state_machine: list[dict[str, Any]] = Field(default_factory=list)
     agent_tools: list[dict[str, Any]] = Field(default_factory=list)
     agent_orchestration: dict[str, Any] = Field(default_factory=dict)

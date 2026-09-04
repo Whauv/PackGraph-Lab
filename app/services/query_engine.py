@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import hashlib
+import time
 from typing import Any
 
 from app.core.config import get_settings
@@ -49,10 +51,19 @@ class QueryEngine:
         self.response_builder = QueryResponseBuilder(repository)
         self.execution_layer = QueryExecutionLayer(repository, self.result_formatter)
 
-    def ask(self, question: str, options: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    def ask(
+        self,
+        question: str,
+        options: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
+        mode: str = "quick_ask",
+    ) -> dict[str, Any]:
+        started_at = time.perf_counter()
         options = options or {}
+        options = {**options, "chat_mode": mode}
         resolved_question = self._merge_context_into_question(question, context)
         plan = self.planner.plan(resolved_question, self.repository, context)
+        plan.setdefault("entities", {})["chat_mode"] = mode
         private_status = self.private_data.private_status() if self.private_data else {"private_data_active": False, "dataset_count": 0, "record_count": 0}
         private_lookup = self.private_data.query(resolved_question) if self.private_data and private_status["private_data_active"] else {"rows": []}
         source_lookup = self.source_intake.search(resolved_question) if self.source_intake else {"rows": []}
@@ -99,6 +110,7 @@ class QueryEngine:
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
             if router == "source_intake" and source_lookup["rows"]:
                 return self._source_intake_response(
@@ -113,6 +125,7 @@ class QueryEngine:
                     template_name,
                     context=context,
                     resolved_question=resolved_question,
+                    started_at=started_at,
                 )
             return self._finalize_response(
                 question=question,
@@ -128,6 +141,7 @@ class QueryEngine:
                 template_name=template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
         if router == "private_data" and private_lookup["rows"]:
             return self._private_data_response(
@@ -142,6 +156,7 @@ class QueryEngine:
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
         if router == "source_intake" and source_lookup["rows"]:
             return self._source_intake_response(
@@ -156,6 +171,7 @@ class QueryEngine:
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
 
         entities = {**plan.get("entities", {}), **self._entities_from_context(context), **options}
@@ -173,6 +189,7 @@ class QueryEngine:
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
         if source_lookup["rows"] and (source == "fallback" or self._source_intake_question(resolved_question)):
             return self._source_intake_response(
@@ -187,6 +204,7 @@ class QueryEngine:
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
 
         if result is None:
@@ -203,6 +221,7 @@ class QueryEngine:
                 template_name,
                 context=context,
                 resolved_question=resolved_question,
+                started_at=started_at,
             )
             result = self.repository.materials_at_risk()
             message = self._summarize_risk_materials(result[:5])
@@ -222,7 +241,49 @@ class QueryEngine:
             template_name=template_name,
             context=context,
             resolved_question=resolved_question,
+            started_at=started_at,
         )
+
+    def enrich(self, question: str, options: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        options = options or {}
+        plan = self.planner.plan(self._merge_context_into_question(question, context), self.repository, context)
+        request = self._build_enrichment_request(question, plan, context, [])
+        review_tool = self.agent_tools.create_review_candidate(
+            "graph_enrichment_request",
+            "Potential graph data gap should be reviewed before any KG write-back.",
+            {"enrichment_request": request, "options": options},
+        )
+        return {
+            "status": "staged_for_review",
+            "enrichment_request": request,
+            "review_candidate": review_tool["output"],
+            "writeback_allowed": False,
+        }
+
+    def workflow_status(self) -> dict[str, Any]:
+        templates = [
+            {"intent": "suppliers_for_material", "description": "List qualified suppliers for a selected material.", "parameters": ["material_id"]},
+            {"intent": "selected_supplier_lookup", "description": "Open a direct supplier profile from selected context.", "parameters": ["supplier_id"]},
+            {"intent": "evidence_for_material", "description": "Trace source documents, lab reports, and declarations.", "parameters": ["material_id"]},
+            {"intent": "find_recyclable_substitutes", "description": "Find substitute materials and rank tradeoffs.", "parameters": ["material_id"]},
+            {"intent": "compare_materials", "description": "Compare materials by weighted performance and sustainability.", "parameters": ["material_ids"]},
+            {"intent": "catalog_lookup", "description": "Search local catalog/private/uploaded records.", "parameters": ["query"]},
+        ]
+        return {
+            "status": "ready",
+            "chat_modes": [
+                {"id": "quick_ask", "label": "Quick Ask", "description": "Direct graph questions with selected context."},
+                {"id": "research_review", "label": "Research Review", "description": "Deeper fit, risk, evidence, and provenance review."},
+            ],
+            "follow_up_suggestions": [
+                "Show suppliers for this",
+                "Show evidence for this",
+                "Compare this to alternatives",
+                "What data is missing for this decision?",
+            ],
+            "reviewed_templates": templates,
+            "writebacks": {"enabled": False, "policy": "enrichment requests are staged for human review"},
+        }
 
     def run_scenario(self, scenario: str, material_id: str | None = None, supplier_id: str | None = None, options: dict[str, Any] | None = None) -> dict[str, Any]:
         return self.scenarios.run(scenario=scenario, material_id=material_id, supplier_id=supplier_id, options=options)
@@ -334,6 +395,7 @@ class QueryEngine:
         template_name: str,
         context: dict[str, Any] | None = None,
         resolved_question: str | None = None,
+        started_at: float | None = None,
     ) -> dict[str, Any]:
         result = {"rows": private_lookup["rows"], "private_query": private_lookup.get("query", {})}
         top_rows = private_lookup["rows"][:6]
@@ -358,6 +420,7 @@ class QueryEngine:
             template_name=template_name,
             context=context,
             resolved_question=resolved_question,
+            started_at=started_at,
         )
 
     def _source_intake_response(
@@ -373,6 +436,7 @@ class QueryEngine:
         template_name: str,
         context: dict[str, Any] | None = None,
         resolved_question: str | None = None,
+        started_at: float | None = None,
     ) -> dict[str, Any]:
         result = {"rows": source_lookup["rows"], "source_query": source_lookup.get("query", {})}
         top_rows = source_lookup["rows"][:5]
@@ -394,6 +458,7 @@ class QueryEngine:
             template_name=template_name,
             context=context,
             resolved_question=resolved_question,
+            started_at=started_at,
         )
 
     def _finalize_response(
@@ -413,6 +478,7 @@ class QueryEngine:
         template_name: str = "READ_ONLY_REPOSITORY_LOOKUP",
         context: dict[str, Any] | None = None,
         resolved_question: str | None = None,
+        started_at: float | None = None,
     ) -> dict[str, Any]:
         tool_runs = list(tool_runs or [])
         evidence_tool = self.agent_tools.retrieve_source_documents(result, plan.get("entities", {}))
@@ -460,6 +526,27 @@ class QueryEngine:
         }
         trace = self._pipeline_trace(classifier, retrieval, scored_rows, message, review)
         panel = self._build_answer_panel(intent, result, plan, message)
+        latency_ms = int((time.perf_counter() - started_at) * 1000) if started_at else 0
+        enrichment_request = self._build_enrichment_request(resolved_question or question, plan, context, scored_rows) if not scored_rows else None
+        empty_state = self._build_empty_state(intent, route, enrichment_request) if not scored_rows else {}
+        route_preview = {
+            "route": route,
+            "intent": intent,
+            "template": template_name,
+            "context_entity": self._context_label(context),
+            "mode": (plan.get("entities", {}) or {}).get("chat_mode") or "quick_ask",
+        }
+        answer_quality = {
+            "status": "no_verified_rows" if not scored_rows else "answered",
+            "row_count": len(scored_rows),
+            "evidence_strength": evidence_profile.get("evidence_strength", "unknown"),
+            "needs_review": bool(review_candidate or enrichment_request),
+        }
+        provenance = {
+            "verified_kg": [row for row in scored_rows if not self._is_provisional_row(row)],
+            "provisional": [row for row in scored_rows if self._is_provisional_row(row)],
+            "evidence_rows": evidence_rows,
+        }
         panel["debug"] = {
             "source": source,
             "classifier": classifier,
@@ -518,6 +605,21 @@ class QueryEngine:
             "private_data_active": classifier["private_data_active"],
             "source": source,
             "source_intake": result.get("source_query", {}) if isinstance(result, dict) and source == "source_intake" else {},
+            "route_preview": route_preview,
+            "answer_quality": answer_quality,
+            "empty_state": empty_state,
+            "results": scored_rows,
+            "confidence": float(classifier.get("confidence", 0)),
+            "latency_ms": latency_ms,
+            "provenance": provenance,
+            "execution_metadata": {
+                "template": template_name,
+                "route": route,
+                "intent": intent,
+                "latency_ms": latency_ms,
+                "provisional_writeback_enabled": False,
+            },
+            "enrichment_request": enrichment_request,
             "agent_state_machine": agent_state_machine,
             "agent_tools": tool_runs,
             "agent_orchestration": orchestration,
@@ -531,3 +633,63 @@ class QueryEngine:
 
     def _build_answer_panel(self, intent: str, result: Any, plan: dict[str, Any], message: str) -> dict[str, Any]:
         return self.response_builder.build_answer_panel(intent, result, plan, message)
+
+    def _build_empty_state(self, intent: str, route: str, enrichment_request: dict[str, Any] | None) -> dict[str, Any]:
+        return {
+            "title": "No verified graph rows found",
+            "message": "The query ran, but PackGraph could not find a verified relationship for this request.",
+            "intent": intent,
+            "route": route,
+            "next_action": "Review the staged enrichment request before adding anything to the graph." if enrichment_request else "Try a narrower material, supplier, or evidence question.",
+        }
+
+    def _build_enrichment_request(
+        self,
+        query: str,
+        plan: dict[str, Any],
+        context: dict[str, Any] | None,
+        rows: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        if rows:
+            return None
+        source = self._context_label(context) or plan.get("entities", {}).get("material_id") or "unknown_source"
+        target = self._target_from_question(query)
+        relationship = self._relationship_for_intent(plan.get("intent", "unknown"))
+        edge_key_raw = f"{source}|{relationship}|{target}|{query}".lower()
+        return {
+            "source": source,
+            "relationship": relationship,
+            "target": target,
+            "confidence": 0.36,
+            "evidence": [],
+            "query": query,
+            "model": "packgraph-local-enrichment-stub",
+            "edge_key": hashlib.sha256(edge_key_raw.encode("utf-8")).hexdigest()[:16],
+        }
+
+    def _relationship_for_intent(self, intent: str) -> str:
+        mapping = {
+            "suppliers_for_material": "SUPPLIED_BY",
+            "evidence_for_material": "HAS_DOCUMENT",
+            "find_recyclable_substitutes": "SUBSTITUTES_WITH",
+            "compare_materials": "COMPARES_WITH",
+            "selected_supplier_lookup": "SUPPLIES",
+            "selected_material_lookup": "RELATED_TO",
+        }
+        return mapping.get(intent, "NEEDS_REVIEW_RELATIONSHIP")
+
+    def _target_from_question(self, query: str) -> str:
+        tokens = [token for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]{2,}", query) if token.lower() not in {"show", "what", "where", "with", "this", "that", "about", "source"}]
+        return " ".join(tokens[-4:]) or "unknown_target"
+
+    def _context_label(self, context: dict[str, Any] | None) -> str:
+        if not context:
+            return ""
+        return context.get("entity_id") or context.get("entity_name") or context.get("entity_type") or ""
+
+    def _is_provisional_row(self, row: dict[str, Any]) -> bool:
+        return (
+            row.get("source_type") == "llm_inferred"
+            or row.get("assertion_kind") == "LLM_INFERRED"
+            or row.get("validation_status") == "pending"
+        )
