@@ -129,6 +129,25 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(investigation.json()["data"]["project_status"], "active")
 
     def test_query_ask_accepts_context_payload(self):
+        preview = self.client.post(
+            "/query/preview",
+            json={
+                "question": "show suppliers for this",
+                "options": {"material_id": "MAT-001"},
+                "context": {
+                    "entity_type": "material",
+                    "entity_id": "MAT-001",
+                    "entity_name": "Film A11",
+                    "metadata": {"category": "film"},
+                },
+            },
+        )
+        self.assertEqual(preview.status_code, 200)
+        preview_payload = preview.json()["data"]
+        self.assertEqual(preview_payload["intent"], "suppliers_for_material")
+        self.assertTrue(preview_payload["safe_metadata_only"])
+        self.assertNotIn("password", str(preview_payload).lower())
+
         response = self.client.post(
             "/query/ask",
             json={
@@ -150,6 +169,16 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("answer_quality", payload)
         self.assertIn("results", payload)
         self.assertIsInstance(payload["latency_ms"], int)
+        for key in [
+            "has_provisional_data",
+            "verified_count",
+            "provisional_count",
+            "lowest_confidence",
+            "needs_validation",
+            "lineage_checked",
+            "unstamped_result_count",
+        ]:
+            self.assertIn(key, payload["answer_quality"])
         self.assertTrue(payload["rows"])
 
     def test_query_ask_empty_result_returns_enrichment_request(self):
@@ -170,10 +199,19 @@ class ApiContractTests(unittest.TestCase):
         payload = response.json()["data"]
         self.assertFalse(payload["rows"])
         self.assertIn("empty_state", payload)
+        self.assertIn(
+            payload["empty_state"]["no_result_cause"],
+            {"missing_modeled_relationship", "schema_mismatch", "raw_uploaded_record", "wrong_entity_type", "no_rows_for_template"},
+        )
         self.assertIn("enrichment_request", payload)
         self.assertEqual(payload["enrichment_request"]["source"], "MAT-001")
         for key in ["source", "relationship", "target", "confidence", "evidence", "query", "model", "edge_key"]:
             self.assertIn(key, payload["enrichment_request"])
+        self.assertEqual(payload["enrichment_request"]["source_type"], "llm_inferred")
+        self.assertEqual(payload["enrichment_request"]["assertion_kind"], "LLM_INFERRED")
+        self.assertEqual(payload["enrichment_request"]["validation_status"], "pending")
+        self.assertEqual(payload["enrichment_request"]["verification_status"], "unverified")
+        self.assertEqual(payload["enrichment_request"]["promotion_status"], "not_promoted")
 
     def test_query_enrich_and_workflow_status_contracts(self):
         enrich = self.client.post(
@@ -188,6 +226,19 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(enrich_payload["status"], "staged_for_review")
         self.assertFalse(enrich_payload["writeback_allowed"])
         self.assertIn("edge_key", enrich_payload["enrichment_request"])
+        self.assertEqual(enrich_payload["enrichment_request"]["validation_status"], "pending")
+        candidate_id = enrich_payload["review_candidate"]["candidate_id"]
+
+        provisional = self.client.get("/review/provisional")
+        self.assertEqual(provisional.status_code, 200)
+        self.assertTrue(any(item["candidate_id"] == candidate_id for item in provisional.json()["data"]))
+
+        decision = self.client.post(
+            "/review/provisional/decision",
+            json={"candidate_id": candidate_id, "decision": "needs_more_evidence", "comment": "Need an uploaded source before promotion."},
+        )
+        self.assertEqual(decision.status_code, 200)
+        self.assertEqual(decision.json()["data"]["decision_state"], "in_approval")
 
         workflow = self.client.get("/runtime/workflow-status")
         self.assertEqual(workflow.status_code, 200)
@@ -195,6 +246,7 @@ class ApiContractTests(unittest.TestCase):
         self.assertIn("chat_modes", workflow_payload)
         self.assertIn("follow_up_suggestions", workflow_payload)
         self.assertIn("reviewed_templates", workflow_payload)
+        self.assertTrue(all("schema_supported" in item for item in workflow_payload["reviewed_templates"]))
 
     def test_query_ask_returns_structured_workflow_output(self):
         response = self.client.post(

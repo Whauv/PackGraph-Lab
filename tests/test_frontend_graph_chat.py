@@ -13,6 +13,8 @@ class FrontendGraphChatTests(unittest.TestCase):
         self.assertIn("data-copy-edge", source)
         self.assertIn("graph-chat-mode", source)
         self.assertIn("graph-chat-lock", source)
+        self.assertIn("previewRequest", source)
+        self.assertIn("graph-chat-lineage-warning", source)
 
 
 if __name__ == "__main__":

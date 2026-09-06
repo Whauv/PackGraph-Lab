@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import ApiEnvelope, CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, QueryAnswerEnvelope, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import ApiEnvelope, CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, ProvisionalReviewDecisionRequest, QueryAnswerEnvelope, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -538,6 +538,18 @@ def build_router(state) -> APIRouter:
             ),
         }
 
+    @router.post("/query/preview", response_model=ApiEnvelope)
+    def query_preview(request: QueryRequest):
+        return {
+            "status": "ok",
+            "data": state.query_engine.preview(
+                request.question,
+                request.options,
+                request.context.model_dump() if request.context else None,
+                request.mode,
+            ),
+        }
+
     @router.post("/query/enrich", response_model=ApiEnvelope)
     def query_enrich(request: QueryRequest):
         return {
@@ -552,6 +564,45 @@ def build_router(state) -> APIRouter:
     @router.get("/runtime/workflow-status", response_model=ApiEnvelope)
     def workflow_status():
         return {"status": "ok", "data": state.query_engine.workflow_status()}
+
+    @router.get("/review/provisional", response_model=ApiEnvelope)
+    def provisional_review_queue(request: Request, status: str | None = None, limit: int = 100):
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        rows = [
+            item
+            for item in state.review_store.list(status=status, org_id=org_id, limit=limit)
+            if item.get("candidate_type") == "graph_enrichment_request"
+        ]
+        return {"status": "ok", "data": rows}
+
+    @router.post("/review/provisional/decision", response_model=ApiEnvelope)
+    def provisional_review_decision(payload: ProvisionalReviewDecisionRequest, request: Request):
+        current_user = maybe_current_user(request)
+        org_id = current_user["org_id"] if current_user else "ORG-001"
+        actor_id = current_user["user_id"] if current_user else None
+        status_map = {
+            "promote": "approved",
+            "reject": "rejected",
+            "needs_more_evidence": "in_approval",
+        }
+        candidate = state.review_store.decide(
+            payload.candidate_id,
+            actor_id,
+            status_map[payload.decision],
+            payload.comment,
+            {
+                **payload.metadata,
+                "provisional_decision": payload.decision,
+                "neo4j_mutation_performed": False,
+                "promotion_policy": "approved write-back workflow required before graph mutation",
+            },
+            org_id,
+        )
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Provisional review candidate not found")
+        state.cache.invalidate_prefix("route:notifications")
+        return {"status": "ok", "data": candidate}
 
     @router.get("/health/graph", response_model=ApiEnvelope)
     def graph_health():

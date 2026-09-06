@@ -10,6 +10,7 @@
     context: null,
     history: [],
     request: null,
+    previewRequest: null,
     onResult: null,
     initialized: false,
     contextLocked: false,
@@ -274,9 +275,16 @@
       <div class="graph-chat-answer-meta">
         <span class="tag">${escapeHtml(formatLabel(route.intent || response.intent || "graph answer"))}</span>
         <span class="tag">Confidence ${escapeHtml(Math.round((response.confidence || 0) * 100))}%</span>
+        <span class="tag">Verified ${escapeHtml(quality.verified_count ?? 0)}</span>
+        <span class="tag">Provisional ${escapeHtml(quality.provisional_count ?? 0)}</span>
         <span class="tag">${escapeHtml(response.latency_ms || 0)}ms</span>
         ${quality.needs_review ? `<span class="tag status-warning">Review needed</span>` : `<span class="tag status-success">Cleared</span>`}
       </div>
+      ${(quality.unstamped_result_count || !quality.lineage_checked) ? `
+        <div class="graph-chat-lineage-warning">
+          ${quality.unstamped_result_count ? `<span>${escapeHtml(quality.unstamped_result_count)} result(s) are missing provenance stamps.</span>` : ""}
+          ${!quality.lineage_checked ? `<span>Lineage is not fully checked for this answer.</span>` : ""}
+        </div>` : ""}
       ${rows.length ? `
         <div class="graph-chat-result-list">
           ${rows.slice(0, 4).map((row) => `
@@ -297,6 +305,7 @@
         <div class="graph-chat-enrichment">
           <strong>${escapeHtml(response.empty_state?.title || "Data gap detected")}</strong>
           <p>${escapeHtml(response.empty_state?.message || "A provisional enrichment request was staged for review.")}</p>
+          <p>Cause: <strong>${escapeHtml(formatLabel(response.empty_state?.no_result_cause || "no_rows_for_template"))}</strong></p>
           <div class="graph-chat-source-meta">
             <span>${escapeHtml(enrichment.source)} -> ${escapeHtml(enrichment.relationship)} -> ${escapeHtml(enrichment.target)}</span>
             <button type="button" class="mini-action" data-copy-edge="${escapeHtml(enrichment.edge_key)}">Copy edge key</button>
@@ -355,6 +364,20 @@
     setStatus("Running graph chat...", "info");
     renderMessage("You", question);
     try {
+      if (state.previewRequest) {
+        const preview = await state.previewRequest({
+          question,
+          mode: state.mode,
+          context: {
+            ...state.context,
+            history: state.history,
+          },
+        });
+        if (preview) {
+          const blocked = preview.blockers?.length ? " with schema blockers" : "";
+          setStatus(`Preview: ${formatLabel(preview.intent)} via ${formatLabel(preview.route)}${blocked}.`, preview.blockers?.length ? "error" : "info");
+        }
+      }
       const response = await state.request({
         question,
         mode: state.mode,
@@ -416,6 +439,7 @@
     if (state.initialized) return;
     state.initialized = true;
     state.request = config.request || null;
+    state.previewRequest = config.previewRequest || null;
     state.onResult = config.onResult || null;
     state.workflowStatus = config.workflowStatus || null;
     state.mode = window.localStorage.getItem(MODE_KEY) || "quick_ask";
