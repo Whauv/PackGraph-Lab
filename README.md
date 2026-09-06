@@ -176,6 +176,8 @@ For more detail, see:
 
 - [Architecture notes](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\architecture.md)
 - [Repository map](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\repository-map.md)
+- [Graph Chat integration package](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\graph-chat-package.md)
+- [Query service reference](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\query-service-reference.md)
 - [Change tracking guide](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\changes\README.md)
 
 ## Repository structure

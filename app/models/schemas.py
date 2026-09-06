@@ -39,6 +39,13 @@ class QueryRequest(BaseModel):
     mode: Literal["quick_ask", "research_review"] = "quick_ask"
 
 
+class ProvisionalReviewDecisionRequest(BaseModel):
+    candidate_id: Annotated[str, StringConstraints(strip_whitespace=True, min_length=4, max_length=120)]
+    decision: Literal["promote", "reject", "needs_more_evidence"]
+    comment: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class DecisionPanelItem(BaseModel):
     label: str
     detail: str = ""

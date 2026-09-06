@@ -4129,6 +4129,15 @@ small {
   align-items: center;
 }
 
+.graph-chat-lineage-warning {
+  border: 1px solid color-mix(in srgb, var(--status-warning-ink) 28%, var(--line));
+  background: var(--status-warning-bg);
+  color: var(--status-warning-ink);
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+}
+
 .graph-chat-result-list {
   display: grid;
   gap: 8px;
