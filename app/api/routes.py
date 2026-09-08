@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
-from app.models.schemas import ApiEnvelope, CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, ProvisionalReviewDecisionRequest, QueryAnswerEnvelope, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkspaceSaveRequest
+from app.models.schemas import ApiEnvelope, CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, ProvisionalReviewDecisionEnvelope, ProvisionalReviewDecisionRequest, ProvisionalReviewQueueEnvelope, QueryAnswerEnvelope, QueryEnrichmentEnvelope, QueryPreviewEnvelope, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkflowStatusEnvelope, WorkspaceSaveRequest
 
 
 def build_router(state) -> APIRouter:
@@ -538,7 +538,7 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.post("/query/preview", response_model=ApiEnvelope)
+    @router.post("/query/preview", response_model=QueryPreviewEnvelope)
     def query_preview(request: QueryRequest):
         return {
             "status": "ok",
@@ -550,7 +550,7 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.post("/query/enrich", response_model=ApiEnvelope)
+    @router.post("/query/enrich", response_model=QueryEnrichmentEnvelope)
     def query_enrich(request: QueryRequest):
         return {
             "status": "ok",
@@ -561,11 +561,11 @@ def build_router(state) -> APIRouter:
             ),
         }
 
-    @router.get("/runtime/workflow-status", response_model=ApiEnvelope)
+    @router.get("/runtime/workflow-status", response_model=WorkflowStatusEnvelope)
     def workflow_status():
         return {"status": "ok", "data": state.query_engine.workflow_status()}
 
-    @router.get("/review/provisional", response_model=ApiEnvelope)
+    @router.get("/review/provisional", response_model=ProvisionalReviewQueueEnvelope)
     def provisional_review_queue(request: Request, status: str | None = None, limit: int = 100):
         current_user = maybe_current_user(request)
         org_id = current_user["org_id"] if current_user else "ORG-001"
@@ -576,7 +576,7 @@ def build_router(state) -> APIRouter:
         ]
         return {"status": "ok", "data": rows}
 
-    @router.post("/review/provisional/decision", response_model=ApiEnvelope)
+    @router.post("/review/provisional/decision", response_model=ProvisionalReviewDecisionEnvelope)
     def provisional_review_decision(payload: ProvisionalReviewDecisionRequest, request: Request):
         current_user = maybe_current_user(request)
         org_id = current_user["org_id"] if current_user else "ORG-001"

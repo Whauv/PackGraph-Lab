@@ -112,6 +112,66 @@ class QueryAnswerEnvelope(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class QueryPreviewPayload(BaseModel):
+    route: str
+    intent: str
+    template: str
+    schema_supported: bool
+    blockers: list[dict[str, Any]] = Field(default_factory=list)
+    mode: str
+    context: dict[str, Any] = Field(default_factory=dict)
+    requires_review: bool = False
+    private_data_active: bool = False
+    source_matches_found: int = 0
+    safe_metadata_only: bool = True
+    options_received: list[str] = Field(default_factory=list)
+
+
+class QueryPreviewEnvelope(BaseModel):
+    status: Literal["ok"] = "ok"
+    data: QueryPreviewPayload
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class QueryEnrichmentPayload(BaseModel):
+    status: str
+    enrichment_request: dict[str, Any] | None = None
+    review_candidate: dict[str, Any] = Field(default_factory=dict)
+    writeback_allowed: bool = False
+
+
+class QueryEnrichmentEnvelope(BaseModel):
+    status: Literal["ok"] = "ok"
+    data: QueryEnrichmentPayload
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowStatusPayload(BaseModel):
+    status: str
+    chat_modes: list[dict[str, Any]] = Field(default_factory=list)
+    follow_up_suggestions: list[str] = Field(default_factory=list)
+    reviewed_templates: list[dict[str, Any]] = Field(default_factory=list)
+    writebacks: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowStatusEnvelope(BaseModel):
+    status: Literal["ok"] = "ok"
+    data: WorkflowStatusPayload
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProvisionalReviewQueueEnvelope(BaseModel):
+    status: Literal["ok"] = "ok"
+    data: list[dict[str, Any]] = Field(default_factory=list)
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProvisionalReviewDecisionEnvelope(BaseModel):
+    status: Literal["ok"] = "ok"
+    data: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class ProjectMemoryPatchRequest(BaseModel):
     saved_entities: list[Any] = Field(default_factory=list)
     saved_suppliers: list[Any] = Field(default_factory=list)

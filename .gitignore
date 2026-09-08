@@ -17,9 +17,11 @@ data/generated/manifest.json
 data/runtime/community_posts.json
 data/runtime/contributions.json
 data/runtime/discovered_components.json
+data/runtime/investigations.json
 data/runtime/saved_searches.json
 data/runtime/scenario_history.json
 data/runtime/session.json
+data/runtime/source_intake_records.json
 data/runtime/workspaces.json
 data/runtime/users.json
 data/runtime/neo4j_query_audit.jsonl
@@ -45,6 +47,9 @@ data/runtime/audit_logs/
 data/runtime/status-output/
 data/runtime/tmp/
 data/runtime/cache/
+data/staging/project_memory.json
+data/staging/agent_review_candidates.json
+data/staging/*.tmp.json
 smoke-test-output/
 *.smoke.json
 review-exports/

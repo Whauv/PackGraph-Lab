@@ -1815,15 +1815,6 @@ async function loadPrivateDataStatus() {
   renderPromptDiary();
 }
 
-async function loadWorkflowStatus() {
-  try {
-    const payload = await fetchJson("/runtime/workflow-status");
-    window.PackGraphChat?.setWorkflowStatus(payload);
-  } catch {
-    window.PackGraphChat?.setWorkflowStatus(null);
-  }
-}
-
 async function loadMaterials() {
   const payload = await fetch("/materials");
   const body = await payload.json();
@@ -2136,133 +2127,6 @@ async function uploadDocumentEvidence() {
   document.getElementById("document-upload-title").value = "";
   fileInput.value = "";
   await Promise.all([loadProvenance(document.getElementById("document-search-input").value.trim()), loadAlerts(), loadGraph()]);
-}
-
-function renderSourceIntakeProfile(payload) {
-  const container = document.getElementById("source-intake-profile");
-  if (!container) return;
-  if (!payload) {
-    container.innerHTML = window.PackGraphUI
-      ? window.PackGraphUI.emptyState("No source extracted yet", "Upload a JSON or PDF source to see schema fields and reusable records.")
-      : "";
-    return;
-  }
-  const profile = payload.schema_profile || {};
-  const fields = profile.fields || [];
-  const source = payload.source || {};
-  container.innerHTML = `
-    <div class="metric-card">
-      <span>Source</span>
-      <strong>${escapeHtml(source.title || "Uploaded source")}</strong>
-      <small>${escapeHtml(titleCase(source.source_type || "source"))} | ${Number(source.file_size || 0).toLocaleString()} bytes</small>
-    </div>
-    <div class="metric-card">
-      <span>Schema</span>
-      <strong>${Number(profile.field_count || 0).toLocaleString()} fields</strong>
-      <small>${Number(profile.record_count || payload.stored_record_count || 0).toLocaleString()} reusable records</small>
-    </div>
-    <div class="metric-card">
-      <span>Quality</span>
-      <strong>${payload.parse_errors?.length ? "Needs review" : "Parsed"}</strong>
-      <small>${payload.parse_errors?.length || 0} parse issues detected</small>
-    </div>
-    <div class="table-card source-schema-table">
-      ${fields.length
-        ? `<table><thead><tr><th>Field</th><th>Type</th><th>Count</th></tr></thead><tbody>${fields.slice(0, 8).map((field) => `<tr><td>${escapeHtml(field.path)}</td><td>${escapeHtml((field.types || []).join(", "))}</td><td>${escapeHtml(field.count)}</td></tr>`).join("")}</tbody></table>`
-        : window.PackGraphUI.emptyState("No structured fields", "The file was stored as searchable text for future prompts.")}
-    </div>
-  `;
-}
-
-function renderSourceIntakeSources() {
-  renderTableCard(
-    "source-intake-sources",
-    [
-      { label: "Source", render: (item) => `<strong>${escapeHtml(item.title)}</strong><br /><small>${escapeHtml(item.filename || "")}</small>` },
-      { label: "Type", render: (item) => `<span class="table-badge">${escapeHtml(titleCase(item.source_type || "source"))}</span>` },
-      { label: "Schema", render: (item) => `${Number(item.field_count || 0)} fields<br /><small>${Number(item.record_count || 0)} records</small>` },
-      { label: "Action", render: (item) => `<button type="button" class="mini-action" data-source-chat="${escapeHtml(item.source_id)}">Use in graph chat</button>` },
-    ],
-    state.sourceIntakeSources || [],
-    "No uploaded workspace sources yet."
-  );
-  document.querySelectorAll("[data-source-chat]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const source = (state.sourceIntakeSources || []).find((item) => item.source_id === button.dataset.sourceChat);
-      if (!source) return;
-      setChatContext(
-        {
-          entity_type: "uploaded_record",
-          entity_id: source.source_id,
-          entity_name: source.title,
-          metadata: {
-            source_type: source.source_type,
-            record_count: source.record_count,
-            field_count: source.field_count,
-          },
-        },
-        { open: true }
-      );
-      setStatus("source-intake-status", `${source.title} is now active in graph chat.`, "info");
-    });
-  });
-}
-
-async function loadSourceIntakeSources() {
-  try {
-    state.sourceIntakeSources = await fetchJson("/source-intake/sources?limit=20");
-  } catch {
-    state.sourceIntakeSources = [];
-  }
-  renderSourceIntakeSources();
-  renderSourceIntakeProfile(state.latestSourceIntakeProfile);
-}
-
-async function uploadSourceIntake() {
-  const fileInput = document.getElementById("source-intake-file");
-  const file = fileInput?.files?.[0];
-  if (!file) {
-    setStatus("source-intake-status", "Choose a JSON or PDF source before extracting.", "error");
-    return;
-  }
-  setStatus("source-intake-status", "Extracting schema and storing reusable records...", "info");
-  const formData = new FormData();
-  formData.set("file", file);
-  const sourceType = document.getElementById("source-intake-type").value;
-  const title = document.getElementById("source-intake-title").value.trim();
-  if (sourceType) formData.set("source_type", sourceType);
-  if (title) formData.set("title", title);
-  try {
-    const payload = await fetchJson("/source-intake/upload", {
-      method: "POST",
-      body: formData,
-      retries: 0,
-      timeoutMs: 30000,
-    });
-    state.latestSourceIntakeProfile = payload;
-    const source = payload.source || {};
-    renderSourceIntakeProfile(payload);
-    await loadSourceIntakeSources();
-    setChatContext(
-      {
-        entity_type: "uploaded_record",
-        entity_id: source.source_id,
-        entity_name: source.title,
-        metadata: {
-          source_type: source.source_type,
-          record_count: source.record_count,
-          field_count: source.field_count,
-        },
-      },
-      { open: true }
-    );
-    await syncProjectMemory({ uploaded_file_references: [source.source_id], saved_entities: [source.source_id] });
-    document.getElementById("source-intake-title").value = "";
-    fileInput.value = "";
-    setStatus("source-intake-status", `Stored ${source.title}. Future prompts can now use this source.`, "success");
-  } catch (error) {
-    setStatus("source-intake-status", error.message || "Source extraction failed.", "error");
-  }
 }
 
 async function loadInvestigations() {
@@ -4067,86 +3931,26 @@ function setupForms() {
     await applyFilters();
   });
 
-  document.getElementById("compare-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await runComparison();
-  });
-
-  document.getElementById("compare-materials").addEventListener("change", () => {
-    renderCompareSelectionSummary();
-    syncActiveCase({
-      shortlist_material_ids: selectedMaterialsFromCompare(),
-      status: "compare",
-      workflow_step: "Compare",
-    });
-  });
-
-  document.getElementById("document-search-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const query = document.getElementById("document-search-input").value.trim();
-    await loadProvenance(query);
-  });
-
-  document.getElementById("document-upload-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await uploadDocumentEvidence();
-  });
-
-  document.getElementById("source-intake-form")?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await uploadSourceIntake();
-  });
-
-  document.getElementById("scenario-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await runScenario();
-  });
-
-  document.getElementById("scenario-type").addEventListener("change", (event) => {
-    if (window.PackGraphWorkbenchPanels) {
-      window.PackGraphWorkbenchPanels.applyScenarioVisibility(event.target.value);
-    }
-  });
-
-  document.getElementById("graph-path-button").addEventListener("click", async () => {
-    await loadGraphPath();
-  });
-
-  document.getElementById("investigation-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    await saveInvestigation();
-  });
-
-  document.getElementById("investigation-clear").addEventListener("click", () => {
-    state.currentInvestigationId = null;
-    document.getElementById("investigation-title").value = "";
-    document.getElementById("investigation-project-status").value = "active";
-    document.getElementById("investigation-owner").value = "";
-    document.getElementById("investigation-due-date").value = "";
-    document.getElementById("investigation-notes").value = "";
-    document.getElementById("investigation-rationale").value = "";
-    clearDraft(DRAFT_STORAGE_KEYS.investigation);
-    setStatus("investigation-status", "Cleared the current investigation draft.", "info");
-  });
-
-  document.getElementById("case-sync").addEventListener("click", async () => {
-    await syncProjectMemory({
-      saved_entities: [state.activeCase?.focus_material_id],
-      compared_entities: state.activeCase?.shortlist_material_ids || [],
-      prior_questions: [state.activeCase?.latest_question],
-      investigation_notes: [state.activeCase?.note],
-      user_assumptions: [state.activeCase?.workflow_step],
-    });
-    setStatus("case-status", "Synced the active case to project memory.", "success");
-  });
-
-  document.getElementById("case-reset").addEventListener("click", () => {
-    state.activeCase = defaultActiveCase();
-    persistActiveCase();
-    renderCaseWorkspace();
-    renderWorkflowMap();
-    renderCrossPageContext();
-    setStatus("case-status", "Reset the active case workspace.", "info");
+  window.PackGraphWorkbenchController?.setupForms({
+    state,
+    draftStorageKeys: DRAFT_STORAGE_KEYS,
+    runComparison,
+    renderCompareSelectionSummary,
+    syncActiveCase,
+    selectedMaterialsFromCompare,
+    loadProvenance,
+    uploadDocumentEvidence,
+    runScenario,
+    loadGraphPath,
+    saveInvestigation,
+    clearDraft,
+    setStatus,
+    syncProjectMemory,
+    defaultActiveCase,
+    persistActiveCase,
+    renderCaseWorkspace,
+    renderWorkflowMap,
+    renderCrossPageContext,
   });
 
   document.getElementById("workspace-form").addEventListener("submit", async (event) => {
@@ -4453,31 +4257,23 @@ async function init() {
   loadActiveCase();
   loadUiWorkspaceState();
   loadPersonalWorkspace();
-  window.PackGraphChat?.init({
-    previewRequest: async ({ question, context, mode }) => fetchJson("/query/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question,
-        mode: mode || "quick_ask",
-        options: { material_id: state.selectedMaterialId, prioritize_sustainability: true },
-        context,
-      }),
-    }),
-    request: async ({ question, context, mode }) => fetchJson("/query/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question,
-        mode: mode || "quick_ask",
-        options: { material_id: state.selectedMaterialId, prioritize_sustainability: true },
-        context,
-      }),
-    }),
-    onResult: async (question, response) => {
-      handleChatResult(question, response);
-      await Promise.all([loadReviewQueue(), loadNotifications(), loadOperationsDashboard()]);
-    },
+  window.PackGraphSourceIntake?.init({
+    state,
+    fetchJson,
+    setStatus,
+    renderTableCard,
+    escapeHtml,
+    titleCase,
+    setChatContext,
+    syncProjectMemory,
+  });
+  await window.PackGraphGraphChatController?.init({
+    fetchJson,
+    state,
+    handleChatResult,
+    loadReviewQueue,
+    loadNotifications,
+    loadOperationsDashboard,
   });
   setupThemeToggle();
   setupShellNavigation();
@@ -4495,7 +4291,6 @@ async function init() {
   renderPersonalWorkspace();
   renderActivityTimeline();
   await loadPrivateDataStatus();
-  await loadWorkflowStatus();
   await loadSession();
   await Promise.all([
     loadMaterials(),
@@ -4504,7 +4299,7 @@ async function init() {
     loadInvestigations(),
     loadWorkspaces(),
     loadProjectMemory(),
-    loadSourceIntakeSources(),
+    window.PackGraphSourceIntake?.loadSources(),
     loadReviewQueue(),
     loadSavedSearches(),
     loadNotifications(),

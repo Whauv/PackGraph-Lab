@@ -6,6 +6,23 @@
   const MODE_KEY = "packgraph-chat-mode";
   const MESSAGE_PREFIX = "packgraph-chat-messages:";
 
+  /**
+   * @typedef {Object} PackGraphChatContext
+   * @property {string} entity_type
+   * @property {string=} entity_id
+   * @property {string=} entity_name
+   * @property {Record<string, unknown>=} metadata
+   */
+
+  /**
+   * @typedef {Object} PackGraphChatAnswer
+   * @property {Object=} route_preview
+   * @property {Object=} answer_quality
+   * @property {Object=} empty_state
+   * @property {Array<Object>=} rows
+   * @property {Array<Object>=} results
+   */
+
   const state = {
     context: null,
     history: [],
