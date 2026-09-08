@@ -3,6 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 import os
 
+from app.core.runtime_paths import RuntimePaths
 from app.services.security_utils import secure_mkdir, secure_write_text
 
 
@@ -119,16 +120,11 @@ def get_settings() -> Settings:
         cleanup_max_runtime_logs=int(os.getenv("PACKGRAPH_CLEANUP_MAX_RUNTIME_LOGS", "12")),
         neo4j_ready_timeout_seconds=int(os.getenv("PACKGRAPH_NEO4J_READY_TIMEOUT_SECONDS", "2")),
     )
-    secure_mkdir(settings.packgraph_data_dir)
-    secure_mkdir(settings.packgraph_runtime_dir)
-    secure_mkdir(settings.packgraph_staging_dir)
+    RuntimePaths.from_settings(settings).ensure_directories()
     secure_mkdir(settings.private_data_dir)
     secure_mkdir(settings.json_ingest_dir)
-    secure_mkdir(settings.runtime_db_path.parent)
     secure_mkdir(settings.observability_log_path.parent)
     secure_mkdir(settings.metrics_path.parent)
-    secure_mkdir(settings.ingest_report_dir)
-    secure_mkdir(settings.ingest_state_dir)
     secure_mkdir(settings.transform_cache_path.parent)
     if not settings.project_memory_path.exists():
         secure_write_text(

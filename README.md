@@ -178,6 +178,7 @@ For more detail, see:
 - [Repository map](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\repository-map.md)
 - [Graph Chat integration package](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\graph-chat-package.md)
 - [Query service reference](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\query-service-reference.md)
+- [Query/frontend modularization ADR](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\decisions\2026-09-07-query-frontend-modularization.md)
 - [Change tracking guide](C:\Users\prana\OneDrive\Documents\Playground\packgraph-lab\docs\changes\README.md)
 
 ## Repository structure
@@ -198,6 +199,8 @@ For more detail, see:
   Automated backend-focused tests.
 - `web/`
   Landing page, product HTML, frontend assets, and page modules.
+
+Runtime and generated artifacts are intentionally separated from source code. Use `app/core/runtime_paths.py` as the source of truth for generated, runtime, staging, report, ingest-state, local memory, and review-candidate paths. Local-only files such as `.env`, `private_data/`, runtime DBs, audit logs, smoke outputs, and Python caches should not be committed.
 
 ## Local run
 
@@ -340,6 +343,21 @@ python scripts/evaluate_entity_resolution.py
 
 ```bash
 python scripts/status_dashboard.py
+```
+
+### One-command smoke validation
+
+Before pushing a branch, run the lightweight smoke checker:
+
+```bash
+python scripts/smoke_check.py
+```
+
+It runs Python compile checks, the backend unittest suite, and JavaScript syntax checks for the main app and Graph Chat modules. If you only need a partial local check, use:
+
+```bash
+python scripts/smoke_check.py --skip-tests
+python scripts/smoke_check.py --skip-js
 ```
 
 ### Graph schema metadata

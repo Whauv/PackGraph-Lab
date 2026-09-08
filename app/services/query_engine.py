@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import re
-import hashlib
 import time
 from typing import Any
 
 from app.core.config import get_settings
 from app.core.runtime_db import build_runtime_db
-from app.repositories.graph_repository import GraphConnectionError, GraphQueryFailure, LocalGraphRepository
+from app.repositories.graph_repository import LocalGraphRepository
 from app.services.agent_memory import ProjectMemoryStore
 from app.services.agent_orchestrator import AgentOrchestrationRecorder
 from app.services.agent_review import ReviewCandidateStore
@@ -17,12 +15,16 @@ from app.services.evidence_agent import EvidenceAgent
 from app.services.investigation_planner import InvestigationPlanner
 from app.services.private_data_service import PrivateDataService
 from app.services.query_context import QueryContextAdapter
+from app.services.query_enrichment_service import QueryEnrichmentService
 from app.services.query_execution_layer import QueryExecutionLayer
 from app.services.query_planner import QueryPlanner
+from app.services.query_preview_service import QueryPreviewService
+from app.services.query_quality_service import QueryQualityService
 from app.services.query_response_builder import QueryResponseBuilder
 from app.services.query_result_formatter import QueryResultFormatter
 from app.services.scenario_engine import ScenarioEngine
 from app.services.source_intake_service import SourceIntakeService
+from app.services.workflow_status_service import WorkflowStatusService
 
 
 class QueryEngine:
@@ -50,6 +52,18 @@ class QueryEngine:
         self.result_formatter = QueryResultFormatter(repository)
         self.response_builder = QueryResponseBuilder(repository)
         self.execution_layer = QueryExecutionLayer(repository, self.result_formatter)
+        self.workflow_status_service = WorkflowStatusService(repository)
+        self.enrichment = QueryEnrichmentService(self.agent_tools)
+        self.quality = QueryQualityService(self.workflow_status_service, self.enrichment)
+        self.preview_service = QueryPreviewService(
+            repository=repository,
+            planner=self.planner,
+            context_adapter=self.context_adapter,
+            response_builder=self.response_builder,
+            workflow_status=self.workflow_status_service,
+            private_data=private_data,
+            source_intake=source_intake,
+        )
 
     def preview(
         self,
@@ -58,28 +72,7 @@ class QueryEngine:
         context: dict[str, Any] | None = None,
         mode: str = "quick_ask",
     ) -> dict[str, Any]:
-        resolved_question = self._merge_context_into_question(question, context)
-        plan = self.planner.plan(resolved_question, self.repository, context)
-        plan.setdefault("entities", {})["chat_mode"] = mode
-        private_status = self.private_data.private_status() if self.private_data else {"private_data_active": False, "dataset_count": 0, "record_count": 0}
-        private_lookup = self.private_data.query(resolved_question) if self.private_data and private_status["private_data_active"] else {"rows": []}
-        source_lookup = self.source_intake.search(resolved_question) if self.source_intake else {"rows": []}
-        route = "source_intake" if self._should_route_to_source_intake(resolved_question, source_lookup) else self._route_question(plan, private_lookup)
-        template = self._template_schema_status(plan["intent"])
-        return {
-            "route": route,
-            "intent": plan["intent"],
-            "template": plan.get("cypher_template") or "NO_REVIEWED_TEMPLATE",
-            "schema_supported": template["schema_supported"],
-            "blockers": template["blockers"],
-            "mode": mode,
-            "context": self._safe_context_preview(context),
-            "requires_review": route in {"private_data", "source_intake"} or bool(template["blockers"]),
-            "private_data_active": private_status["private_data_active"],
-            "source_matches_found": len(source_lookup.get("rows", [])),
-            "safe_metadata_only": True,
-            "options_received": sorted((options or {}).keys())[:8],
-        }
+        return self.preview_service.preview(question, options, context, mode)
 
     def ask(
         self,
@@ -277,36 +270,10 @@ class QueryEngine:
     def enrich(self, question: str, options: dict[str, Any] | None = None, context: dict[str, Any] | None = None) -> dict[str, Any]:
         options = options or {}
         plan = self.planner.plan(self._merge_context_into_question(question, context), self.repository, context)
-        request = self._build_enrichment_request(question, plan, context, [])
-        review_tool = self.agent_tools.create_review_candidate(
-            "graph_enrichment_request",
-            "Potential graph data gap should be reviewed before any KG write-back.",
-            {"enrichment_request": request, "options": options},
-        )
-        return {
-            "status": "staged_for_review",
-            "enrichment_request": request,
-            "review_candidate": review_tool["output"],
-            "writeback_allowed": False,
-        }
+        return self.enrichment.enrich(question, options, context, plan)
 
     def workflow_status(self) -> dict[str, Any]:
-        templates = [self._template_schema_status(item["intent"]) for item in self._template_catalog()]
-        supported_suggestions = [
-            item["suggestion"]
-            for item in templates
-            if item["schema_supported"] and item.get("suggestion")
-        ]
-        return {
-            "status": "ready",
-            "chat_modes": [
-                {"id": "quick_ask", "label": "Quick Ask", "description": "Direct graph questions with selected context."},
-                {"id": "research_review", "label": "Research Review", "description": "Deeper fit, risk, evidence, and provenance review."},
-            ],
-            "follow_up_suggestions": supported_suggestions,
-            "reviewed_templates": templates,
-            "writebacks": {"enabled": False, "policy": "enrichment requests are staged for human review"},
-        }
+        return self.workflow_status_service.workflow_status()
 
     def run_scenario(self, scenario: str, material_id: str | None = None, supplier_id: str | None = None, options: dict[str, Any] | None = None) -> dict[str, Any]:
         return self.scenarios.run(scenario=scenario, material_id=material_id, supplier_id=supplier_id, options=options)
@@ -550,24 +517,20 @@ class QueryEngine:
         trace = self._pipeline_trace(classifier, retrieval, scored_rows, message, review)
         panel = self._build_answer_panel(intent, result, plan, message)
         latency_ms = int((time.perf_counter() - started_at) * 1000) if started_at else 0
-        enrichment_request = self._build_enrichment_request(resolved_question or question, plan, context, scored_rows) if not scored_rows else None
-        empty_state = self._build_empty_state(intent, route, enrichment_request) if not scored_rows else {}
-        route_preview = {
-            "route": route,
-            "intent": intent,
-            "template": template_name,
-            "schema_supported": self._template_schema_status(intent)["schema_supported"],
-            "blockers": self._template_schema_status(intent)["blockers"],
-            "context_entity": self._context_label(context),
-            "mode": (plan.get("entities", {}) or {}).get("chat_mode") or "quick_ask",
-            "safe_metadata_only": True,
-        }
-        answer_quality = self._answer_quality(scored_rows, evidence_rows, review_candidate, enrichment_request)
-        provenance = {
-            "verified_kg": [row for row in scored_rows if not self._is_provisional_row(row)],
-            "provisional": [row for row in scored_rows if self._is_provisional_row(row)],
-            "evidence_rows": evidence_rows,
-        }
+        enrichment_request = self.enrichment.build_request(resolved_question or question, plan, context, scored_rows) if not scored_rows else None
+        quality_package = self.quality.build_package(
+            intent=intent,
+            route=route,
+            template_name=template_name,
+            classifier=classifier,
+            plan=plan,
+            context=context,
+            scored_rows=scored_rows,
+            evidence_rows=evidence_rows,
+            review_candidate=review_candidate,
+            enrichment_request=enrichment_request,
+            latency_ms=latency_ms,
+        )
         panel["debug"] = {
             "source": source,
             "classifier": classifier,
@@ -626,20 +589,14 @@ class QueryEngine:
             "private_data_active": classifier["private_data_active"],
             "source": source,
             "source_intake": result.get("source_query", {}) if isinstance(result, dict) and source == "source_intake" else {},
-            "route_preview": route_preview,
-            "answer_quality": answer_quality,
-            "empty_state": empty_state,
+            "route_preview": quality_package["route_preview"],
+            "answer_quality": quality_package["answer_quality"],
+            "empty_state": quality_package["empty_state"],
             "results": scored_rows,
             "confidence": float(classifier.get("confidence", 0)),
             "latency_ms": latency_ms,
-            "provenance": provenance,
-            "execution_metadata": {
-                "template": template_name,
-                "route": route,
-                "intent": intent,
-                "latency_ms": latency_ms,
-                "provisional_writeback_enabled": False,
-            },
+            "provenance": quality_package["provenance"],
+            "execution_metadata": quality_package["execution_metadata"],
             "enrichment_request": enrichment_request,
             "agent_state_machine": agent_state_machine,
             "agent_tools": tool_runs,
@@ -654,226 +611,3 @@ class QueryEngine:
 
     def _build_answer_panel(self, intent: str, result: Any, plan: dict[str, Any], message: str) -> dict[str, Any]:
         return self.response_builder.build_answer_panel(intent, result, plan, message)
-
-    def _build_empty_state(self, intent: str, route: str, enrichment_request: dict[str, Any] | None) -> dict[str, Any]:
-        cause = self._no_result_cause(intent, route)
-        return {
-            "title": "No verified graph rows found",
-            "message": "The query ran, but PackGraph could not find a verified relationship for this request.",
-            "no_result_cause": cause,
-            "intent": intent,
-            "route": route,
-            "next_action": "Review the staged enrichment request before adding anything to the graph." if enrichment_request else "Try a narrower material, supplier, or evidence question.",
-        }
-
-    def _build_enrichment_request(
-        self,
-        query: str,
-        plan: dict[str, Any],
-        context: dict[str, Any] | None,
-        rows: list[dict[str, Any]],
-    ) -> dict[str, Any] | None:
-        if rows:
-            return None
-        source = self._context_label(context) or plan.get("entities", {}).get("material_id") or "unknown_source"
-        target = self._target_from_question(query)
-        relationship = self._relationship_for_intent(plan.get("intent", "unknown"))
-        edge_key_raw = f"{source}|{relationship}|{target}|{query}".lower()
-        return {
-            "source": source,
-            "relationship": relationship,
-            "target": target,
-            "confidence": 0.36,
-            "evidence": [],
-            "query": query,
-            "model": "packgraph-local-enrichment-stub",
-            "edge_key": hashlib.sha256(edge_key_raw.encode("utf-8")).hexdigest()[:16],
-            "source_type": "llm_inferred",
-            "assertion_kind": "LLM_INFERRED",
-            "validation_status": "pending",
-            "verification_status": "unverified",
-            "promotion_status": "not_promoted",
-        }
-
-    def _relationship_for_intent(self, intent: str) -> str:
-        mapping = {
-            "suppliers_for_material": "SUPPLIED_BY",
-            "evidence_for_material": "HAS_DOCUMENT",
-            "find_recyclable_substitutes": "SUBSTITUTES_WITH",
-            "compare_materials": "COMPARES_WITH",
-            "selected_supplier_lookup": "SUPPLIES",
-            "selected_material_lookup": "RELATED_TO",
-        }
-        return mapping.get(intent, "NEEDS_REVIEW_RELATIONSHIP")
-
-    def _target_from_question(self, query: str) -> str:
-        tokens = [token for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]{2,}", query) if token.lower() not in {"show", "what", "where", "with", "this", "that", "about", "source"}]
-        return " ".join(tokens[-4:]) or "unknown_target"
-
-    def _context_label(self, context: dict[str, Any] | None) -> str:
-        if not context:
-            return ""
-        return context.get("entity_id") or context.get("entity_name") or context.get("entity_type") or ""
-
-    def _is_provisional_row(self, row: dict[str, Any]) -> bool:
-        return (
-            row.get("source_type") == "llm_inferred"
-            or row.get("assertion_kind") == "LLM_INFERRED"
-            or row.get("validation_status") == "pending"
-        )
-
-    def _answer_quality(
-        self,
-        rows: list[dict[str, Any]],
-        evidence_rows: list[dict[str, Any]],
-        review_candidate: dict[str, Any] | None,
-        enrichment_request: dict[str, Any] | None,
-    ) -> dict[str, Any]:
-        provisional = [row for row in rows if self._is_provisional_row(row)]
-        verified = [row for row in rows if not self._is_provisional_row(row)]
-        confidences = [self._confidence_value(row) for row in rows]
-        unstamped = [
-            row
-            for row in rows
-            if not (row.get("provenance_id") or row.get("source_id") or row.get("edge_key") or row.get("entity_id") or row.get("material_id") or row.get("supplier_id"))
-        ]
-        return {
-            "status": "no_verified_rows" if not verified else "answered",
-            "row_count": len(rows),
-            "has_provisional_data": bool(provisional),
-            "verified_count": len(verified),
-            "provisional_count": len(provisional),
-            "lowest_confidence": round(min(confidences), 2) if confidences else 0.0,
-            "needs_validation": bool(provisional or review_candidate or enrichment_request or unstamped),
-            "lineage_checked": bool(evidence_rows) or all(row.get("entity_id") or row.get("provenance_id") or row.get("edge_key") for row in rows),
-            "unstamped_result_count": len(unstamped),
-        }
-
-    def _no_result_cause(self, intent: str, route: str) -> str:
-        if route == "source_intake":
-            return "raw_uploaded_record"
-        if intent in {"selected_supplier_lookup", "selected_material_lookup", "uploaded_record_lookup"}:
-            return "wrong_entity_type"
-        if not self._template_schema_status(intent)["schema_supported"]:
-            return "schema_mismatch"
-        if intent in {"suppliers_for_material", "evidence_for_material", "find_recyclable_substitutes"}:
-            return "missing_modeled_relationship"
-        return "no_rows_for_template"
-
-    def _confidence_value(self, row: dict[str, Any]) -> float:
-        try:
-            raw = float(row.get("confidence", row.get("score", 0)) or 0)
-        except (TypeError, ValueError):
-            raw = 0.0
-        return raw / 100 if raw > 1 else raw
-
-    def _template_catalog(self) -> list[dict[str, Any]]:
-        return [
-            {
-                "intent": "suppliers_for_material",
-                "description": "List qualified suppliers for a selected material.",
-                "parameters": ["material_id"],
-                "required_labels": ["Material", "Supplier"],
-                "required_relationship_type": "SUPPLIED_BY",
-                "suggestion": "Show suppliers for this",
-            },
-            {
-                "intent": "selected_supplier_lookup",
-                "description": "Open a direct supplier profile from selected context.",
-                "parameters": ["supplier_id"],
-                "required_labels": ["Supplier"],
-                "required_relationship_type": None,
-                "suggestion": "Show risk for this supplier",
-            },
-            {
-                "intent": "evidence_for_material",
-                "description": "Trace source documents, lab reports, and declarations.",
-                "parameters": ["material_id"],
-                "required_labels": ["Material", "SourceDocument"],
-                "required_relationship_type": "HAS_DOCUMENT",
-                "suggestion": "Show evidence for this",
-            },
-            {
-                "intent": "find_recyclable_substitutes",
-                "description": "Find substitute materials and rank tradeoffs.",
-                "parameters": ["material_id"],
-                "required_labels": ["Material"],
-                "required_relationship_type": "SUBSTITUTES_WITH",
-                "suggestion": "Compare this to alternatives",
-            },
-            {
-                "intent": "compare_materials",
-                "description": "Compare materials by weighted performance and sustainability.",
-                "parameters": ["material_ids"],
-                "required_labels": ["Material"],
-                "required_relationship_type": None,
-                "suggestion": "Run a comparison for this",
-            },
-            {
-                "intent": "catalog_lookup",
-                "description": "Search local catalog/private/uploaded records.",
-                "parameters": ["query"],
-                "required_labels": [],
-                "required_relationship_type": None,
-                "suggestion": "What data is missing for this decision?",
-            },
-        ]
-
-    def _template_schema_status(self, intent: str) -> dict[str, Any]:
-        template = next((item for item in self._template_catalog() if item["intent"] == intent), None)
-        if not template:
-            return {
-                "intent": intent,
-                "description": "No reviewed template matched.",
-                "parameters": [],
-                "required_labels": [],
-                "required_relationship_type": None,
-                "suggestion": "",
-                "schema_supported": False,
-                "blockers": [{"type": "missing_reviewed_template", "value": intent}],
-            }
-        available_labels = self._available_schema_labels()
-        available_relationships = self._available_relationship_types()
-        missing_labels = [label for label in template["required_labels"] if label not in available_labels]
-        missing_relationship = template["required_relationship_type"] and template["required_relationship_type"] not in available_relationships
-        blockers = []
-        if missing_labels:
-            blockers.append({"type": "missing_required_labels", "values": missing_labels})
-        if missing_relationship:
-            blockers.append({"type": "missing_required_relationship_type", "value": template["required_relationship_type"]})
-        return {**template, "schema_supported": not blockers, "blockers": blockers}
-
-    def _available_schema_labels(self) -> set[str]:
-        labels = set()
-        if getattr(self.repository, "materials", None):
-            labels.add("Material")
-        if getattr(self.repository, "suppliers", None):
-            labels.add("Supplier")
-        if getattr(self.repository, "documents", None):
-            labels.add("SourceDocument")
-        if getattr(self.repository, "applications", None):
-            labels.add("Application")
-        if getattr(self.repository, "regulations", None):
-            labels.add("Regulation")
-        return labels
-
-    def _available_relationship_types(self) -> set[str]:
-        relationships = set()
-        for row in getattr(self.repository, "relationships", []) or []:
-            relation = row.get("type") or row.get("relationship") or row.get("relationship_type")
-            if relation:
-                relationships.add(str(relation))
-        relationships.update({"SUPPLIED_BY", "HAS_DOCUMENT", "SUBSTITUTES_WITH"})
-        return relationships
-
-    def _safe_context_preview(self, context: dict[str, Any] | None) -> dict[str, Any]:
-        if not context:
-            return {}
-        metadata = context.get("metadata") or {}
-        return {
-            "entity_type": context.get("entity_type"),
-            "entity_id": context.get("entity_id"),
-            "entity_name": context.get("entity_name"),
-            "metadata_keys": sorted(metadata.keys())[:8],
-            "history_count": len(context.get("history") or []),
-        }
