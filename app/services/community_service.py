@@ -143,7 +143,7 @@ class CommunityService:
             None,
         )
 
-    def create_post(self, payload: dict[str, Any], author_name: str, author_role: str = "Explorer", author_reputation: int = 60, org_id: str = "ORG-001") -> dict[str, Any]:
+    def create_post(self, payload: dict[str, Any], author_name: str, author_role: str = "Contributor", author_reputation: int = 60, org_id: str = "ORG-001") -> dict[str, Any]:
         posts = self._read()
         now = datetime.now().isoformat(timespec="seconds")
         record = {
@@ -203,7 +203,7 @@ class CommunityService:
         self._write(posts)
         return updated
 
-    def add_reply(self, post_id: str, body: str, author_name: str, author_role: str = "Explorer", org_id: str | None = None) -> dict[str, Any] | None:
+    def add_reply(self, post_id: str, body: str, author_name: str = "Demo Analyst", author_role: str = "Contributor", org_id: str | None = None) -> dict[str, Any] | None:
         posts = self._read()
         updated = None
         for post in posts:

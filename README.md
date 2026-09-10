@@ -87,7 +87,7 @@ It includes:
 
 ### Backend
 
-- FastAPI backend with endpoints for materials, suppliers, applications, investigations, recommendations, natural-language queries, scenarios, backend status, compliance, relationships, contributions, community, search, and supporting drilldowns
+- FastAPI backend with endpoints for materials, suppliers, applications, investigations, recommendations, natural-language queries, scenarios, Neo4j health, compliance, relationships, contributions, community, search, and supporting drilldowns
 - Safe query-planning layer that uses reviewed intent routing instead of unconstrained Cypher generation
 - Hybrid reasoning pipeline with router, classifier metadata, reviewed template retrieval, parameter extraction, scoring details, pipeline trace, and human-review gate metadata
 - Controlled agentic orchestration with explicit tools, strict state-machine output, evidence profiling, local project memory, review-candidate staging, and entity-resolution checks
@@ -110,10 +110,10 @@ It includes:
 ### Frontend
 
 - Landing page with product overview, setup guidance, workflow framing, and entry links
-- Dashboard with structured answer panel, prompt diary, result/debug split, evidence workspace, graph explorer, supplier and regulation drilldowns, trend panels, and timeline panels
+- Dashboard with structured answer panel, prompt diary, evidence workspace, graph explorer, supplier and regulation drilldowns, trend panels, and timeline panels
 - Light and dark theme support
 - Explore, Contribute, and Community product sections
-- Guided tour system across Chat, Explore, Projects, Contribute, Community, Review, and Resolution flows
+- Help tour system across Chat, Explore, Projects, Contribute, Community, Review, and Resolution flows
 - Graph controls including presets, branch filters, zoom controls, path tracing, and interaction-focused graph context
 
 ## Core capabilities
@@ -160,7 +160,7 @@ flowchart LR
     G --> H["Parameter extraction + Cypher execution"]
     H --> I["Graph/private results"]
     I --> J["Ensemble scoring + reranking"]
-    J --> K["Structured answer panel + debug trace"]
+    J --> K["Structured answer panel + technical details"]
     K --> L["Human review gate"]
     C --> M["Scenario engine"]
     C --> N["Document intelligence and evidence services"]
@@ -194,7 +194,7 @@ For more detail, see:
 - `queries/`
   Example Cypher query files.
 - `scripts/`
-  Data generation, ingestion, and benchmark scripts.
+  Data generation, ingestion, health, review, and validation scripts.
 - `tests/`
   Automated backend-focused tests.
 - `web/`
@@ -344,6 +344,8 @@ python scripts/evaluate_entity_resolution.py
 ```bash
 python scripts/status_dashboard.py
 ```
+
+Operator status, schema migrations, entity-resolution evaluation, raw review JSON import/export, and the optional Google ADK architecture are developer/admin surfaces. The main product UI keeps these behind collapsed Developer Tools or CLI workflows so end users see only the polished workspace, review, evidence, and export actions.
 
 ### One-command smoke validation
 
@@ -564,8 +566,6 @@ Typical relationship types include:
 - `GET /investigations`
 - `POST /investigations`
 - `GET /search/global`
-- `GET /runtime/backends`
-- `GET /benchmarks`
 
 ## Demo walkthroughs
 

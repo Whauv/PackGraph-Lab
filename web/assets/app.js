@@ -370,7 +370,6 @@ function handleChatResult(question, response) {
     },
   });
   renderQueryRows(response.rows || []);
-  renderExecutionDebug(response);
   syncActiveCase({
     latest_question: question,
     evidence_strength: workflow.evidence_strength,
@@ -411,44 +410,6 @@ function renderQueryRows(rows = []) {
         ${rows.slice(0, 8).map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(String(row[column] ?? ""))}</td>`).join("")}</tr>`).join("")}
       </tbody>
     </table>`;
-}
-
-function renderExecutionDebug(response) {
-  const container = document.getElementById("answer-panel-debug");
-  if (!container) return;
-  const trace = response.pipeline_trace || [];
-  const classifier = response.classifier || {};
-  const retrieval = response.retrieval || {};
-  const review = response.review_gate || {};
-  if (!trace.length && !classifier.route && !retrieval.reviewed_template) {
-    container.innerHTML = window.PackGraphUI?.emptyState
-      ? window.PackGraphUI.emptyState("Technical details stay quiet by default", "Run a question if you want to inspect routing, templates, and review-gate behavior.")
-      : "";
-    return;
-  }
-  container.innerHTML = `
-    <div class="technical-details-block">
-      <button type="button" id="toggle-technical-details" class="secondary technical-details-toggle">Show technical details</button>
-      <div id="technical-details-content" class="debug-stack technical-details-content" hidden>
-        <div class="row-card"><strong>Route</strong><p>${escapeHtml(classifier.route || "graph")} | intent ${escapeHtml(classifier.intent || "unknown")} | confidence ${escapeHtml(String(classifier.confidence ?? ""))}</p></div>
-        <div class="row-card"><strong>Template</strong><p>${escapeHtml(retrieval.reviewed_template || "none")} | private matches ${escapeHtml(String(retrieval.private_matches_found ?? 0))}</p></div>
-        <div class="row-card"><strong>Review gate</strong><p>${escapeHtml(review.status || "cleared")} | ${escapeHtml(review.reason || "No review note.")}</p></div>
-        ${trace.map((item) => `<div class="row-card"><strong>${escapeHtml(titleCase(item.stage))}</strong><p>${escapeHtml(item.detail || "")}</p></div>`).join("")}
-      </div>
-    </div>`;
-  document.getElementById("toggle-technical-details")?.addEventListener("click", () => {
-    const content = document.getElementById("technical-details-content");
-    const button = document.getElementById("toggle-technical-details");
-    if (!content || !button) return;
-    const hidden = content.hasAttribute("hidden");
-    if (hidden) {
-      content.removeAttribute("hidden");
-      button.textContent = "Hide technical details";
-    } else {
-      content.setAttribute("hidden", "hidden");
-      button.textContent = "Show technical details";
-    }
-  });
 }
 
 function promptDiaryGroups() {
@@ -502,6 +463,13 @@ function titleCase(value) {
     .filter(Boolean)
     .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
     .join(" ");
+}
+
+function formatDate(value) {
+  if (!value) return "Not updated yet";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function formatFilterLabel(value) {
@@ -569,6 +537,9 @@ function setStatus(id, message, tone = "info") {
   if (!element) return;
   element.textContent = message;
   element.className = `upload-status status-${tone}`;
+  if (tone === "success" && message) {
+    window.PackGraphUI?.toast?.(message, "success");
+  }
 }
 
 function clearStatus(id) {
@@ -599,12 +570,40 @@ function setNotificationFilter(filter) {
   document.querySelectorAll("[data-notification-filter]").forEach((button) => {
     button.classList.toggle("active", button.dataset.notificationFilter === state.notificationFilter);
   });
-  if (window.PackGraphAuthShell) {
-    const visible = state.notificationFilter === "all"
-      ? state.notifications
-      : state.notifications.filter((item) => item.type === state.notificationFilter);
-    window.PackGraphAuthShell.renderNotifications(visible);
+  const visible = state.notificationFilter === "all"
+    ? state.notifications
+    : state.notifications.filter((item) => item.type === state.notificationFilter);
+  renderNotifications(visible);
+}
+
+function renderNotifications(items = []) {
+  const container = document.getElementById("notification-list");
+  const summary = document.getElementById("notification-summary");
+  if (!container) return;
+  if (!items.length) {
+    if (summary) summary.innerHTML = "";
+    container.innerHTML = window.PackGraphUI?.emptyState
+      ? window.PackGraphUI.emptyState("No new notifications", "Alerts, reviews, saved workspaces, and discussion updates will surface here.")
+      : `<div class="table-empty">No new notifications.</div>`;
+    return;
   }
+  if (summary) {
+    const counts = items.reduce((acc, item) => {
+      acc[item.type] = (acc[item.type] || 0) + 1;
+      return acc;
+    }, {});
+    summary.innerHTML = `
+      <div class="metric"><div class="value">${escapeHtml(items.length)}</div><div>visible</div></div>
+      <div class="metric"><div class="value">${escapeHtml((counts.alert || 0) + (counts.review_request || 0))}</div><div>urgent</div></div>`;
+  }
+  container.innerHTML = items.map((item) => `
+    <div class="row-card notification-card">
+      <div class="explore-result-top">
+        ${window.PackGraphUI?.tonePill ? window.PackGraphUI.tonePill(item.type, item.tone || "neutral") : `<span class="tag">${escapeHtml(item.type)}</span>`}
+        <strong>${escapeHtml(item.title)}</strong>
+      </div>
+      <p>${escapeHtml(item.detail)}</p>
+    </div>`).join("");
 }
 
 function openCommandCenter() {
@@ -694,7 +693,7 @@ function renderCommandCenterResults() {
   const payload = state.commandCenterResults || {};
   const groups = [
     ["Core graph", payload.results || []],
-    ["Workspaces", payload.workspaces || []],
+    ["Cases", payload.workspaces || []],
     ["Cases", payload.investigations || []],
     ["Scenarios", payload.scenarios || []],
     ["Contributions", payload.contributions || []],
@@ -702,7 +701,7 @@ function renderCommandCenterResults() {
   ].filter(([, items]) => items.length);
   if (!groups.length) {
     container.innerHTML = window.PackGraphUI?.emptyState
-      ? window.PackGraphUI.emptyState("No global matches", "Try a material, supplier, regulation, scenario type, workspace, or discussion keyword.")
+      ? window.PackGraphUI.emptyState("No global matches", "Try supplier, material, regulation, document names, scenario type, workspace, or discussion keyword.")
       : `<div class="row-card"><p>No global matches.</p></div>`;
     return;
   }
@@ -856,7 +855,7 @@ function roleDashboardProfile() {
       next: "Open Intelligence for graph and provenance",
     },
     explorer: {
-      label: "Explorer workspace",
+      label: "Contributor workspace",
       summary: "Start from search and discovery, then promote only promising candidates into deeper decision work.",
       focus: "Search, shortlist, and learn",
       next: "Use Overview and Explore together",
@@ -917,6 +916,7 @@ function pushRecentEntity(entity) {
   ].slice(0, 8);
   persistPersonalWorkspace();
   renderPersonalWorkspace();
+  renderRecentEntitiesStrip();
 }
 
 function addBookmark(entity) {
@@ -925,6 +925,39 @@ function addBookmark(entity) {
   state.personalWorkspace.bookmarks = [entity, ...(state.personalWorkspace.bookmarks || [])].slice(0, 10);
   persistPersonalWorkspace();
   renderPersonalWorkspace();
+  window.PackGraphUI?.toast?.(`${entity.label} bookmarked.`, "success");
+}
+
+async function openRecentEntity(entity) {
+  if (!entity) return;
+  if (entity.type === "material") {
+    await openMaterial(entity.id, "overview");
+  } else if (entity.type === "supplier") {
+    await openSupplierProfile(entity.id);
+  } else if (entity.type === "regulation") {
+    await openRegulationDetail(entity.id);
+  } else if (entity.type === "community_post") {
+    setSection("community");
+    state.selectedCommunityPostId = entity.id;
+    await loadCommunityData();
+  } else {
+    setChatContext({ entity_type: entity.type || "entity", entity_id: entity.id, entity_name: entity.label }, { open: true });
+  }
+}
+
+function renderRecentEntitiesStrip() {
+  const container = document.getElementById("recent-entities-strip");
+  if (!container) return;
+  const recent = (state.personalWorkspace.recent_entities || []).slice(0, 6);
+  container.innerHTML = recent.length
+    ? recent.map((item) => `<button type="button" class="recent-entity-chip" data-recent-entity="${escapeHtml(item.id)}"><span>${escapeHtml(formatEntityLabel(item.type))}</span><strong>${escapeHtml(item.label)}</strong></button>`).join("")
+    : `<div class="micro-helper">Open a material or supplier to build recent context.</div>`;
+  container.querySelectorAll("[data-recent-entity]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const entity = recent.find((item) => item.id === button.dataset.recentEntity);
+      await openRecentEntity(entity);
+    });
+  });
 }
 
 function renderPersonalWorkspace() {
@@ -955,6 +988,7 @@ function renderPersonalWorkspace() {
       renderPersonalWorkspace();
     });
   });
+  renderRecentEntitiesStrip();
 }
 
 function renderActivityTimeline() {
@@ -978,54 +1012,6 @@ function addActivityEvent(title, detail, type = "activity") {
   ].slice(0, 20);
   persistPersonalWorkspace();
   renderActivityTimeline();
-}
-
-function renderOperationsDashboard() {
-  const cards = document.getElementById("operations-health-cards");
-  const latency = document.getElementById("operations-latency-list");
-  const artifacts = document.getElementById("operations-artifact-list");
-  if (!cards || !latency || !artifacts) return;
-  const dashboard = state.operationsDashboard || {};
-  const healthCards = dashboard.health_cards || [];
-  cards.innerHTML = healthCards.length
-    ? healthCards.map((item) => `
-      <div class="metric operations-health-card">
-        <div class="value">${escapeHtml(String(item.value))}</div>
-        <div>${escapeHtml(item.label)}</div>
-        ${window.PackGraphUI?.tonePill ? window.PackGraphUI.tonePill(item.tone || "neutral", item.tone || "neutral") : ""}
-      </div>`).join("")
-    : (window.PackGraphUI?.emptyState
-      ? window.PackGraphUI.emptyState("No operations signal yet", "Use the app to generate request, graph, review, and job telemetry.")
-      : `<div class="table-empty">No operations signal yet.</div>`);
-  latency.innerHTML = (dashboard.query_latency || []).length
-    ? dashboard.query_latency.map((item) => `
-      <div class="row-card">
-        <strong>${escapeHtml(item.path)}</strong>
-        <small>${escapeHtml(String(item.count || 0))} requests | avg ${escapeHtml(String(item.avg || 0))} ms | max ${escapeHtml(String(item.max || 0))} ms</small>
-      </div>`).join("")
-    : (window.PackGraphUI?.emptyState
-      ? window.PackGraphUI.emptyState("No latency samples", "Route timing appears here after requests are recorded.")
-      : `<div class="row-card"><p>No latency samples.</p></div>`);
-  const runtime = dashboard.runtime_artifacts || {};
-  const locations = dashboard.artifact_locations || {};
-  artifacts.innerHTML = [
-    ["Runtime files", runtime.runtime_files ?? 0, locations.runtime],
-    ["Staging files", runtime.staging_files ?? 0, locations.staging],
-    ["Report files", runtime.report_files ?? 0, locations.reports],
-  ].map(([label, value, path]) => `
-    <div class="row-card">
-      <strong>${escapeHtml(String(value))} ${escapeHtml(label)}</strong>
-      <small>${escapeHtml(path || "local runtime")}</small>
-    </div>`).join("");
-}
-
-async function loadOperationsDashboard() {
-  try {
-    state.operationsDashboard = await fetchJson("/operations/dashboard");
-  } catch {
-    state.operationsDashboard = null;
-  }
-  renderOperationsDashboard();
 }
 
 function workflowSteps() {
@@ -1447,7 +1433,7 @@ function updateGraphActionBar() {
   const compare = document.getElementById("graph-compare-node");
   if (collapse) collapse.disabled = !branchType || state.graphCollapsedTypes.includes(branchType);
   if (expand) expand.disabled = !branchType || !state.graphCollapsedTypes.includes(branchType);
-  if (pin) pin.textContent = state.graphPinnedNodeIds.includes(state.selectedGraphNodeId) ? "Unpin node" : "Pin node";
+  if (pin) pin.textContent = state.graphPinnedNodeIds.includes(state.selectedGraphNodeId) ? "Release node" : "Keep visible";
   if (evidence) evidence.disabled = !selectedNode;
   if (compare) compare.disabled = !selectedNode || selectedNode.type !== "material";
 }
@@ -1533,6 +1519,8 @@ function addMaterialToShortlist(materialId) {
   const option = Array.from(compare.options).find((item) => item.value === materialId);
   if (!option) return;
   option.selected = true;
+  const materialName = state.materials.find((item) => item.material_id === materialId)?.name || materialId;
+  window.PackGraphUI?.toast?.(`${materialName} added to the shortlist.`, "success");
   renderCompareSelectionSummary();
   syncActiveCase({
     shortlist_material_ids: selectedMaterialsFromCompare(),
@@ -1542,6 +1530,12 @@ function addMaterialToShortlist(materialId) {
 }
 
 function bindInlineActions() {
+  document.querySelectorAll("[data-command-open]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [entityType, entityId] = button.dataset.commandOpen.split("::");
+      await openCommandResult(entityType, entityId);
+    });
+  });
   document.querySelectorAll("[data-select-material]").forEach((button) => {
     button.addEventListener("click", async () => {
       await openMaterial(button.dataset.selectMaterial, "overview");
@@ -1596,6 +1590,7 @@ function bindInlineActions() {
   document.querySelectorAll("[data-export-material]").forEach((button) => {
     button.addEventListener("click", () => {
       const materialId = button.dataset.exportMaterial;
+      window.PackGraphUI?.toast?.("Preparing export.", "success");
       window.open(`/exports/executive-summary.pdf?material_id=${encodeURIComponent(materialId)}`, "_blank", "noopener");
     });
   });
@@ -1780,9 +1775,6 @@ async function loadSession() {
   }
   if (!state.currentUser) {
     setSessionToken("");
-  }
-  if (window.PackGraphAuthShell) {
-    window.PackGraphAuthShell.renderUser(state.currentUser);
   }
   renderRoleDashboard();
 }
@@ -2155,9 +2147,7 @@ async function loadNotifications() {
   } catch {
     state.notifications = [];
   }
-  if (window.PackGraphAuthShell) {
-    setNotificationFilter(state.notificationFilter);
-  }
+  setNotificationFilter(state.notificationFilter);
   renderActivityTimeline();
   renderRoleDashboard();
 }
@@ -2279,7 +2269,7 @@ async function applyReviewDecision(status) {
         ? "The review cleared. Package the decision for stakeholders or export the case snapshot."
         : "Keep validating evidence and rationale before moving the case forward.",
     });
-    await Promise.all([loadReviewQueue(), loadNotifications(), loadOperationsDashboard()]);
+    await Promise.all([loadReviewQueue(), loadNotifications()]);
   } catch (error) {
     setStatus("review-status", error.message, "error");
   }
@@ -2295,7 +2285,7 @@ function renderSavedSearches() {
   container.innerHTML = state.savedSearches.slice(0, 6).map((item) => `
     <button type="button" class="row-card saved-search-card" data-saved-search="${escapeHtml(item.saved_search_id)}">
       <strong>${escapeHtml(item.name || item.tab || "Saved search")}</strong>
-      <small>${escapeHtml(titleCase(item.tab || "materials"))} | ${escapeHtml(item.saved_at || "")}</small>
+      <small>${escapeHtml(titleCase(item.tab || "materials"))} | Last updated ${escapeHtml(formatDate(item.saved_at || item.updated_at))}</small>
     </button>`).join("");
   container.querySelectorAll("[data-saved-search]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -2323,7 +2313,7 @@ function renderSavedPresets() {
   const presets = (state.workspaces || []).slice(0, 5);
   if (!presets.length) {
     container.innerHTML = window.PackGraphUI?.emptyState
-      ? window.PackGraphUI.emptyState("No saved presets", "Save a graph, filter, supplier, or investigation setup to restore it later.")
+      ? window.PackGraphUI.emptyState("No saved cases", "Save a graph, filter, supplier, or investigation setup to restore it later.")
       : `<div class="row-card"><p>No saved presets yet.</p></div>`;
     return;
   }
@@ -2333,13 +2323,13 @@ function renderSavedPresets() {
     return `
       <button type="button" class="row-card saved-search-card saved-preset-card" data-resume-preset="${escapeHtml(item.workspace_id)}">
         <strong>${escapeHtml(item.name)}</strong>
-        <small>${escapeHtml(titleCase(presetType))} | ${escapeHtml(titleCase(item.active_tab || "overview"))}${escapeHtml(graphSummary)}</small>
+        <small>${escapeHtml(titleCase(presetType))} | ${escapeHtml(titleCase(item.active_tab || "overview"))}${escapeHtml(graphSummary)} | Last updated ${escapeHtml(formatDate(item.updated_at || item.saved_at || item.created_at))}</small>
       </button>`;
   }).join("");
   container.querySelectorAll("[data-resume-preset]").forEach((button) => {
     button.addEventListener("click", async () => {
       await resumeWorkspace(button.dataset.resumePreset);
-      setStatus("workspace-status", "Restored the saved preset.", "success");
+      setStatus("workspace-status", "Restored the saved case.", "success");
     });
   });
 }
@@ -2797,6 +2787,7 @@ async function loadScenarioHistory() {
     "scenario-history",
     [
       { label: "Scenario", render: (item) => `<strong>${escapeHtml(titleCase(item.scenario_type))}</strong>` },
+      { label: "Last updated", render: (item) => `<small>${escapeHtml(formatDate(item.created_at || item.saved_at || item.run_at))}</small>` },
       {
         label: "Before",
         render: (item) => escapeHtml(
@@ -3098,15 +3089,15 @@ async function runGlobalSearch() {
     );
   } else if (identification) {
     const basis = identification.method === "image_filename_inference" ? "Identified from the uploaded image" : "Matched from your search";
-    setStatus("global-search-status", results.length ? `${basis} and found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
+    setStatus("global-search-status", results.length ? `${basis} and found ${results.length} matching records.` : "No matches found. Try supplier, material, regulation, or document names.", results.length ? "success" : "info");
   } else {
-    setStatus("global-search-status", results.length ? `Found ${results.length} matching records.` : "No matches found.", results.length ? "success" : "info");
+    setStatus("global-search-status", results.length ? `Found ${results.length} matching records.` : "No matches found. Try supplier, material, regulation, or document names.", results.length ? "success" : "info");
   }
   renderTableCard(
     "global-search-results",
     [
       { label: "Type", render: (item) => `<span class="table-badge">${escapeHtml(formatEntityLabel(item.entity_type))}</span>` },
-      { label: "Result", render: (item) => `<strong>${escapeHtml(item.title)}</strong><br /><small>${escapeHtml(item.subtitle)}</small>` },
+      { label: "Result", render: (item) => `<button type="button" class="table-entity-link" data-command-open="${escapeHtml(item.entity_type)}::${escapeHtml(item.entity_id || item.title)}"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.subtitle)}</small></button>` },
       { label: "Context", render: (item) => escapeHtml(item.meta || "") },
       {
         label: "Actions",
@@ -3195,19 +3186,6 @@ function skeletonBlock(type) {
       <div class="skeleton skeleton-line short"></div>
       <div class="skeleton skeleton-card"></div>
     </div>`;
-}
-
-async function loadBenchmarks() {
-  if (!document.getElementById("benchmark-status")) {
-    return;
-  }
-  const data = await fetchJson("/benchmarks");
-  const neo4jStatus = data.neo4j?.status || data.status || "not-run";
-  document.getElementById("benchmark-status").innerHTML = `
-    <div class="metric"><div class="value">${titleCase(neo4jStatus)}</div><div>Neo4j benchmark state</div></div>
-    <div class="metric"><div class="value">${state.privateDataStatus.private_data_active ? "Active" : "Not loaded"}</div><div>Private data status</div></div>`;
-  document.getElementById("benchmark-query-set").innerHTML = (data.query_set || []).map((item) => `<div class="row-card"><strong>${item.query}</strong><p>${item.note}</p></div>`).join("");
-  document.getElementById("benchmark-plan-notes").innerHTML = (data.query_plan_notes || data.notes || []).map((item) => `<div class="row-card"><p>${item.note || item}</p></div>`).join("");
 }
 
 async function applyFilters() {
@@ -3426,7 +3404,7 @@ async function runScenario() {
     note: result.summary || state.activeCase?.note || "",
   }, { syncMemory: true });
   addActivityEvent("Scenario run", result.summary || titleCase(payload.scenario), "scenario");
-  await Promise.all([loadScenarioHistory(), loadOperationsDashboard()]);
+  await Promise.all([loadScenarioHistory()]);
 }
 
 async function loadTrendCharts() {
@@ -3725,7 +3703,7 @@ function setupGraphFilters() {
   if (isolate) {
     isolate.addEventListener("click", () => {
       state.graphIsolateSelection = !state.graphIsolateSelection;
-      isolate.textContent = state.graphIsolateSelection ? "Show full graph" : "Isolate branch";
+      isolate.textContent = state.graphIsolateSelection ? "Show full graph" : "Focus branch";
       if (state.currentGraph) renderGraphCanvas(state.currentGraph);
     });
   }
@@ -3740,7 +3718,7 @@ function setupGraphFilters() {
       state.graphPinnedNodeIds = [];
       if (relationshipFilter) relationshipFilter.value = "all";
       if (preset) preset.value = "full";
-      if (isolate) isolate.textContent = "Isolate branch";
+      if (isolate) isolate.textContent = "Focus branch";
       if (state.currentGraph) renderGraphCanvas(state.currentGraph);
       persistGraphUiState();
       applyGraphZoom();
@@ -3841,67 +3819,6 @@ function setupForms() {
     }
   });
 
-  document.getElementById("auth-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    try {
-      const user = await fetchJson("/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: document.getElementById("auth-email").value.trim(),
-          password: document.getElementById("auth-password").value,
-        }),
-      });
-      state.currentUser = user;
-      setSessionToken(user.session_token);
-      if (window.PackGraphAuthShell) {
-        window.PackGraphAuthShell.renderUser(user);
-      }
-      setStatus("auth-status", `Signed in as ${user.name}.`, "success");
-      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces(), loadReviewQueue()]);
-    } catch (error) {
-      setStatus("auth-status", error.message, "error");
-    }
-  });
-
-  document.getElementById("auth-register").addEventListener("click", async () => {
-    try {
-      const user = await fetchJson("/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "New Explorer",
-          email: document.getElementById("auth-email").value.trim() || `explorer${Date.now()}@packgraph.local`,
-          password: document.getElementById("auth-password").value || "packgraph-demo",
-          role_id: "explorer",
-        }),
-      });
-      state.currentUser = user;
-      setSessionToken(user.session_token);
-      if (window.PackGraphAuthShell) {
-        window.PackGraphAuthShell.renderUser(user);
-      }
-      setStatus("auth-status", `Created local account for ${user.name}.`, "success");
-      await Promise.all([loadSavedSearches(), loadNotifications(), loadWorkspaces(), loadReviewQueue()]);
-    } catch (error) {
-      setStatus("auth-status", error.message, "error");
-    }
-  });
-
-  document.getElementById("auth-logout").addEventListener("click", async () => {
-    await fetchJson("/auth/logout", { method: "POST" });
-    state.currentUser = null;
-    setSessionToken("");
-    if (window.PackGraphAuthShell) {
-      window.PackGraphAuthShell.renderUser(null);
-      window.PackGraphAuthShell.renderNotifications([]);
-    }
-    state.reviewQueue = [];
-    state.reviewSummary = { total: 0, pending: 0 };
-    renderReviewQueue();
-    setStatus("auth-status", "Signed out of the local session.", "info");
-  });
-
   document.getElementById("ask-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const question = document.getElementById("question-input").value.trim();
@@ -3957,10 +3874,10 @@ function setupForms() {
     event.preventDefault();
     const name = document.getElementById("workspace-name").value.trim();
     if (!name) {
-      setStatus("workspace-status", "Add a workspace name before saving.", "error");
+      setStatus("workspace-status", "Add a case name before saving.", "error");
       return;
     }
-    setStatus("workspace-status", "Saving workspace context...", "info");
+    setStatus("workspace-status", "Saving case context...", "info");
     const payload = {
       name,
       filters: {
@@ -4008,8 +3925,8 @@ function setupForms() {
       });
       document.getElementById("workspace-name").value = "";
       await Promise.all([loadWorkspaces(), loadNotifications()]);
-      setStatus("workspace-status", `Saved workspace ${name}.`, "success");
-      addActivityEvent("Saved workspace preset", name, payload.filters.preset_type || "workspace");
+      setStatus("workspace-status", `Saved case ${name}.`, "success");
+      addActivityEvent("Saved case", name, payload.filters.preset_type || "case");
       syncActiveCase({
         name,
         shortlist_material_ids: payload.selected_material_ids,
@@ -4273,7 +4190,6 @@ async function init() {
     handleChatResult,
     loadReviewQueue,
     loadNotifications,
-    loadOperationsDashboard,
   });
   setupThemeToggle();
   setupShellNavigation();
@@ -4285,6 +4201,7 @@ async function init() {
   setupForms();
   setupDraftPersistence();
   setupOverviewOnboardingHint();
+  window.PackGraphUI?.bindDisclosureMemory?.(document);
   setNotificationFilter("all");
   renderCaseWorkspace();
   renderWorkflowMap();
@@ -4303,11 +4220,9 @@ async function init() {
     loadReviewQueue(),
     loadSavedSearches(),
     loadNotifications(),
-    loadOperationsDashboard(),
     loadScenarioHistory(),
     loadRecommendationsSummary(),
     loadAnalytics(),
-    loadBenchmarks(),
     loadTrendCharts(),
     loadContributionData(),
     loadCommunityData(),
@@ -4328,7 +4243,6 @@ async function init() {
     next_steps: [],
   });
   renderQueryRows([]);
-  renderExecutionDebug({});
   renderSupplierDetail(null);
   renderRegulationDetail(null);
   if (window.PackGraphExplorePage) {
@@ -4339,7 +4253,7 @@ async function init() {
   }
   renderCrossPageContext();
   renderRoleDashboard();
-  addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and benchmark context.");
+  addMessage("PackGraph", "Start in Overview, move to Workbench for deeper evaluation, and use Intelligence for graph, analytics, alerts, and decision context.");
   const requestedSection = new URLSearchParams(window.location.search).get("section");
   const requestedPage = new URLSearchParams(window.location.search).get("page");
   if (["dashboard", "explore", "contribute", "community"].includes(requestedSection) && requestedSection !== "dashboard") {

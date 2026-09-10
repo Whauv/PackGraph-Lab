@@ -84,11 +84,15 @@ class QueryPreviewService:
     def _safe_context_preview(self, context: dict[str, Any] | None) -> dict[str, Any]:
         if not context:
             return {}
-        metadata = context.get("metadata") or {}
+        active = self.context_adapter.active_context(context) or {}
+        metadata = active.get("metadata") or {}
+        requirements = self.context_adapter.requirements_from_context(context)
         return {
-            "entity_type": context.get("entity_type"),
-            "entity_id": context.get("entity_id"),
-            "entity_name": context.get("entity_name"),
+            "entity_type": active.get("entity_type"),
+            "entity_id": active.get("entity_id"),
+            "entity_name": active.get("entity_name"),
             "metadata_keys": sorted(metadata.keys())[:8],
-            "history_count": len(context.get("history") or []),
+            "history_count": len(context.get("items") or context.get("history") or active.get("history") or []),
+            "requirements_saved": any(requirements.values()),
+            "requirements_fields": [key for key, value in requirements.items() if value],
         }

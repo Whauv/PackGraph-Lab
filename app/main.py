@@ -90,16 +90,6 @@ class AppState:
         self.observability.set_gauge("graph_backend_active", self.repository_status["active_backend"])
         self.observability.set_gauge("graph_backend_requested", self.repository_status["requested_backend"])
 
-    def benchmarks(self) -> dict:
-        benchmark_path = Path("data/runtime/benchmark_results.json")
-        if benchmark_path.exists():
-            with benchmark_path.open("r", encoding="utf-8") as handle:
-                return json.load(handle)
-        return {
-            "status": "not-run",
-            "notes": "Run python scripts/benchmark_backends.py after starting Neo4j.",
-        }
-
     def _job_ingest(self, payload: dict) -> dict:
         self.observability.record_job("running")
         argv: list[str] = []

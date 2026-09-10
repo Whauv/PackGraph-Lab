@@ -6,6 +6,7 @@ from typing import Any
 
 class QueryPlanner:
     def plan(self, question: str, repository=None, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        context = self._active_context(context)
         text = question.lower().strip()
         if len(text) < 8:
             return self._ambiguous(question, "Question is too short to safely route.")
@@ -45,6 +46,7 @@ class QueryPlanner:
         return self._ambiguous(question, "No reviewed intent matched the request.")
 
     def _extract_entities(self, question: str, repository, context: dict[str, Any] | None = None) -> dict[str, Any]:
+        context = self._active_context(context)
         text = question.lower()
         materials = []
         suppliers = []
@@ -144,7 +146,14 @@ class QueryPlanner:
         entity_id = context.get("entity_id")
         entity_name = context.get("entity_name")
         history = context.get("history") or []
-        compare_requested = "compare selected" in text or "compare these" in text or "compare this to" in text
+        compare_requested = (
+            "compare selected" in text
+            or "compare these" in text
+            or "compare this to" in text
+            or "compare this with" in text
+            or "previous one" in text
+            or "previous material" in text
+        )
         if compare_requested and history:
             material_ids = [item.get("entity_id") for item in [context, *history] if str(item.get("entity_type") or "").lower() == "material" and item.get("entity_id")]
             if len(material_ids) >= 2:
@@ -256,6 +265,14 @@ class QueryPlanner:
                 "fallback_used": False,
             },
         }
+
+    def _active_context(self, context: dict[str, Any] | None) -> dict[str, Any] | None:
+        if not context:
+            return None
+        active = context.get("active")
+        if isinstance(active, dict) and any(active.get(key) for key in ["entity_type", "entity_id", "entity_name"]):
+            return {**active, "history": context.get("items") or context.get("history") or active.get("history") or []}
+        return context
 
     def _ambiguous(self, question: str, reason: str) -> dict[str, Any]:
         return {

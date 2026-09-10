@@ -6,6 +6,9 @@ from typing import Any
 def entities_from_selected_context(context: dict[str, Any] | None) -> dict[str, Any]:
     if not context:
         return {}
+    active = context.get("active")
+    if isinstance(active, dict):
+        context = {**active, "history": context.get("items") or context.get("history") or active.get("history") or []}
     entity_type = str(context.get("entity_type") or "").lower()
     entity_id = context.get("entity_id")
     entity_name = context.get("entity_name")

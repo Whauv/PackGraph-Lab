@@ -84,13 +84,78 @@ window.PackGraphUI = {
       </article>`;
   },
 
+  toast(message, tone = "success") {
+    let container = document.getElementById("toast-stack");
+    if (!container) {
+      document.body.insertAdjacentHTML("beforeend", `<div id="toast-stack" class="toast-stack" aria-live="polite"></div>`);
+      container = document.getElementById("toast-stack");
+    }
+    const node = document.createElement("div");
+    node.className = `toast toast-${this.escape(tone)}`;
+    node.textContent = message;
+    container.prepend(node);
+    window.setTimeout(() => {
+      node.classList.add("toast-leaving");
+      window.setTimeout(() => node.remove(), 220);
+    }, 3200);
+  },
+
+  bindDisclosureMemory(root = document) {
+    root.querySelectorAll("details[data-disclosure-key]").forEach((details) => {
+      const key = `packgraph-disclosure:${details.dataset.disclosureKey}`;
+      details.open = window.localStorage.getItem(key) === "open";
+      details.addEventListener("toggle", () => {
+        if (details.open) {
+          window.localStorage.setItem(key, "open");
+        } else {
+          window.localStorage.removeItem(key);
+        }
+      });
+    });
+  },
+
+  initHelpMenu() {
+    const button = document.getElementById("guided-tour-button");
+    if (!button || document.getElementById("help-menu")) return;
+    button.insertAdjacentHTML("afterend", `
+      <div id="help-menu" class="help-menu" hidden>
+        <button type="button" data-help-action="tour">Guided tour</button>
+        <button type="button" data-help-action="commands">Run commands</button>
+        <button type="button" data-help-action="shortcuts">Keyboard shortcuts</button>
+      </div>
+    `);
+    const menu = document.getElementById("help-menu");
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.hidden = !menu.hidden;
+    });
+    menu.addEventListener("click", (event) => {
+      const action = event.target?.dataset?.helpAction;
+      if (!action) return;
+      menu.hidden = true;
+      if (action === "tour") this.startGuidedTour();
+      if (action === "commands") {
+        document.getElementById("command-center-panel")?.removeAttribute("hidden");
+        document.getElementById("command-center-input")?.focus();
+      }
+      if (action === "shortcuts") {
+        this.toast("Shortcuts: Ctrl/Cmd+K opens search, Esc closes panels, arrow keys move through the tour.", "info");
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (!menu.hidden && !menu.contains(event.target) && event.target !== button) {
+        menu.hidden = true;
+      }
+    });
+  },
+
   initGuidedTour({ steps, navigator }) {
     this.tour.steps = steps || [];
     this.tour.navigator = navigator || null;
     this.ensureTourChrome();
     const button = document.getElementById("guided-tour-button");
     if (button) {
-      button.addEventListener("click", () => this.startGuidedTour());
+      this.initHelpMenu();
     }
   },
 

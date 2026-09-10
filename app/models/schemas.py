@@ -25,11 +25,14 @@ class ErrorEnvelope(BaseModel):
 
 
 class QueryContext(BaseModel):
-    entity_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=64)]
+    entity_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=64)] | None = None
     entity_id: str | None = None
     entity_name: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     history: list[dict[str, Any]] = Field(default_factory=list)
+    active: dict[str, Any] | None = None
+    items: list[dict[str, Any]] = Field(default_factory=list)
+    requirements: dict[str, Any] = Field(default_factory=dict)
 
 
 class QueryRequest(BaseModel):
@@ -104,6 +107,8 @@ class QueryAnswerPayload(BaseModel):
     project_memory: dict[str, Any] = Field(default_factory=dict)
     review_candidate: dict[str, Any] | None = None
     entity_resolution: dict[str, Any] = Field(default_factory=dict)
+    requirements_review: dict[str, Any] = Field(default_factory=dict)
+    requirements_audit: dict[str, Any] = Field(default_factory=dict)
 
 
 class QueryAnswerEnvelope(BaseModel):
