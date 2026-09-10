@@ -75,8 +75,8 @@ class AuthService:
         },
         {
             "role_id": "curator",
-            "title": "Curator",
-            "description": "Translator who shapes clearer evidence narratives and discussion framing.",
+            "title": "Reviewer",
+            "description": "Contributor who shapes clearer evidence narratives and discussion framing.",
             "permissions": [
                 "workspaces:write",
                 "contributions:write",
@@ -88,7 +88,7 @@ class AuthService:
         },
         {
             "role_id": "explorer",
-            "title": "Explorer",
+            "title": "Contributor",
             "description": "Open user who can browse, discuss, and contribute structured findings.",
             "permissions": [
                 "contributions:write",
@@ -162,7 +162,7 @@ class AuthService:
                 seed_users = [
                     ("USR-001", "ORG-001", "Demo Analyst", "analyst@packgraph.local", "packgraph-demo", "materials_strategist"),
                     ("USR-002", "ORG-001", "Compliance Lead", "compliance@packgraph.local", "packgraph-demo", "compliance_lead"),
-                    ("USR-003", "ORG-001", "Community Curator", "curator@packgraph.local", "packgraph-demo", "curator"),
+                    ("USR-003", "ORG-001", "Community Reviewer", "curator@packgraph.local", "packgraph-demo", "curator"),
                     ("USR-004", "ORG-001", "PackGraph Admin", "admin@packgraph.local", "packgraph-demo", "admin"),
                     ("USR-005", "ORG-002", "Customer A Analyst", "analyst@customer-a.packgraph.local", "packgraph-demo", "materials_strategist"),
                     ("USR-006", "ORG-003", "Customer B Analyst", "analyst@customer-b.packgraph.local", "packgraph-demo", "materials_strategist"),

@@ -156,7 +156,7 @@ This split keeps graph writes controlled while letting product operations evolve
 2. Optionally place confidential JSON under `private_data/`.
 3. Start FastAPI and the product shell.
 4. Ingest synthetic and private records into Neo4j.
-5. Ask questions through the hybrid query pipeline and review trace/debug output in the UI.
+5. Ask questions through the hybrid query pipeline and open technical details only when routing or review metadata needs inspection.
 
 ## Safety
 

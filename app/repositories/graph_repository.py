@@ -1587,21 +1587,6 @@ class LocalGraphRepository:
     def supplier_snapshot(self, supplier_ids: list[str]) -> list[dict[str, Any]]:
         return self.compare_suppliers(supplier_ids)
 
-    def benchmark_coverage(self, raw_benchmarks: dict[str, Any]) -> dict[str, Any]:
-        query_notes = [
-            {"query": "top_food_materials", "note": "Ranks food-safe materials by sustainability attributes."},
-            {"query": "supplier_risk", "note": "Measures supplier disruption exposure across supplied materials."},
-            {"query": "document_trace", "note": "Tests provenance joins from materials to source documents."},
-        ]
-        return {
-            **raw_benchmarks,
-            "query_plan_notes": [
-                "Neo4j should favor indexed node lookups and directed relationship traversals for these workloads.",
-                "Coverage can be expanded with pathfinding, filtered aggregations, temporal snapshot joins, and private-data record exploration.",
-            ],
-            "query_set": query_notes,
-        }
-
     def _type_from_node_id(self, node_id: str) -> str:
         prefix_map = {
             "MAT": "material",

@@ -10,10 +10,10 @@ class ContributionService:
     ROLE_CONFIG = [
         {
             "role_id": "fellow",
-            "title": "Fellow",
-            "persona": "Scientist or researcher",
+            "title": "Researcher",
+            "persona": "Scientist or technical expert",
             "verification_level": "Verified domain contributor",
-            "badge": "Lab-backed",
+            "badge": "Evidence-backed",
             "description": "Contribute test interpretation, material insight, and evidence-backed corrections.",
             "permissions": [
                 "Submit material performance insight",
@@ -24,11 +24,11 @@ class ContributionService:
         },
         {
             "role_id": "curator",
-            "title": "Curator",
-            "persona": "Expert communicator or industry translator",
-            "verification_level": "Reviewed translator",
-            "badge": "Signal shaper",
-            "description": "Translate technical material signals into usable product guidance for broader audiences.",
+            "title": "Reviewer",
+            "persona": "Domain reviewer",
+            "verification_level": "Reviewed contributor",
+            "badge": "Decision reviewer",
+            "description": "Review technical material signals and turn them into usable product guidance.",
             "permissions": [
                 "Summarize technical findings",
                 "Frame evidence for operations teams",
@@ -38,11 +38,11 @@ class ContributionService:
         },
         {
             "role_id": "explorer",
-            "title": "Explorer",
-            "persona": "Student, builder, or general user",
+            "title": "Contributor",
+            "persona": "General contributor",
             "verification_level": "Open contributor",
-            "badge": "Field observer",
-            "description": "Share exploratory findings, ask good questions, and surface useful links from the wider ecosystem.",
+            "badge": "Source contributor",
+            "description": "Share useful findings, ask good questions, and surface links from the wider ecosystem.",
             "permissions": [
                 "Suggest profile edits",
                 "Propose supplier or application links",

@@ -729,15 +729,6 @@ def build_router(state) -> APIRouter:
         current_user = state.auth.current_user(_session_token(request))
         return {"status": "ok", "data": state.scenario_history.list(current_user["user_id"] if current_user else None)}
 
-    @router.get("/runtime/backends", response_model=ApiEnvelope)
-    def runtime_backends():
-        return {"status": "ok", "data": state.repository.backend_status()}
-
-    @router.get("/benchmarks", response_model=ApiEnvelope)
-    def benchmarks():
-        data = state.repository.benchmark_coverage(state.benchmarks())
-        return {"status": "ok", "data": data}
-
     @router.get("/compliance/dashboard", response_model=ApiEnvelope)
     def compliance_dashboard():
         data = cached(

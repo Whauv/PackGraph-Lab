@@ -85,19 +85,24 @@ window.PackGraphWorkbenchPanels = {
   renderWorkspaces(workspaces, onResume) {
     const container = document.getElementById("workspace-list");
     if (!container) return;
+    const formatUpdated = (value) => {
+      if (!value) return "Not updated yet";
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    };
     container.innerHTML = workspaces.length
       ? workspaces.map((item) => `
         <div class="row-card">
           <strong>${this.escape(item.name)}</strong>
           <p>Page ${this.escape(item.active_tab || "overview")} | Materials ${(item.selected_material_ids || []).length}</p>
-          <small>${this.escape(this.describeFilters(item.filters || {}))}</small>
+          <small>${this.escape(this.describeFilters(item.filters || {}))} | Last updated ${this.escape(formatUpdated(item.updated_at || item.saved_at || item.created_at))}</small>
           <div class="row-actions">
-            <button type="button" class="mini-action" data-resume-workspace="${item.workspace_id}">Resume context</button>
+            <button type="button" class="mini-action" data-resume-workspace="${item.workspace_id}">Resume case</button>
           </div>
         </div>`).join("")
       : (window.PackGraphUI?.emptyState
-        ? window.PackGraphUI.emptyState("No saved views yet", "Save filters and selected materials to resume the same decision context later.")
-        : `<div class="row-card"><p>No workspaces saved yet.</p></div>`);
+        ? window.PackGraphUI.emptyState("No saved cases yet", "Save filters and selected materials to resume the same decision context later.")
+        : `<div class="row-card"><p>No saved cases yet.</p></div>`);
     container.querySelectorAll("[data-resume-workspace]").forEach((button) => {
       button.addEventListener("click", () => onResume(button.dataset.resumeWorkspace));
     });

@@ -4,6 +4,7 @@
   const OPEN_KEY = "packgraph-chat-open";
   const LOCK_KEY = "packgraph-chat-context-lock";
   const MODE_KEY = "packgraph-chat-mode";
+  const REQUIREMENTS_KEY = "packgraph-chat-requirements";
   const MESSAGE_PREFIX = "packgraph-chat-messages:";
 
   /**
@@ -12,6 +13,15 @@
    * @property {string=} entity_id
    * @property {string=} entity_name
    * @property {Record<string, unknown>=} metadata
+   */
+
+  /**
+   * @typedef {Object} PackGraphChatRequirements
+   * @property {string=} application
+   * @property {string=} constraints
+   * @property {string=} region
+   * @property {string=} priorities
+   * @property {string=} notes
    */
 
   /**
@@ -28,11 +38,13 @@
     history: [],
     request: null,
     previewRequest: null,
+    enrichRequest: null,
     onResult: null,
     initialized: false,
     contextLocked: false,
     mode: "quick_ask",
     workflowStatus: null,
+    requirements: {},
   };
 
   function safeParse(value, fallback = null) {
@@ -60,16 +72,32 @@
 
   function normalizeContext(context) {
     if (!context || typeof context !== "object") return null;
+    const active = context.active && typeof context.active === "object" ? context.active : context;
     const normalized = {
-      entity_type: String(context.entity_type || "").trim(),
-      entity_id: context.entity_id ? String(context.entity_id).trim() : "",
-      entity_name: context.entity_name ? String(context.entity_name).trim() : "",
-      metadata: context.metadata && typeof context.metadata === "object" ? { ...context.metadata } : {},
+      entity_type: String(active.entity_type || "").trim(),
+      entity_id: active.entity_id ? String(active.entity_id).trim() : "",
+      entity_name: active.entity_name ? String(active.entity_name).trim() : "",
+      metadata: active.metadata && typeof active.metadata === "object" ? { ...active.metadata } : {},
     };
     if (!normalized.entity_type && !normalized.entity_id && !normalized.entity_name) {
       return null;
     }
     return normalized;
+  }
+
+  function normalizeRequirements(value) {
+    const raw = value && typeof value === "object" ? value : {};
+    return {
+      application: String(raw.application || "").trim(),
+      constraints: String(raw.constraints || "").trim(),
+      region: String(raw.region || "").trim(),
+      priorities: String(raw.priorities || "").trim(),
+      notes: String(raw.notes || "").trim(),
+    };
+  }
+
+  function hasRequirements(requirements = state.requirements) {
+    return Object.values(requirements || {}).some((value) => String(value || "").trim());
   }
 
   function drawer() {
@@ -149,6 +177,27 @@
     }
   }
 
+  function persistRequirements() {
+    if (hasRequirements()) {
+      window.localStorage.setItem(REQUIREMENTS_KEY, JSON.stringify(state.requirements));
+    } else {
+      window.localStorage.removeItem(REQUIREMENTS_KEY);
+    }
+  }
+
+  function buildPayloadContext() {
+    return {
+      active: state.context ? { ...state.context, metadata: { ...(state.context.metadata || {}) } } : null,
+      items: state.history.map((item) => ({ ...item, metadata: { ...(item.metadata || {}) } })),
+      requirements: { ...state.requirements },
+      entity_type: state.context?.entity_type || null,
+      entity_id: state.context?.entity_id || null,
+      entity_name: state.context?.entity_name || null,
+      metadata: state.context ? { ...(state.context.metadata || {}) } : {},
+      history: state.history.map((item) => ({ ...item, metadata: { ...(item.metadata || {}) } })),
+    };
+  }
+
   function messageStorageKey(context = state.context) {
     return `${MESSAGE_PREFIX}${contextKey(context)}`;
   }
@@ -164,16 +213,45 @@
 
   function quickPromptsForContext(context) {
     const workflowPrompts = state.workflowStatus?.follow_up_suggestions || [];
+    const requirementPrompts = hasRequirements()
+      ? ["Compare selected against requirements", "What is the evidence gap?", "What risks violate my requirements?", "Save investigation to project"]
+      : ["Help me define requirements for this decision"];
     switch ((context.entity_type || "").toLowerCase()) {
       case "material":
-        return ["Show suppliers for this", "Show evidence for this", "Compare this to alternatives", ...workflowPrompts].slice(0, 5);
+        return ["Show suppliers for this", "Show evidence for this", ...requirementPrompts, ...workflowPrompts].slice(0, 6);
       case "supplier":
-        return ["Show supplied materials for this", "Show risk for this supplier", "Show evidence for this", ...workflowPrompts].slice(0, 5);
+        return ["Show supplied materials for this", "Show risk for this supplier", ...requirementPrompts, ...workflowPrompts].slice(0, 6);
       case "regulation":
-        return ["Show affected materials for this", "Show evidence for this", "What needs attention for this", ...workflowPrompts].slice(0, 5);
+        return ["Show affected materials for this", "Show evidence for this", ...requirementPrompts, ...workflowPrompts].slice(0, 6);
       default:
-        return ["Show evidence for this", "What should I inspect next for this", "Compare this to alternatives", ...workflowPrompts].slice(0, 5);
+        return ["Show evidence for this", "What should I inspect next for this", ...requirementPrompts, ...workflowPrompts].slice(0, 6);
     }
+  }
+
+  function renderRequirements() {
+    const badge = document.getElementById("graph-chat-requirements-badge");
+    const status = document.getElementById("graph-chat-requirements-status");
+    const requirements = state.requirements || {};
+    const active = hasRequirements(requirements);
+    if (badge) {
+      badge.textContent = active ? "Requirements active" : "No requirements saved";
+      badge.className = `tag ${active ? "status-success" : ""}`;
+    }
+    if (status) {
+      status.innerHTML = active
+        ? `Requirements saved. ${requirements.application ? `Use case: <strong>${escapeHtml(requirements.application)}</strong>.` : ""} ${requirements.region ? `Region: <strong>${escapeHtml(requirements.region)}</strong>.` : ""}`
+        : "No requirements saved. Add the decision context to make Research Review more useful.";
+    }
+    [
+      ["graph-chat-req-application", "application"],
+      ["graph-chat-req-constraints", "constraints"],
+      ["graph-chat-req-region", "region"],
+      ["graph-chat-req-priorities", "priorities"],
+      ["graph-chat-req-notes", "notes"],
+    ].forEach(([id, key]) => {
+      const field = document.getElementById(id);
+      if (field && field.value !== (requirements[key] || "")) field.value = requirements[key] || "";
+    });
   }
 
   function renderContextStack() {
@@ -211,6 +289,7 @@
           <p>Select a material, supplier, regulation, or detail card anywhere in the product to carry it into chat.</p>
         </div>`;
       quickActions.innerHTML = "";
+      renderRequirements();
       renderContextStack();
       return;
     }
@@ -225,6 +304,7 @@
     target.innerHTML = `
       <div class="graph-chat-context-card">
         <div class="graph-chat-context-top">
+          <span class="tag status-success">Using selected context</span>
           <span class="tag">${escapeHtml(state.context.entity_type)}</span>
           ${state.context.entity_id ? `<span class="tag">${escapeHtml(state.context.entity_id)}</span>` : ""}
           ${state.contextLocked ? `<span class="tag status-warning">Locked</span>` : ""}
@@ -250,6 +330,7 @@
     });
     renderContextStack();
     renderStoredMessages();
+    renderRequirements();
   }
 
   function renderStoredMessages() {
@@ -284,6 +365,8 @@
     const quality = response.answer_quality || {};
     const enrichment = response.enrichment_request;
     const provenance = response.provenance || {};
+    const requirementsReview = response.requirements_review || {};
+    const requirementsAudit = response.requirements_audit || {};
     const node = document.createElement("div");
     node.className = "graph-chat-message graph-chat-answer";
     node.innerHTML = `
@@ -307,29 +390,55 @@
           ${rows.slice(0, 4).map((row) => `
             <div class="graph-chat-result-row">
               <div>${provisionalBadge(row)} <strong>${escapeHtml(row.label || row.name || row.entity_id || "Result")}</strong></div>
-              <small>${escapeHtml(row.preview || row.validation_status || row.verification_status || "")}</small>
-              ${(row.validation_status || row.verification_status || row.promotion_status || row.edge_key) ? `
-                <div class="graph-chat-source-meta">
-                  ${row.validation_status ? `<span>Validation: ${escapeHtml(row.validation_status)}</span>` : ""}
-                  ${row.verification_status ? `<span>Verification: ${escapeHtml(row.verification_status)}</span>` : ""}
-                  ${row.promotion_status ? `<span>Promotion: ${escapeHtml(row.promotion_status)}</span>` : ""}
-                  ${row.edge_key ? `<button type="button" class="mini-action" data-copy-edge="${escapeHtml(row.edge_key)}">Copy edge key</button>` : ""}
-                </div>` : ""}
+              <small>${escapeHtml(row.preview || "Graph result")}</small>
+              ${(row.validation_status || row.verification_status || row.promotion_status || row.edge_key || row.assertion_kind) ? `
+                <details class="graph-chat-technical-details" data-disclosure-key="graph-chat-result-technical">
+                  <summary>Technical details <span>For developers</span></summary>
+                  <div class="graph-chat-source-meta">
+                    ${row.assertion_kind ? `<span>Assertion: ${escapeHtml(row.assertion_kind)}</span>` : ""}
+                    ${row.validation_status ? `<span>Validation: ${escapeHtml(row.validation_status)}</span>` : ""}
+                    ${row.verification_status ? `<span>Verification: ${escapeHtml(row.verification_status)}</span>` : ""}
+                    ${row.promotion_status ? `<span>Promotion: ${escapeHtml(row.promotion_status)}</span>` : ""}
+                    ${row.edge_key ? `<button type="button" class="mini-action" data-copy-edge="${escapeHtml(row.edge_key)}">Copy edge key</button>` : ""}
+                  </div>
+                </details>` : ""}
             </div>
           `).join("")}
+        </div>` : ""}
+      ${requirementsReview.fit ? `
+        <div class="graph-chat-requirements-review">
+          <div class="graph-chat-answer-meta">
+            <span class="tag status-success">Requirements review</span>
+            <span class="tag">${escapeHtml(formatLabel(requirementsReview.fit))}</span>
+            ${requirementsAudit.requirements_used ? `<span class="tag">Requirements used</span>` : `<span class="tag status-warning">No requirements</span>`}
+          </div>
+          <p>${escapeHtml(requirementsReview.reason || "")}</p>
+          <div class="graph-chat-dimensions">
+            ${Object.entries(requirementsReview.dimensions || {}).map(([key, value]) => `
+              <div><span>${escapeHtml(formatLabel(key))}</span><strong>${escapeHtml(value)}</strong></div>
+            `).join("")}
+          </div>
+          ${(requirementsReview.risks || []).length ? `<small>Risks: ${escapeHtml(requirementsReview.risks.join(" | "))}</small>` : ""}
+          ${requirementsReview.next_step ? `<small>Next: ${escapeHtml(requirementsReview.next_step)}</small>` : ""}
         </div>` : ""}
       ${enrichment ? `
         <div class="graph-chat-enrichment">
           <strong>${escapeHtml(response.empty_state?.title || "Data gap detected")}</strong>
           <p>${escapeHtml(response.empty_state?.message || "A provisional enrichment request was staged for review.")}</p>
           <p>Cause: <strong>${escapeHtml(formatLabel(response.empty_state?.no_result_cause || "no_rows_for_template"))}</strong></p>
-          <div class="graph-chat-source-meta">
-            <span>${escapeHtml(enrichment.source)} -> ${escapeHtml(enrichment.relationship)} -> ${escapeHtml(enrichment.target)}</span>
-            <button type="button" class="mini-action" data-copy-edge="${escapeHtml(enrichment.edge_key)}">Copy edge key</button>
-          </div>
+          <span class="tag status-warning">Needs validation</span>
+          <details class="graph-chat-technical-details" data-disclosure-key="graph-chat-enrichment-technical">
+            <summary>Technical details <span>For developers</span></summary>
+            <div class="graph-chat-source-meta">
+              <span>${escapeHtml(enrichment.source)} -> ${escapeHtml(enrichment.relationship)} -> ${escapeHtml(enrichment.target)}</span>
+              <span>${escapeHtml(enrichment.assertion_kind || "LLM_INFERRED")}</span>
+              <span>${escapeHtml(enrichment.validation_status || "pending")}</span>
+              <button type="button" class="mini-action" data-copy-edge="${escapeHtml(enrichment.edge_key)}">Copy edge key</button>
+            </div>
+          </details>
         </div>` : ""}
-      <details class="graph-chat-provenance">
-        <summary>Source details</summary>
+      <details class="graph-chat-provenance" data-disclosure-key="graph-chat-provenance">
+        <summary>Technical details <span>For developers</span></summary>
         <p>Verified KG rows: ${escapeHtml((provenance.verified_kg || []).length || rows.length)} | Provisional inferred rows: ${escapeHtml((provenance.provisional || []).length || 0)}</p>
         <p>Route: ${escapeHtml(route.route || response.source || "graph")} | Template: ${escapeHtml(route.template || response.execution_metadata?.template || "read-only")}</p>
       </details>
@@ -341,6 +450,7 @@
       });
     });
     feed.prepend(node);
+    window.PackGraphUI?.bindDisclosureMemory?.(node);
     writeMessages([{ author: "PackGraph", body: response.message || "No answer returned.", tone: "answer" }, ...readMessages()]);
   }
 
@@ -378,17 +488,14 @@
 
   async function submit(question) {
     if (!question || !state.request) return;
-    setStatus("Running graph chat...", "info");
+    setStatus("Asking PackGraph...", "info");
     renderMessage("You", question);
     try {
       if (state.previewRequest) {
         const preview = await state.previewRequest({
           question,
           mode: state.mode,
-          context: {
-            ...state.context,
-            history: state.history,
-          },
+          context: buildPayloadContext(),
         });
         if (preview) {
           const blocked = preview.blockers?.length ? " with schema blockers" : "";
@@ -399,8 +506,7 @@
         question,
         mode: state.mode,
         context: {
-          ...state.context,
-          history: state.history,
+          ...buildPayloadContext(),
         },
       });
       renderAssistantResponse(response);
@@ -414,8 +520,8 @@
         "success"
       );
     } catch (error) {
-      renderMessage("PackGraph", error.message || "Graph chat failed.", "error");
-      setStatus(error.message || "Graph chat failed.", "error");
+      renderMessage("PackGraph", error.message || "Ask PackGraph failed.", "error");
+      setStatus(error.message || "Ask PackGraph failed.", "error");
     }
   }
 
@@ -444,6 +550,7 @@
     persistContext();
     renderContext();
     renderStoredMessages();
+    window.PackGraphUI?.bindDisclosureMemory?.(document);
     if (options.prompt && input()) {
       input().value = options.prompt;
     }
@@ -457,10 +564,12 @@
     state.initialized = true;
     state.request = config.request || null;
     state.previewRequest = config.previewRequest || null;
+    state.enrichRequest = config.enrichRequest || null;
     state.onResult = config.onResult || null;
     state.workflowStatus = config.workflowStatus || null;
     state.mode = window.localStorage.getItem(MODE_KEY) || "quick_ask";
     state.contextLocked = window.localStorage.getItem(LOCK_KEY) === "1";
+    state.requirements = normalizeRequirements(safeParse(window.localStorage.getItem(REQUIREMENTS_KEY), {}));
     if (modeSelect()) modeSelect().value = state.mode;
     const lockButton = document.getElementById("graph-chat-lock");
     if (lockButton) {
@@ -494,6 +603,29 @@
       input().value = "";
       await submit(value);
     });
+    document.getElementById("graph-chat-requirements-form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.requirements = normalizeRequirements({
+        application: document.getElementById("graph-chat-req-application")?.value,
+        constraints: document.getElementById("graph-chat-req-constraints")?.value,
+        region: document.getElementById("graph-chat-req-region")?.value,
+        priorities: document.getElementById("graph-chat-req-priorities")?.value,
+        notes: document.getElementById("graph-chat-req-notes")?.value,
+      });
+      persistRequirements();
+      renderRequirements();
+      renderContext();
+      setStatus("Requirements saved.", "success");
+    });
+    document.getElementById("graph-chat-compare-requirements")?.addEventListener("click", () => {
+      if (input()) {
+        input().value = "Compare selected against requirements";
+        input().focus();
+      }
+      state.mode = "research_review";
+      if (modeSelect()) modeSelect().value = state.mode;
+      persistModeAndLock();
+    });
 
     const stored = normalizeContext(safeParse(window.localStorage.getItem(STORAGE_KEY)));
     const storedHistory = safeParse(window.localStorage.getItem(HISTORY_KEY), []);
@@ -516,13 +648,18 @@
     submit,
     setContext,
     getContext() {
-      return state.context
-        ? {
-            ...state.context,
-            metadata: { ...(state.context.metadata || {}) },
-            history: state.history.map((item) => ({ ...item, metadata: { ...(item.metadata || {}) } })),
-        }
-        : null;
+      return buildPayloadContext();
+    },
+    getRequirements() {
+      return { ...state.requirements };
+    },
+    async enrich(question) {
+      if (!state.enrichRequest) return null;
+      return state.enrichRequest({
+        question,
+        mode: state.mode,
+        context: buildPayloadContext(),
+      });
     },
     setWorkflowStatus(payload) {
       state.workflowStatus = payload || null;

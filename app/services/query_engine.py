@@ -22,6 +22,7 @@ from app.services.query_preview_service import QueryPreviewService
 from app.services.query_quality_service import QueryQualityService
 from app.services.query_response_builder import QueryResponseBuilder
 from app.services.query_result_formatter import QueryResultFormatter
+from app.services.requirements_review_service import RequirementsReviewService
 from app.services.scenario_engine import ScenarioEngine
 from app.services.source_intake_service import SourceIntakeService
 from app.services.workflow_status_service import WorkflowStatusService
@@ -55,6 +56,7 @@ class QueryEngine:
         self.workflow_status_service = WorkflowStatusService(repository)
         self.enrichment = QueryEnrichmentService(self.agent_tools)
         self.quality = QueryQualityService(self.workflow_status_service, self.enrichment)
+        self.requirements_review = RequirementsReviewService()
         self.preview_service = QueryPreviewService(
             repository=repository,
             planner=self.planner,
@@ -84,9 +86,16 @@ class QueryEngine:
         started_at = time.perf_counter()
         options = options or {}
         options = {**options, "chat_mode": mode}
+        requirements = self.requirements_review.normalize(context)
         resolved_question = self._merge_context_into_question(question, context)
         plan = self.planner.plan(resolved_question, self.repository, context)
         plan.setdefault("entities", {})["chat_mode"] = mode
+        if requirements:
+            plan.setdefault("entities", {})["requirements"] = requirements
+            if requirements.get("region") and not plan["entities"].get("region"):
+                plan["entities"]["region"] = requirements["region"]
+            if requirements.get("application") and not plan["entities"].get("application"):
+                plan["entities"]["application"] = requirements["application"]
         private_status = self.private_data.private_status() if self.private_data else {"private_data_active": False, "dataset_count": 0, "record_count": 0}
         private_lookup = self.private_data.query(resolved_question) if self.private_data and private_status["private_data_active"] else {"rows": []}
         source_lookup = self.source_intake.search(resolved_question) if self.source_intake else {"rows": []}
@@ -518,6 +527,30 @@ class QueryEngine:
         panel = self._build_answer_panel(intent, result, plan, message)
         latency_ms = int((time.perf_counter() - started_at) * 1000) if started_at else 0
         enrichment_request = self.enrichment.build_request(resolved_question or question, plan, context, scored_rows) if not scored_rows else None
+        mode = (plan.get("entities", {}) or {}).get("chat_mode") or "quick_ask"
+        requirements = self.requirements_review.normalize(context)
+        requirements_review = self.requirements_review.build_review(
+            requirements=requirements,
+            rows=scored_rows,
+            evidence_profile=evidence_profile,
+            missing_evidence=missing_evidence,
+            mode=mode,
+        )
+        active_context = self.context_adapter.active_context(context) or {}
+        selected_material = {
+            "entity_id": active_context.get("entity_id"),
+            "entity_name": active_context.get("entity_name"),
+            "entity_type": active_context.get("entity_type"),
+        } if str(active_context.get("entity_type") or "").lower() == "material" else {}
+        requirements_audit = self.requirements_review.build_audit(
+            selected_material=selected_material,
+            requirements=requirements,
+            route=route,
+            confidence=float(classifier.get("confidence", 0) or 0),
+            evidence_count=len(evidence_rows),
+            missing_evidence=missing_evidence,
+            enrichment_request=enrichment_request,
+        )
         quality_package = self.quality.build_package(
             intent=intent,
             route=route,
@@ -557,6 +590,24 @@ class QueryEngine:
                     if row.get("entity_type") == "uploaded_record" and row.get("entity_id")
                 ],
                 "investigation_notes": [message[:180]],
+                "saved_requirements": [requirements] if any(requirements.values()) else [],
+                "last_answer": [message[:300]],
+                "saved_answers": [
+                    {
+                        "question": resolved_question or question,
+                        "answer": message[:300],
+                        "intent": intent,
+                        "route": route,
+                    }
+                ],
+                "evidence": evidence_rows[:5],
+                "review_tasks": [review_candidate] if review_candidate else [],
+                "provisional_enrichments": [enrichment_request] if enrichment_request else [],
+                "selected_alternatives": [
+                    row.get("entity_id") or row.get("material_id")
+                    for row in scored_rows[1:5]
+                    if (row.get("entity_id") or row.get("material_id"))
+                ],
             }
         )
         orchestration = self.agent_orchestration.build_orchestration(
@@ -607,6 +658,8 @@ class QueryEngine:
             "project_memory": project_memory,
             "review_candidate": review_candidate,
             "entity_resolution": entity_resolution,
+            "requirements_review": requirements_review,
+            "requirements_audit": requirements_audit,
         }
 
     def _build_answer_panel(self, intent: str, result: Any, plan: dict[str, Any], message: str) -> dict[str, Any]:

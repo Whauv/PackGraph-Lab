@@ -20,21 +20,6 @@
         </div>
 
         <section class="sidebar-section">
-          <div class="section-label">Access</div>
-          <div id="user-card" class="status-card auth-user-card"></div>
-          <form id="auth-form" class="stack-form sidebar-auth-form">
-            <input id="auth-email" type="email" placeholder="Email" />
-            <input id="auth-password" type="password" placeholder="Password" />
-            <div class="row-actions">
-              <button type="submit">Sign in</button>
-              <button type="button" id="auth-register" class="secondary">Quick register</button>
-              <button type="button" id="auth-logout" class="secondary">Logout</button>
-            </div>
-          </form>
-          <div id="auth-status" class="upload-status"></div>
-        </section>
-
-        <section class="sidebar-section">
           <div class="section-label">Current context</div>
           <div class="status-stack">
             <div class="status-card">
@@ -69,9 +54,9 @@
         </section>
 
         <section class="sidebar-section">
-          <div class="section-label">Save view</div>
+          <div class="section-label">Save case</div>
           <form id="workspace-form" class="stack-form sidebar-workspace-form">
-            <input id="workspace-name" type="text" placeholder="Name this view" />
+            <input id="workspace-name" type="text" placeholder="Name this case" />
             <select id="workspace-preset-type">
               <option value="case">Case setup</option>
               <option value="filters">Filters</option>
@@ -79,7 +64,7 @@
               <option value="supplier">Supplier view</option>
               <option value="investigation">Investigation</option>
             </select>
-            <button type="submit">Save view</button>
+            <button type="submit">Save case</button>
           </form>
           <div id="workspace-status" class="upload-status"></div>
           <div id="saved-preset-list" class="card-list compact-list"></div>
@@ -114,6 +99,31 @@
           </div>
           <div id="productivity-panel" class="card-list compact-list"></div>
         </section>
+
+        <section class="sidebar-section">
+          <div class="section-label">Recently used</div>
+          <div id="recent-entities-strip" class="recent-entities-strip"></div>
+        </section>
+
+        <section class="sidebar-section developer-tools-section">
+          <details class="developer-tools">
+            <summary>Developer tools</summary>
+            <div class="card-list compact-list">
+              <div class="row-card">
+                <strong>Admin runbooks</strong>
+                <p>Use CLI-only tools for operator status, schema migration, ER evaluation, and raw review imports.</p>
+              </div>
+              <div class="row-card">
+                <strong>Google ADK architecture</strong>
+                <p>Kept as a separate developer architecture under <code>adk_architecture/</code>; it is not part of the user workspace.</p>
+              </div>
+              <div class="row-card">
+                <strong>Safe health checks</strong>
+                <p>Use <code>/health/graph</code> or <code>scripts/status_dashboard.py</code> when you need runtime diagnostics.</p>
+              </div>
+            </div>
+          </details>
+        </section>
       </aside>
 
       <main class="main">
@@ -127,11 +137,11 @@
               <button type="button" class="shell-link active" data-section="dashboard">Dashboard</button>
               <button type="button" class="shell-link" data-section="explore">Explore</button>
               <button type="button" class="shell-link" data-section="contribute">Contribute</button>
-              <button type="button" class="shell-link" data-section="community">Community</button>
+              <button type="button" class="shell-link secondary-shell-link" data-section="community">Community</button>
             </nav>
-            <form id="command-center-form" class="inline-form shell-command-form">
-              <input id="command-center-input" type="text" placeholder="Search everywhere: materials, suppliers, docs, scenarios, posts" />
-              <button type="submit">Search everywhere</button>
+            <form id="command-center-form" class="inline-form shell-command-form compact-command-form">
+              <input id="command-center-input" type="text" placeholder="Quick command or search" />
+              <button type="submit" class="secondary">Search</button>
               <button type="button" id="command-center-notifications" class="secondary">Notifications</button>
             </form>
           </div>
@@ -393,14 +403,10 @@
                   <strong>Ask a focused question to reveal the best next move.</strong>
                   <p>After the answer lands, PackGraph will guide you toward compare, evidence review, graph inspection, or scenario testing.</p>
                 </div>
-                <div class="split-grid structured-answer-grid answer-support-grid">
+                <div class="structured-answer-grid answer-support-grid">
                   <div>
                     <div class="subsection-heading">Result rows</div>
                     <div id="answer-panel-rows" class="table-card"></div>
-                  </div>
-                  <div>
-                    <div class="subsection-heading">Execution details</div>
-                    <div id="answer-panel-debug" class="table-card"></div>
                   </div>
                 </div>
               </div>
@@ -603,8 +609,8 @@
               </form>
               <div id="document-upload-status" class="upload-status"></div>
               <div class="subsection source-intake-panel">
-                <div class="subsection-heading">Reusable source intake</div>
-                <p class="panel-kicker">Upload JSON or PDF sources once, extract their schema, and let future questions reuse the local records.</p>
+                <div class="subsection-heading">Upload source</div>
+                <p class="panel-kicker">Add a JSON or PDF. PackGraph extracts fields and can answer future questions from it.</p>
                 <form id="source-intake-form" class="upload-form">
                   <select id="source-intake-type" name="source_type">
                     <option value="">Auto detect</option>
@@ -613,11 +619,12 @@
                   </select>
                   <input id="source-intake-title" name="title" type="text" placeholder="Source title or component name" />
                   <input id="source-intake-file" name="file" type="file" accept=".json,.pdf,application/json,application/pdf" />
-                  <button type="submit">Extract schema</button>
+                  <button type="submit">Upload source</button>
                 </form>
+                <p class="micro-helper">JSON and PDF supported. Stored locally.</p>
                 <div id="source-intake-status" class="upload-status"></div>
                 <div id="source-intake-profile" class="split-grid"></div>
-                <div class="subsection-heading">Stored source records</div>
+                <div class="subsection-heading">Sources available for questions</div>
                 <div id="source-intake-sources" class="table-card"></div>
               </div>
               <form id="document-search-form" class="inline-form">
@@ -676,7 +683,7 @@
                     <div id="investigation-list" class="card-list compact-list"></div>
                   </div>
                   <div>
-                    <div class="subsection-heading">Saved workspaces</div>
+                    <div class="subsection-heading">Saved cases</div>
                     <div id="workspace-list" class="card-list compact-list"></div>
                   </div>
                 </div>
@@ -737,42 +744,47 @@
                       <option value="portfolio">Portfolio-wide</option>
                     </select>
                   </label>
-                  <label>
-                    <span class="field-label">Supplier</span>
-                    <select id="scenario-supplier">
-                      <option value="">Auto from selected material</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span class="field-label">Regulation</span>
-                    <select id="scenario-regulation">
-                      <option value="">Next pending regulation</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span class="field-label">Target metric</span>
-                    <select id="scenario-metric">
-                      <option value="recyclability_score">Recyclability</option>
-                      <option value="compostability_score">Compostability</option>
-                      <option value="sustainability_score">Sustainability</option>
-                      <option value="oxygen_barrier">Oxygen barrier</option>
-                      <option value="moisture_barrier">Moisture barrier</option>
-                      <option value="seal_strength">Seal strength</option>
-                      <option value="thermal_tolerance">Thermal tolerance</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span class="field-label">Target / cap</span>
-                    <input id="scenario-target-value" type="number" value="80" />
-                  </label>
-                  <label>
-                    <span class="field-label">Max cost (USD/kg)</span>
-                    <input id="scenario-max-cost" type="number" step="0.01" value="4.25" />
-                  </label>
-                  <label>
-                    <span class="field-label">Cost increase %</span>
-                    <input id="scenario-percent-increase" type="number" value="0" />
-                  </label>
+                  <details class="scenario-advanced-panel" data-disclosure-key="scenario-advanced">
+                    <summary>Advanced parameters</summary>
+                    <div class="scenario-grid scenario-advanced-grid">
+                      <label>
+                        <span class="field-label">Supplier</span>
+                        <select id="scenario-supplier">
+                          <option value="">Auto from selected material</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span class="field-label">Regulation</span>
+                        <select id="scenario-regulation">
+                          <option value="">Next pending regulation</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span class="field-label">Target metric</span>
+                        <select id="scenario-metric">
+                          <option value="recyclability_score">Recyclability</option>
+                          <option value="compostability_score">Compostability</option>
+                          <option value="sustainability_score">Sustainability</option>
+                          <option value="oxygen_barrier">Oxygen barrier</option>
+                          <option value="moisture_barrier">Moisture barrier</option>
+                          <option value="seal_strength">Seal strength</option>
+                          <option value="thermal_tolerance">Thermal tolerance</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span class="field-label">Target / cap</span>
+                        <input id="scenario-target-value" type="number" value="80" />
+                      </label>
+                      <label>
+                        <span class="field-label">Max cost (USD/kg)</span>
+                        <input id="scenario-max-cost" type="number" step="0.01" value="4.25" />
+                      </label>
+                      <label>
+                        <span class="field-label">Cost increase %</span>
+                        <input id="scenario-percent-increase" type="number" value="0" />
+                      </label>
+                    </div>
+                  </details>
                 </div>
                 <div class="row-actions">
                   <button type="submit">Run scenario</button>
@@ -881,7 +893,7 @@
                         <option value="RECYCLES_INTO">Recycling</option>
                         <option value="REVIEWED_UNDER">Regulations</option>
                       </select>
-                      <button type="button" id="graph-isolate-selection" class="mini-action">Isolate branch</button>
+                      <button type="button" id="graph-isolate-selection" class="mini-action">Focus branch</button>
                       <button type="button" id="graph-reset-view" class="mini-action secondary">Reset</button>
                       <div class="graph-zoom-controls">
                       <button type="button" id="graph-zoom-out" class="mini-action" aria-label="Zoom out">-</button>
@@ -899,11 +911,11 @@
                   </div>
                   <div id="graph-context-bar" class="graph-context-bar"></div>
                   <div id="graph-action-bar" class="graph-action-bar">
-                    <button type="button" id="graph-collapse-branch" class="mini-action secondary">Collapse branch</button>
-                    <button type="button" id="graph-expand-branch" class="mini-action secondary">Expand branch</button>
-                    <button type="button" id="graph-pin-node" class="mini-action secondary">Pin node</button>
-                    <button type="button" id="graph-open-evidence" class="mini-action secondary">Open evidence</button>
-                    <button type="button" id="graph-compare-node" class="mini-action secondary">Compare from node</button>
+                    <button type="button" id="graph-collapse-branch" class="mini-action secondary">Hide branch</button>
+                    <button type="button" id="graph-expand-branch" class="mini-action secondary">Show branch</button>
+                    <button type="button" id="graph-pin-node" class="mini-action secondary">Keep visible</button>
+                    <button type="button" id="graph-open-evidence" class="mini-action secondary">Show evidence</button>
+                    <button type="button" id="graph-compare-node" class="mini-action secondary">Compare</button>
                     <button type="button" id="graph-save-view" class="mini-action secondary">Save graph view</button>
                   </div>
                   <div id="graph-subgraph" class="graph-canvas">
@@ -1001,25 +1013,6 @@
                 </div>
               </div>
               <div id="trend-charts" class="card-list compact-list"></div>
-            </article>
-            <article class="panel intelligence-operations-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Operations</p>
-                  <h3>Production health</h3>
-                </div>
-              </div>
-              <div id="operations-health-cards" class="metric-grid"></div>
-              <div class="split-grid">
-                <div>
-                  <div class="subsection-heading">Slow routes</div>
-                  <div id="operations-latency-list" class="card-list compact-list"></div>
-                </div>
-                <div>
-                  <div class="subsection-heading">Artifacts</div>
-                  <div id="operations-artifact-list" class="card-list compact-list"></div>
-                </div>
-              </div>
             </article>
             <article class="panel intelligence-material-timeline-panel">
               <div class="panel-header">
@@ -1377,11 +1370,11 @@
       </main>
     </div>
     <div id="graph-chat-overlay" class="graph-chat-overlay" hidden></div>
-    <aside id="graph-chat-drawer" class="graph-chat-drawer" hidden aria-label="Graph chat drawer">
+    <aside id="graph-chat-drawer" class="graph-chat-drawer" hidden aria-label="Ask PackGraph drawer">
       <div class="graph-chat-header">
         <div>
-          <p class="eyebrow">Graph chat</p>
-          <h3>Ask with live context</h3>
+          <p class="eyebrow">Ask PackGraph</p>
+          <h3>Ask about this</h3>
         </div>
         <button type="button" id="graph-chat-close" class="secondary">Close</button>
       </div>
@@ -1405,6 +1398,44 @@
         <div id="graph-chat-context-stack" class="graph-chat-context-stack"></div>
         <div id="graph-chat-quick-actions" class="prompt-row graph-chat-quick-actions"></div>
       </section>
+      <section class="graph-chat-section">
+        <div class="graph-chat-section-header">
+          <span class="section-label">Requirements</span>
+          <span id="graph-chat-requirements-badge" class="tag">No requirements saved</span>
+        </div>
+        <details class="graph-chat-requirements-disclosure" data-disclosure-key="graph-chat-requirements">
+          <summary>Set decision requirements</summary>
+          <form id="graph-chat-requirements-form" class="graph-chat-requirements-form">
+            <label>
+              <span>Application / use case</span>
+              <input id="graph-chat-req-application" type="text" placeholder="Snack pouch, sterile peel pack, refill bottle" />
+            </label>
+            <label>
+              <span>Must-have constraints</span>
+              <input id="graph-chat-req-constraints" type="text" placeholder="Food contact, recyclable, low supplier risk" />
+            </label>
+            <div class="graph-chat-requirements-grid">
+              <label>
+                <span>Region</span>
+                <input id="graph-chat-req-region" type="text" placeholder="North America" />
+              </label>
+              <label>
+                <span>Priority order</span>
+                <input id="graph-chat-req-priorities" type="text" placeholder="Compliance, evidence, cost" />
+              </label>
+            </div>
+            <label>
+              <span>Notes</span>
+              <textarea id="graph-chat-req-notes" rows="2" placeholder="Add decision assumptions or business context"></textarea>
+            </label>
+            <div class="row-actions">
+              <button type="submit" class="mini-action">Save requirements</button>
+              <button type="button" id="graph-chat-compare-requirements" class="mini-action secondary">Compare selected</button>
+            </div>
+          </form>
+        </details>
+        <div id="graph-chat-requirements-status" class="graph-chat-context-copy">No requirements saved.</div>
+      </section>
       <section class="graph-chat-section graph-chat-feed-section">
         <div class="graph-chat-section-header">
           <span class="section-label">Conversation</span>
@@ -1414,12 +1445,11 @@
       <form id="graph-chat-form" class="graph-chat-form">
         <textarea id="graph-chat-input" rows="3" placeholder="Ask about the selected material, supplier, evidence, or alternatives"></textarea>
         <div class="row-actions">
-          <button type="submit">Ask graph chat</button>
+          <button type="submit">Ask PackGraph</button>
         </div>
       </form>
     </aside>
     <script src="/assets/modules/shared-ui.js?v=20260821"></script>
-    <script src="/assets/modules/auth-shell.js?v=20260821"></script>
     <script src="/assets/modules/answer-panel.js?v=20260821"></script>
     <script src="/assets/modules/explore-page.js?v=20260821"></script>
     <script src="/assets/modules/contribute-page.js?v=20260821"></script>
@@ -1434,7 +1464,7 @@
     <script src="/assets/modules/workflow-system.js?v=20260901"></script>
     <script src="/assets/modules/entity-actions.js?v=20260901"></script>
     <script src="/assets/app.js?v=20260821"></script>
-    <button type="button" id="graph-chat-launcher" class="graph-chat-launcher">Graph chat</button>
-    <button type="button" id="guided-tour-button" class="guided-tour-button">Guided tour</button>
+    <button type="button" id="graph-chat-launcher" class="graph-chat-launcher">Ask PackGraph</button>
+    <button type="button" id="guided-tour-button" class="guided-tour-button">Help</button>
   </body>
 </html>

@@ -13,7 +13,7 @@ This file is the low-risk structure guide for PackGraph Lab. It does not change 
 - `queries/`
   Example Cypher queries and graph-oriented reference snippets.
 - `scripts/`
-  Local developer scripts for generating data, ingesting Neo4j, and benchmarking.
+  Local developer scripts for generating data, ingesting Neo4j, health checks, review workflows, and validation.
 - `tests/`
   Backend-focused automated tests.
 - `web/`

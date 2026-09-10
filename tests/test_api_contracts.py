@@ -213,12 +213,59 @@ class ApiContractTests(unittest.TestCase):
         self.assertEqual(payload["enrichment_request"]["verification_status"], "unverified")
         self.assertEqual(payload["enrichment_request"]["promotion_status"], "not_promoted")
 
+    def test_research_review_uses_saved_requirements(self):
+        context = {
+            "active": {
+                "entity_type": "material",
+                "entity_id": "MAT-001",
+                "entity_name": "Film A11",
+                "metadata": {"category": "film"},
+            },
+            "items": [
+                {"entity_type": "material", "entity_id": "MAT-002", "entity_name": "Film A46", "metadata": {}},
+            ],
+            "requirements": {
+                "application": "Snack pouch",
+                "constraints": "Food contact, recyclable, low supplier risk",
+                "region": "North America",
+                "priorities": "Compliance, evidence, sustainability",
+                "notes": "Prefer materials with source-backed decisions.",
+            },
+        }
+        preview = self.client.post(
+            "/query/preview",
+            json={"question": "compare this with the previous one", "mode": "research_review", "context": context},
+        )
+        self.assertEqual(preview.status_code, 200)
+        preview_payload = preview.json()["data"]
+        self.assertTrue(preview_payload["context"]["requirements_saved"])
+        self.assertIn("application", preview_payload["context"]["requirements_fields"])
+
+        response = self.client.post(
+            "/query/ask",
+            json={"question": "compare this with the previous one", "mode": "research_review", "context": context},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["data"]
+        self.assertIn("requirements_review", payload)
+        self.assertIn("requirements_audit", payload)
+        self.assertEqual(payload["requirements_review"]["application"], "Snack pouch")
+        self.assertEqual(payload["requirements_review"]["region"], "North America")
+        self.assertTrue(payload["requirements_audit"]["requirements_used"])
+        self.assertEqual(payload["requirements_audit"]["selected_material"]["entity_id"], "MAT-001")
+        self.assertIn("saved_requirements", payload["project_memory"])
+        self.assertIn("last_answer", payload["project_memory"])
+
     def test_query_enrich_and_workflow_status_contracts(self):
         enrich = self.client.post(
             "/query/enrich",
             json={
                 "question": "Add missing supplier evidence for this",
-                "context": {"entity_type": "supplier", "entity_id": "SUP-001", "entity_name": "FiberMint Industrial", "metadata": {}},
+                "context": {
+                    "active": {"entity_type": "supplier", "entity_id": "SUP-001", "entity_name": "FiberMint Industrial", "metadata": {}},
+                    "items": [],
+                    "requirements": {"application": "Snack pouch", "region": "Europe"},
+                },
             },
         )
         self.assertEqual(enrich.status_code, 200)
