@@ -11,6 +11,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
 from app.repositories.data_store import get_data_store
+from app.repositories.graph_detail import explore_detail as run_explore_detail
+from app.repositories.graph_detail import explore_entities as run_explore_entities
 from app.repositories.graph_evidence import evidence_for_material as build_evidence_for_material
 from app.repositories.graph_evidence import search_documents as run_document_search
 from app.repositories.graph_evidence import selected_entity_lookup as resolve_selected_entity_lookup
@@ -20,6 +22,12 @@ from app.repositories.graph_health import graph_health as build_graph_health
 from app.repositories.graph_materials import compare_materials as build_material_comparison
 from app.repositories.graph_materials import get_material as load_material_detail
 from app.repositories.graph_materials import materials_at_risk as build_material_risk_list
+from app.repositories.graph_products import build_products as run_build_products
+from app.repositories.graph_products import classify_material
+from app.repositories.graph_products import materials_for_application
+from app.repositories.graph_products import suppliers_for_materials
+from app.repositories.graph_products import thumbnail_label
+from app.repositories.graph_search import global_search as run_global_search
 from app.repositories.graph_suppliers import compare_suppliers as build_supplier_comparison
 from app.repositories.graph_suppliers import get_supplier as load_supplier_detail
 from app.repositories.graph_traversal import graph_node_insight as build_graph_node_insight
@@ -86,8 +94,10 @@ class LocalGraphRepository:
         self.runtime_components_path = self.settings.packgraph_runtime_dir / "discovered_components.json"
         self.runtime_documents_path = self.settings.packgraph_runtime_dir / "uploaded_source_documents.json"
         self.runtime_test_reports_path = self.settings.packgraph_runtime_dir / "uploaded_test_reports.json"
-        self.products = self._build_products()
+        self.products = run_build_products(self)
         self.product_index = {item["product_id"]: item for item in self.products}
+
+    # -- Runtime JSON helpers -----------------------------------------------
 
     def _read_runtime_json(self, path, default):
         if not path.exists():
@@ -109,6 +119,8 @@ class LocalGraphRepository:
 
     def all_test_reports(self) -> list[dict[str, Any]]:
         return [*self.test_reports, *self.runtime_test_reports()]
+
+    # -- List / filter / lookup ---------------------------------------------
 
     def list_components(self) -> list[dict[str, Any]]:
         return self.runtime_components()
@@ -214,7 +226,7 @@ class LocalGraphRepository:
         query_lower = query.lower().strip()
         if len(query_lower) < 2:
             return []
-        suggestions = []
+        suggestions: list[dict[str, Any]] = []
         for material in self.materials:
             if query_lower in material["name"].lower():
                 suggestions.append({"entity_type": "material", "entity_id": material["material_id"], "label": material["name"]})
@@ -226,95 +238,55 @@ class LocalGraphRepository:
                 suggestions.append({"entity_type": "supplier", "entity_id": supplier["supplier_id"], "label": supplier["name"]})
         return suggestions[:8]
 
-    def _build_products(self) -> list[dict[str, Any]]:
-        products = []
-        buyer_region_order = ["North America", "Europe", "Asia Pacific", "Latin America", "Middle East", "Africa"]
-        buyer_suffixes = ["Procurement Group", "Consumer Brands", "Retail Network", "Manufacturing Cluster"]
-        for index, application in enumerate(self.applications, start=1):
-            linked_materials = self._materials_for_application(application["application_id"])
-            if not linked_materials:
+    def list_regulations(self) -> list[dict[str, Any]]:
+        return self.regulations
+
+    def get_supplier(self, supplier_id: str) -> dict[str, Any] | None:
+        return load_supplier_detail(self, supplier_id)
+
+    def get_regulation(self, regulation_id: str) -> dict[str, Any] | None:
+        regulation = self.regulation_index.get(regulation_id)
+        if not regulation:
+            return None
+        affected_materials: list[dict[str, Any]] = []
+        evidence_gaps: list[str] = []
+        likely_actions: list[str] = []
+        for relationship in self.relationships:
+            if relationship["type"] != "REVIEWED_UNDER":
                 continue
-            linked_suppliers = self._suppliers_for_materials(linked_materials)
-            industry_name = self.industry_index.get(application["industry_id"], {}).get("name", "Packaging")
-            average_sustainability = round(mean(item["sustainability_score"] for item in linked_materials), 1)
-            average_recyclability = round(mean(item["recyclability_score"] for item in linked_materials), 1)
-            average_supply_score = round(mean(100 - self.supplier_index[supplier_id]["disruption_risk_score"] for material in linked_materials for supplier_id in material["supplier_ids"] if supplier_id in self.supplier_index), 1)
-            buyer_names = [f"{industry_name} {buyer_suffixes[(index + offset) % len(buyer_suffixes)]}" for offset in range(2)]
-            buyer_regions = [buyer_region_order[(index + offset) % len(buyer_region_order)] for offset in range(2)]
-            products.append(
+            if regulation_id not in {relationship["from"], relationship["to"]}:
+                continue
+            material_id = relationship["from"] if relationship["from"] != regulation_id else relationship["to"]
+            material = self.material_index.get(material_id)
+            if not material:
+                continue
+            affected_materials.append(
                 {
-                    "product_id": f"PROD-{index:03d}",
-                    "name": f"{application['name']} product line",
-                    "application_id": application["application_id"],
-                    "application_name": application["name"],
-                    "application_use_case": application["use_case"],
-                    "industry_id": application["industry_id"],
-                    "industry_name": industry_name,
-                    "material_ids": [item["material_id"] for item in linked_materials[:5]],
-                    "alternate_material_ids": [item["material_id"] for item in linked_materials[1:4]],
-                    "material_categories": list(dict.fromkeys(item["category"] for item in linked_materials)),
-                    "supplier_ids": [item["supplier_id"] for item in linked_suppliers[:6]],
-                    "supplier_regions": list(dict.fromkeys(region for supplier in linked_suppliers for region in supplier.get("regions_served", []))),
-                    "buyer_names": buyer_names,
-                    "buyer_regions": buyer_regions,
-                    "sustainability_score": average_sustainability,
-                    "recyclability_score": average_recyclability,
-                    "supply_chain_score": average_supply_score,
-                    "match_score": round(mean(item["oxygen_barrier"] + item["seal_strength"] for item in linked_materials) / 2, 1),
-                    "compliance_state": "compliant" if all(item["compliance_state"] == "compliant" for item in linked_materials[:3]) else "watch",
-                    "thumbnail_tone": self._classify_material(linked_materials[0]),
+                    "material_id": material["material_id"],
+                    "name": material["name"],
+                    "compliance_state": material["compliance_state"],
+                    "supplier_count": len(material["supplier_ids"]),
                 }
             )
-        return products
+            evidence = self.evidence_for_material(material["material_id"])
+            if not any(doc.get("document_type") == "declaration" for doc in evidence.get("documents", [])):
+                evidence_gaps.append(f"{material['name']} is missing a declaration.")
+            if not evidence.get("test_reports"):
+                evidence_gaps.append(f"{material['name']} is missing a lab report.")
+            if material["compliance_state"] != "compliant":
+                likely_actions.append(f"Move {material['name']} into immediate compliance review.")
 
-    def _thumbnail_label(self, entity_type: str, title: str) -> str:
-        prefixes = {
-            "material": "MAT",
-            "product": "PROD",
-            "news": "NEWS",
-            "supplier": "SUP",
-        }
-        return f"{prefixes.get(entity_type, entity_type[:3].upper())} | {title[:18]}"
-
-    def _classify_material(self, material: dict[str, Any]) -> str:
-        category = material.get("category", "").lower()
-        composition = material.get("composition", "").lower()
-        descriptor = material.get("descriptor", "").lower()
-        if any(token in category for token in ["ore", "fiber", "pulp"]) or "unrefined" in descriptor:
-            return "Natural"
-        if any(token in category for token in ["composite", "laminate"]) or "," in composition or "/" in composition:
-            return "Compound"
-        return "Refined"
-
-    def _explore_material_card(self, material: dict[str, Any], classification: str) -> dict[str, Any]:
         return {
-            "entity_type": "material",
-            "entity_id": material["material_id"],
-            "title": material["name"],
-            "subtitle": f"{material['category']} | {material['compliance_state']}",
-            "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
-            "tags": [classification, material["descriptor"], *material["regions_available"][:2]],
-            "classification": classification,
-            "thumbnail": self._thumbnail_label("material", material["name"]),
-            "location_summary": material["regions_available"],
-            "focus_material_id": material["material_id"],
-            "dashboard_prompt": f"Map the strongest evidence, risks, and substitutes for {material['name']}.",
+            **deepcopy(regulation),
+            "affected_materials": affected_materials[:12],
+            "evidence_gaps": evidence_gaps[:10],
+            "likely_actions": list(dict.fromkeys(likely_actions))[:8] or [
+                "Review linked material dossiers before the effective date.",
+                "Refresh supplier declarations for exposed materials.",
+            ],
         }
 
-    def _explore_product_card(self, product: dict[str, Any]) -> dict[str, Any]:
-        return {
-            "entity_type": "product",
-            "entity_id": product["product_id"],
-            "title": product["name"],
-            "subtitle": f"{product['industry_name']} | {product['application_name']}",
-            "meta": f"Match {product['match_score']} | Sustainability {product['sustainability_score']} | Supply {product['supply_chain_score']}",
-            "tags": ["Product", *product["material_categories"][:2], *product["buyer_regions"][:1]],
-            "classification": "Product",
-            "thumbnail": self._thumbnail_label("product", product["name"]),
-            "location_summary": list(dict.fromkeys([*product["supplier_regions"][:2], *product["buyer_regions"][:2]])),
-            "focus_material_id": product["material_ids"][0] if product["material_ids"] else None,
-            "dashboard_prompt": f"Compare alternate materials for product {product['name']} and explain the tradeoffs.",
-        }
+    # -- Delegated explore / search / detail --------------------------------
 
     def explore_entities(
         self,
@@ -328,471 +300,19 @@ class LocalGraphRepository:
         region: str | None = None,
         taxonomy: str | None = None,
     ) -> list[dict[str, Any]]:
-        search_lower = search.lower().strip() if search else ""
-        if tab == "products":
-            results = []
-            for product in self.products:
-                if taxonomy and taxonomy.lower() != "product":
-                    continue
-                if region and region not in product["supplier_regions"] and region not in product["buyer_regions"]:
-                    continue
-                if category and category.lower() != product["industry_name"].lower() and category.lower() not in [item.lower() for item in product["material_categories"]]:
-                    continue
-                if supplier_id and supplier_id not in product["supplier_ids"]:
-                    continue
-                if application_id and application_id != product["application_id"]:
-                    continue
-                if compliance_state and product["compliance_state"].lower() != compliance_state.lower():
-                    continue
-                if min_sustainability is not None and product["sustainability_score"] < min_sustainability:
-                    continue
-                haystack = " ".join([product["name"], product["application_use_case"], product["industry_name"], " ".join(product["buyer_names"])]).lower()
-                if search_lower and search_lower not in haystack:
-                    continue
-                results.append(self._explore_product_card(product))
-            return results[:36]
-
-        if tab == "suppliers":
-            results = []
-            for supplier in self.list_suppliers(region=region):
-                supplied_materials = [self.material_index[item] for item in supplier["supplied_material_ids"] if item in self.material_index]
-                if taxonomy and taxonomy.lower() not in {"refined", "compound", "natural"}:
-                    continue
-                if category and not any(item["category"].lower() == category.lower() for item in supplied_materials):
-                    continue
-                if application_id and not any(application_id in item["target_applications"] for item in supplied_materials):
-                    continue
-                if compliance_state and not any(item["compliance_state"].lower() == compliance_state.lower() for item in supplied_materials):
-                    continue
-                if min_sustainability is not None and max((item["sustainability_score"] for item in supplied_materials), default=0) < min_sustainability:
-                    continue
-                haystack = " ".join([supplier["name"], supplier["country"], " ".join(supplier["regions_served"])]).lower()
-                if search_lower and search_lower not in haystack:
-                    continue
-                results.append(
-                    {
-                        "entity_type": "supplier",
-                        "entity_id": supplier["supplier_id"],
-                        "title": supplier["name"],
-                        "subtitle": f"{supplier['country']} | lead time {supplier['lead_time_days']} days",
-                        "meta": f"Risk {supplier['disruption_risk_score']} | {len(supplied_materials)} materials | {', '.join(supplier['regions_served'][:2])}",
-                        "tags": [*supplier["regions_served"][:2], *supplier["certifications"][:2]][:4],
-                        "classification": "Supplier",
-                        "thumbnail": self._thumbnail_label("supplier", supplier["name"]),
-                        "location_summary": supplier["regions_served"][:4],
-                        "focus_material_id": supplied_materials[0]["material_id"] if supplied_materials else None,
-                        "dashboard_prompt": f"Which risks and substitution options should I inspect for supplier {supplier['name']}?",
-                    }
-                )
-            return results[:36]
-
-        if tab == "news":
-            results = []
-            for item in self.material_news:
-                linked_materials = [self.material_index[mid] for mid in item["related_material_ids"] if mid in self.material_index]
-                if category and not any(material["category"].lower() == category.lower() for material in linked_materials):
-                    continue
-                if supplier_id and supplier_id not in item["related_supplier_ids"]:
-                    continue
-                if application_id and application_id not in item["related_application_ids"]:
-                    continue
-                if region and not any(region == served for served in item.get("regions", item.get("regions_available", []))):
-                    linked_suppliers = [self.supplier_index[sid] for sid in item.get("related_supplier_ids", []) if sid in self.supplier_index]
-                    if not any(region in supplier.get("regions_served", []) for supplier in linked_suppliers):
-                        continue
-                if compliance_state and item["compliance_state"].lower() != compliance_state.lower():
-                    continue
-                if min_sustainability is not None and item["sustainability_score"] < min_sustainability:
-                    continue
-                haystack = " ".join([item["title"], item["summary"], item["topic"], item["source"]]).lower()
-                if search_lower and search_lower not in haystack:
-                    continue
-                results.append(
-                    {
-                        "entity_type": "news",
-                        "entity_id": item["news_id"],
-                        "title": item["title"],
-                        "subtitle": f"{item['source']} | {item['published_on']}",
-                        "meta": f"{item['topic']} | sustainability {item['sustainability_score']}",
-                        "tags": [item["topic"], item["source_type"], item["compliance_state"]],
-                        "classification": "Update",
-                        "thumbnail": self._thumbnail_label("news", item["title"]),
-                        "focus_material_id": item["related_material_ids"][0] if item["related_material_ids"] else None,
-                        "dashboard_prompt": f"Explain the graph impact of this update: {item['title']}",
-                    }
-                )
-            return results[:36]
-
-        results = []
-        for material in self.filter_materials(
-            category=category,
-            compliance_state=compliance_state,
-            min_sustainability=min_sustainability,
-            search=search,
-        ):
-            classification = self._classify_material(material)
-            if taxonomy and classification.lower() != taxonomy.lower():
-                continue
-            if region and region not in material["regions_available"]:
-                continue
-            if supplier_id and supplier_id not in material["supplier_ids"]:
-                continue
-            if application_id and application_id not in material["target_applications"]:
-                continue
-            results.append(self._explore_material_card(material, classification))
-        return results[:36]
+        return run_explore_entities(
+            self, tab=tab, search=search, category=category, supplier_id=supplier_id,
+            application_id=application_id, compliance_state=compliance_state,
+            min_sustainability=min_sustainability, region=region, taxonomy=taxonomy,
+        )
 
     def explore_detail(self, entity_type: str, entity_id: str) -> dict[str, Any] | None:
-        if entity_type == "material":
-            material = self.get_material(entity_id)
-            if not material:
-                return None
-            applications = [self.application_index[item] for item in material["target_applications"] if item in self.application_index]
-            buyers = self._buyers_for_material(material)
-            suppliers = material["suppliers"]
-            return {
-                "entity_type": "material",
-                "entity_id": material["material_id"],
-                "title": material["name"],
-                "summary": f"{material['descriptor']} {material['category']} candidate used across {len(applications)} downstream applications with {len(suppliers)} qualified suppliers.",
-                "classification": self._classify_material(material),
-                "thumbnail": self._thumbnail_label("material", material["name"]),
-                "facts": [
-                    {"label": "Composition", "value": material["composition"]},
-                    {"label": "Compliance", "value": material["compliance_state"]},
-                    {"label": "Sustainability", "value": material["sustainability_score"]},
-                    {"label": "Food contact", "value": "Approved" if material["food_contact_safe"] else "Review required"},
-                ],
-                "sections": {
-                    "overview": {
-                    "summary": material["composition"],
-                    "facts": [
-                            {"label": "Natural class", "value": self._classify_material(material)},
-                            {"label": "Descriptor", "value": material["descriptor"]},
-                            {"label": "Regions", "value": ", ".join(material["regions_available"][:4])},
-                            {"label": "Compliance", "value": material["compliance_state"].replace("-", " ").title()},
-                        ],
-                    },
-                    "applications": self._application_scores_for_material(material, applications),
-                    "suppliers": [
-                        {
-                            "name": supplier["name"],
-                            "location": supplier["country"],
-                            "regions": ", ".join(supplier["regions_served"][:3]),
-                            "lead_time": f"{supplier['lead_time_days']} days",
-                        }
-                        for supplier in suppliers[:8]
-                    ],
-                    "buyers": buyers[:8],
-                    "market_signals": self._material_market_signals(material),
-                    "sustainability_metrics": [
-                        {"label": "Sustainability score", "value": material["sustainability_score"]},
-                        {"label": "Recyclability", "value": material["recyclability_score"]},
-                        {"label": "Compostability", "value": material["compostability_score"]},
-                        {"label": "Cost range", "value": f"{material['cost_range']['low']} to {material['cost_range']['high']} {material['cost_range']['currency']}"},
-                    ],
-                    "regulatory_requirements": self._regulations_for_material(material["material_id"]),
-                },
-                "related": {
-                    "suppliers": [item["name"] for item in material["suppliers"][:4]],
-                    "applications": [item["name"] for item in applications[:4]],
-                    "documents": [item["title"] for item in material["documents"][:3]],
-                },
-                "map_points": self._entity_map_points(material=material, buyers=buyers, suppliers=suppliers),
-                "graph": self._material_detail_graph(material, applications, suppliers, buyers),
-                "focus_material_id": material["material_id"],
-                "dashboard_prompt": f"Trace the graph evidence, supplier risk, and substitute logic for {material['name']}.",
-            }
-
-        if entity_type == "product":
-            product = self.product_index.get(entity_id)
-            if not product:
-                return None
-            linked_materials = [self.material_index[item] for item in product["material_ids"] if item in self.material_index]
-            linked_suppliers = [self.supplier_index[item] for item in product["supplier_ids"] if item in self.supplier_index]
-            return {
-                "entity_type": "product",
-                "entity_id": product["product_id"],
-                "title": product["name"],
-                "summary": f"{product['industry_name']} product connected to {len(linked_materials)} candidate materials, {len(linked_suppliers)} suppliers, and {len(product['buyer_names'])} buyer references.",
-                "classification": "Product",
-                "thumbnail": self._thumbnail_label("product", product["name"]),
-                "facts": [
-                    {"label": "Industry", "value": product["industry_name"]},
-                    {"label": "Application", "value": product["application_name"]},
-                    {"label": "Compliance", "value": product["compliance_state"]},
-                    {"label": "Buyer regions", "value": ", ".join(product["buyer_regions"][:3])},
-                ],
-                "sections": {
-                    "overview": {
-                        "summary": product["application_use_case"],
-                        "facts": [
-                            {"label": "Product type", "value": "Finished market-ready item"},
-                            {"label": "Primary demand region", "value": product["buyer_regions"][0]},
-                            {"label": "Supplier reach", "value": ", ".join(product["supplier_regions"][:3])},
-                            {"label": "Alt materials", "value": len(product["alternate_material_ids"])},
-                        ],
-                    },
-                    "applications": [
-                        {
-                            "name": product["application_name"],
-                            "match_score": product["match_score"],
-                            "sustainability_score": product["sustainability_score"],
-                            "supply_chain_score": product["supply_chain_score"],
-                            "connected_products": [product["name"]],
-                        }
-                    ],
-                    "suppliers": [
-                        {
-                            "name": supplier["name"],
-                            "location": supplier["country"],
-                            "regions": ", ".join(supplier["regions_served"][:3]),
-                            "lead_time": f"{supplier['lead_time_days']} days",
-                        }
-                        for supplier in linked_suppliers[:8]
-                    ],
-                    "buyers": [{"name": item, "region": region_name} for item, region_name in zip(product["buyer_names"], product["buyer_regions"], strict=False)],
-                    "market_signals": self._product_market_signals(product),
-                    "sustainability_metrics": self._product_sustainability_metrics(product, linked_materials),
-                    "regulatory_requirements": self._product_regulatory_requirements(linked_materials),
-                    "alternate_materials": [
-                        {"name": self.material_index[item]["name"], "reason": "Alternative candidate already linked to this product"}
-                        for item in product["alternate_material_ids"] if item in self.material_index
-                    ],
-                },
-                "related": {
-                    "materials": [item["name"] for item in linked_materials[:4]],
-                    "suppliers": [item["name"] for item in linked_suppliers[:4]],
-                    "buyers": product["buyer_names"][:4],
-                },
-                "map_points": self._entity_map_points(product=product, suppliers=linked_suppliers),
-                "graph": self._product_detail_graph(product, linked_materials, linked_suppliers),
-                "focus_material_id": linked_materials[0]["material_id"] if linked_materials else None,
-                "dashboard_prompt": f"Which material path is strongest for product {product['name']} and what are the supplier or compliance risks?",
-            }
-
-        if entity_type == "supplier":
-            supplier = self.get_supplier(entity_id)
-            if not supplier:
-                return None
-            return {
-                "entity_type": "supplier",
-                "entity_id": supplier["supplier_id"],
-                "title": supplier["name"],
-                "summary": f"{supplier['country']} supplier supporting {len(supplier['supplied_materials'])} linked materials in the demo graph.",
-                "facts": [
-                    {"label": "Lead time", "value": f"{supplier['lead_time_days']} days"},
-                    {"label": "Risk", "value": supplier["disruption_risk_score"]},
-                    {"label": "ESG", "value": supplier["esg_score"]},
-                    {"label": "Certifications", "value": len(supplier["certifications"])},
-                ],
-                "related": {
-                    "materials": [item["name"] for item in supplier["supplied_materials"][:4]],
-                    "certifications": supplier["certifications"][:4],
-                    "regions": supplier["regions_served"][:4],
-                },
-                "focus_material_id": supplier["supplied_materials"][0]["material_id"] if supplier["supplied_materials"] else None,
-                "dashboard_prompt": f"Inspect the sourcing risk, evidence coverage, and substitute options around supplier {supplier['name']}.",
-            }
-
-        if entity_type == "news":
-            item = self.news_index.get(entity_id)
-            if not item:
-                return None
-            related_materials = [self.material_index[mid]["name"] for mid in item["related_material_ids"] if mid in self.material_index]
-            related_suppliers = [self.supplier_index[sid]["name"] for sid in item["related_supplier_ids"] if sid in self.supplier_index]
-            related_applications = [self.application_index[aid]["name"] for aid in item["related_application_ids"] if aid in self.application_index]
-            return {
-                "entity_type": "news",
-                "entity_id": item["news_id"],
-                "title": item["title"],
-                "summary": item["summary"],
-                "facts": [
-                    {"label": "Source", "value": item["source"]},
-                    {"label": "Published", "value": item["published_on"]},
-                    {"label": "Topic", "value": item["topic"]},
-                    {"label": "Compliance state", "value": item["compliance_state"]},
-                ],
-                "related": {
-                    "materials": related_materials[:4],
-                    "suppliers": related_suppliers[:4],
-                    "applications": related_applications[:4],
-                },
-                "focus_material_id": item["related_material_ids"][0] if item["related_material_ids"] else None,
-                "dashboard_prompt": f"Summarize the graph impact of the update titled '{item['title']}'.",
-            }
-        if entity_type == "component":
-            component = self.get_component(entity_id)
-            if not component:
-                return None
-            return {
-                "entity_type": "component",
-                "entity_id": component["component_id"],
-                "title": component["name"],
-                "summary": component.get("summary", "Web-discovered component reference."),
-                "facts": component.get("key_facts", []),
-                "related": {
-                    "materials": [item["name"] for item in component.get("related_materials", [])[:4]],
-                    "tags": component.get("tags", [])[:4],
-                    "evidence": component.get("evidence", [])[:2],
-                },
-                "focus_material_id": component.get("related_material_ids", [None])[0],
-                "dashboard_prompt": f"What should I know about the component {component['name']} for packaging decisions?",
-            }
-        return None
-
-    def list_regulations(self) -> list[dict[str, Any]]:
-        return self.regulations
+        return run_explore_detail(self, entity_type, entity_id)
 
     def global_search(self, query: str) -> list[dict[str, Any]]:
-        query_lower = query.lower().strip()
-        if not query_lower:
-            return []
-        results = []
+        return run_global_search(self, query)
 
-        for material in self.materials:
-            haystack = " ".join(
-                [
-                    material["name"],
-                    material["category"],
-                    material["descriptor"],
-                    material["composition"],
-                    " ".join(material["compliance_flags"]),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "material",
-                        "entity_id": material["material_id"],
-                        "title": material["name"],
-                        "subtitle": f"{material['category']} | {material['compliance_state']}",
-                        "meta": f"Sustainability {material['sustainability_score']} | Recyclability {material['recyclability_score']}",
-                    }
-                )
-
-        for product in self.products:
-            haystack = " ".join(
-                [
-                    product["name"],
-                    product["industry_name"],
-                    product["application_name"],
-                    " ".join(product["buyer_names"]),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "product",
-                        "entity_id": product["product_id"],
-                        "title": product["name"],
-                        "subtitle": f"{product['industry_name']} | {product['application_name']}",
-                        "meta": f"Match {product['match_score']} | Sustainability {product['sustainability_score']}",
-                    }
-                )
-
-        for supplier in self.suppliers:
-            haystack = " ".join(
-                [
-                    supplier["name"],
-                    supplier["country"],
-                    " ".join(supplier["regions_served"]),
-                    " ".join(supplier["certifications"]),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "supplier",
-                        "entity_id": supplier["supplier_id"],
-                        "title": supplier["name"],
-                        "subtitle": f"{supplier['country']} | lead time {supplier['lead_time_days']} days",
-                        "meta": f"Risk {supplier['disruption_risk_score']} | ESG {supplier['esg_score']}",
-                    }
-                )
-
-        for regulation in self.regulations:
-            haystack = " ".join(
-                [
-                    regulation["name"],
-                    regulation["focus"],
-                    regulation["effective_date"],
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "regulation",
-                        "entity_id": regulation["regulation_id"],
-                        "title": regulation["name"],
-                        "subtitle": f"{'Active' if regulation['active'] else 'Upcoming'} | {regulation['effective_date']}",
-                        "meta": f"Focus {regulation['focus']}",
-                    }
-                )
-
-        for document in self.all_documents():
-            haystack = " ".join(
-                [
-                    document.get("title", ""),
-                    document.get("document_type", ""),
-                    document.get("extraction_summary", ""),
-                    " ".join(document.get("detected_terms", [])),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "document",
-                        "entity_id": document.get("document_id", ""),
-                        "title": document.get("title", "Document"),
-                        "subtitle": f"{document.get('document_type', 'document')} | {document.get('issued_on', 'unknown')}",
-                        "meta": document.get("extraction_summary", "Evidence source"),
-                    }
-                )
-
-        for report in self.all_test_reports():
-            haystack = " ".join(
-                [
-                    report.get("title", ""),
-                    report.get("lab", ""),
-                    report.get("migration_status", ""),
-                    report.get("extraction_summary", ""),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "report",
-                        "entity_id": report.get("report_id", ""),
-                        "title": report.get("title", "Report"),
-                        "subtitle": f"{report.get('lab', 'Uploaded source')} | {report.get('test_date', 'unknown')}",
-                        "meta": report.get("migration_status", "Test report"),
-                    }
-                )
-
-        for component in self.runtime_components():
-            haystack = " ".join(
-                [
-                    component.get("name", ""),
-                    component.get("summary", ""),
-                    " ".join(component.get("aliases", [])),
-                    " ".join(component.get("tags", [])),
-                ]
-            ).lower()
-            if query_lower in haystack:
-                results.append(
-                    {
-                        "entity_type": "component",
-                        "entity_id": component.get("component_id", ""),
-                        "title": component.get("name", "Discovered component"),
-                        "subtitle": f"{component.get('component_type', 'Web-discovered component')} | cached on {component.get('discovered_at', 'unknown date')}",
-                        "meta": f"Stored from {component.get('source_name', 'web discovery')} for future lookups.",
-                        "source_url": component.get("source_url", ""),
-                        "discovery_state": "cached",
-                    }
-                )
-
-        return results[:28]
+    # -- Entity resolution --------------------------------------------------
 
     def resolve_entity_reference(self, entity_type: str | None, entity_id: str | None) -> dict[str, Any] | None:
         if not entity_type or not entity_id:
@@ -891,6 +411,8 @@ class LocalGraphRepository:
                 return {"type": entity_type, "id": partial[id_key], "label": partial[label_key]}
         return None
 
+    # -- Integrity / documents ----------------------------------------------
+
     def integrity_report(self) -> dict[str, Any]:
         missing_suppliers = [
             material["material_id"]
@@ -959,208 +481,13 @@ class LocalGraphRepository:
             }
         return None
 
-    def get_supplier(self, supplier_id: str) -> dict[str, Any] | None:
-        return load_supplier_detail(self, supplier_id)
-
-    def get_regulation(self, regulation_id: str) -> dict[str, Any] | None:
-        regulation = self.regulation_index.get(regulation_id)
-        if not regulation:
-            return None
-        affected_materials = []
-        evidence_gaps = []
-        likely_actions = []
-        for relationship in self.relationships:
-            if relationship["type"] != "REVIEWED_UNDER":
-                continue
-            if regulation_id not in {relationship["from"], relationship["to"]}:
-                continue
-            material_id = relationship["from"] if relationship["from"] != regulation_id else relationship["to"]
-            material = self.material_index.get(material_id)
-            if not material:
-                continue
-            affected_materials.append(
-                {
-                    "material_id": material["material_id"],
-                    "name": material["name"],
-                    "compliance_state": material["compliance_state"],
-                    "supplier_count": len(material["supplier_ids"]),
-                }
-            )
-            evidence = self.evidence_for_material(material["material_id"])
-            if not any(doc.get("document_type") == "declaration" for doc in evidence.get("documents", [])):
-                evidence_gaps.append(f"{material['name']} is missing a declaration.")
-            if not evidence.get("test_reports"):
-                evidence_gaps.append(f"{material['name']} is missing a lab report.")
-            if material["compliance_state"] != "compliant":
-                likely_actions.append(f"Move {material['name']} into immediate compliance review.")
-
-        return {
-            **deepcopy(regulation),
-            "affected_materials": affected_materials[:12],
-            "evidence_gaps": evidence_gaps[:10],
-            "likely_actions": list(dict.fromkeys(likely_actions))[:8] or [
-                "Review linked material dossiers before the effective date.",
-                "Refresh supplier declarations for exposed materials.",
-            ],
-        }
-
-    def _buyers_for_material(self, material: dict[str, Any]) -> list[dict[str, Any]]:
-        buyers = []
-        for offset, application_id in enumerate(material.get("target_applications", [])[:4]):
-            application = self.application_index.get(application_id)
-            if not application:
-                continue
-            industry_name = self.industry_index.get(application["industry_id"], {}).get("name", "Packaging")
-            buyers.append(
-                {
-                    "name": f"{industry_name} Demand Group {offset + 1}",
-                    "region": material["regions_available"][offset % len(material["regions_available"])],
-                    "signal": f"Interested in {application['name'].lower()} supply continuity",
-                }
-            )
-        return buyers
-
-    def _application_scores_for_material(self, material: dict[str, Any], applications: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        scored = []
-        for application in applications:
-            priority = application.get("priority", "barrier")
-            match_score = round((material["oxygen_barrier"] + material["seal_strength"] + material["thermal_tolerance"]) / 3, 1)
-            if priority == "recyclability":
-                match_score = round((match_score + material["recyclability_score"]) / 2, 1)
-            sustainability_score = round((material["sustainability_score"] + material["compostability_score"] + material["recyclability_score"]) / 3, 1)
-            supply_chain_score = round(mean(100 - self.supplier_index[supplier_id]["disruption_risk_score"] for supplier_id in material["supplier_ids"] if supplier_id in self.supplier_index), 1)
-            connected_products = [item["name"] for item in self.products if item["application_id"] == application["application_id"]][:3]
-            scored.append(
-                {
-                    "name": application["name"],
-                    "use_case": application["use_case"],
-                    "match_score": match_score,
-                    "sustainability_score": sustainability_score,
-                    "supply_chain_score": supply_chain_score,
-                    "connected_products": connected_products,
-                }
-            )
-        return scored
-
-    def _material_market_signals(self, material: dict[str, Any]) -> list[dict[str, Any]]:
-        snapshots = self.snapshots_by_material.get(material["material_id"], [])
-        current = snapshots[-1] if snapshots else None
-        previous = snapshots[-2] if len(snapshots) > 1 else None
-        cost_shift = 0 if not current or not previous else round(current["price_index"] - previous["price_index"], 2)
-        return [
-            {"label": "Current cost index", "value": current["price_index"] if current else "N/A"},
-            {"label": "Quarterly cost shift", "value": cost_shift},
-            {"label": "Average supplier risk", "value": round(mean(self.supplier_index[supplier_id]["disruption_risk_score"] for supplier_id in material["supplier_ids"] if supplier_id in self.supplier_index), 1)},
-        ]
-
-    def _regulations_for_material(self, material_id: str) -> list[dict[str, Any]]:
-        rows = []
-        for regulation in self.regulations:
-            if self._relationship_between(material_id, regulation["regulation_id"]):
-                rows.append(
-                    {
-                        "name": regulation["name"],
-                        "region": regulation["region_id"],
-                        "effective_on": regulation["effective_on"],
-                    }
-                )
-        return rows[:6]
-
-    def _entity_map_points(
-        self,
-        material: dict[str, Any] | None = None,
-        product: dict[str, Any] | None = None,
-        buyers: list[dict[str, Any]] | None = None,
-        suppliers: list[dict[str, Any]] | None = None,
-    ) -> list[dict[str, Any]]:
-        points = []
-        for supplier in suppliers or []:
-            for region in supplier.get("regions_served", [])[:2]:
-                points.append({"type": "supplier", "label": supplier["name"], "region": region})
-        for buyer in buyers or []:
-            points.append({"type": "buyer", "label": buyer["name"], "region": buyer["region"]})
-        if material:
-            for region in material.get("regions_available", [])[:3]:
-                points.append({"type": "material", "label": material["name"], "region": region})
-        if product:
-            for region in product.get("buyer_regions", [])[:3]:
-                points.append({"type": "product", "label": product["name"], "region": region})
-        return points
-
-    def _material_detail_graph(
-        self,
-        material: dict[str, Any],
-        applications: list[dict[str, Any]],
-        suppliers: list[dict[str, Any]],
-        buyers: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        nodes = [{"id": material["material_id"], "label": material["name"], "type": "material"}]
-        edges = []
-        for application in applications[:4]:
-            nodes.append({"id": application["application_id"], "label": application["name"], "type": "application"})
-            edges.append({"source": material["material_id"], "target": application["application_id"], "label": "Used in"})
-        for supplier in suppliers[:4]:
-            nodes.append({"id": supplier["supplier_id"], "label": supplier["name"], "type": "supplier"})
-            edges.append({"source": supplier["supplier_id"], "target": material["material_id"], "label": "Supplies"})
-        for index, buyer in enumerate(buyers[:4], start=1):
-            buyer_id = f"buyer-{material['material_id']}-{index}"
-            nodes.append({"id": buyer_id, "label": buyer["name"], "type": "buyer"})
-            edges.append({"source": material["material_id"], "target": buyer_id, "label": "Bought by"})
-        return {"nodes": nodes, "edges": edges}
-
-    def _product_market_signals(self, product: dict[str, Any]) -> list[dict[str, Any]]:
-        return [
-            {"label": "Demand region", "value": product["buyer_regions"][0]},
-            {"label": "Supply chain score", "value": product["supply_chain_score"]},
-            {"label": "Primary industry", "value": product["industry_name"]},
-        ]
-
-    def _product_sustainability_metrics(self, product: dict[str, Any], linked_materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        return [
-            {"label": "Product sustainability", "value": product["sustainability_score"]},
-            {"label": "Product recyclability", "value": product["recyclability_score"]},
-            {"label": "Average material compostability", "value": round(mean(item["compostability_score"] for item in linked_materials), 1) if linked_materials else "N/A"},
-        ]
-
-    def _product_regulatory_requirements(self, linked_materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        regulation_ids = []
-        for material in linked_materials:
-            for regulation in self._regulations_for_material(material["material_id"]):
-                regulation_ids.append((regulation["name"], regulation["region"], regulation["effective_on"]))
-        unique = list(dict.fromkeys(regulation_ids))
-        return [{"name": name, "region": region, "effective_on": effective_on} for name, region, effective_on in unique[:6]]
-
-    def _product_detail_graph(
-        self,
-        product: dict[str, Any],
-        linked_materials: list[dict[str, Any]],
-        linked_suppliers: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        nodes = [{"id": product["product_id"], "label": product["name"], "type": "product"}]
-        edges = []
-        for material in linked_materials[:4]:
-            nodes.append({"id": material["material_id"], "label": material["name"], "type": "material"})
-            edges.append({"source": product["product_id"], "target": material["material_id"], "label": "Uses"})
-        for supplier in linked_suppliers[:4]:
-            nodes.append({"id": supplier["supplier_id"], "label": supplier["name"], "type": "supplier"})
-            edges.append({"source": supplier["supplier_id"], "target": product["product_id"], "label": "Feeds"})
-        return {"nodes": nodes, "edges": edges}
+    # -- Delegated graph / comparison / evidence ----------------------------
 
     def compare_suppliers(self, supplier_ids: list[str] | None = None) -> list[dict[str, Any]]:
         return build_supplier_comparison(self, supplier_ids)
 
-    def _materials_for_application(self, application_id: str) -> list[dict[str, Any]]:
-        return [item for item in self.materials if application_id in item["target_applications"]]
-
-    def _suppliers_for_materials(self, materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        supplier_ids = []
-        for material in materials:
-            supplier_ids.extend(material["supplier_ids"])
-        unique = list(dict.fromkeys(supplier_ids))
-        return [self.supplier_index[item] for item in unique if item in self.supplier_index]
-
     def recommend_food_packaging(self, prioritize_sustainability: bool = False) -> list[dict[str, Any]]:
-        candidates = []
+        candidates: list[dict[str, Any]] = []
         for material in self.materials:
             if not material["food_contact_safe"]:
                 continue
@@ -1193,7 +520,7 @@ class LocalGraphRepository:
         material = self.material_index.get(material_id)
         if not material:
             return []
-        substitutes = []
+        substitutes: list[dict[str, Any]] = []
         for sub_id in material["substitute_material_ids"]:
             substitute = self.material_index.get(sub_id)
             if substitute and substitute["recyclability_score"] >= material["recyclability_score"]:
@@ -1204,7 +531,7 @@ class LocalGraphRepository:
         regulation = self.regulation_index.get(regulation_id)
         if not regulation:
             return []
-        affected = []
+        affected: list[dict[str, Any]] = []
         for material in self.materials:
             if regulation["focus"] in material["category"].lower() or regulation["focus"] in " ".join(material["compliance_flags"]).lower():
                 if material["compliance_state"] != "compliant":
@@ -1225,6 +552,8 @@ class LocalGraphRepository:
 
     def graph_node_insight(self, node_id: str) -> dict[str, Any]:
         insight = build_graph_node_insight(self, node_id)
+        node = insight["node"]
+        related = insight["related"]
 
         if node["type"] == "material":
             material = self.material_index.get(node_id)
@@ -1421,8 +750,10 @@ class LocalGraphRepository:
     def search_documents(self, query: str, material_id: str | None = None) -> list[dict[str, Any]]:
         return run_document_search(self, query, material_id)
 
+    # -- Alerts / analytics -------------------------------------------------
+
     def alerts(self) -> list[dict[str, Any]]:
-        alerts = []
+        alerts: list[dict[str, Any]] = []
         today = date.fromisoformat("2026-07-11")
         for supplier in self.suppliers:
             snapshots = self.snapshots_by_supplier.get(supplier["supplier_id"], [])
@@ -1493,7 +824,7 @@ class LocalGraphRepository:
             reports = [report for report in self.all_test_reports() if report.get("material_id") == material["material_id"]]
             has_declaration = any(doc.get("document_type") == "declaration" for doc in docs)
             if not has_declaration or not reports:
-                missing_parts = []
+                missing_parts: list[str] = []
                 if not has_declaration:
                     missing_parts.append("declaration")
                 if not reports:
@@ -1509,13 +840,13 @@ class LocalGraphRepository:
         return alerts[:14]
 
     def analytics_overview(self) -> dict[str, Any]:
-        snapshots_by_quarter = defaultdict(list)
+        snapshots_by_quarter: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for snapshot in self.snapshots:
             snapshots_by_quarter[snapshot["quarter"]].append(snapshot)
-        cost_trends = []
-        compliance_drift = []
-        supplier_risk_trend = []
-        material_adoption = []
+        cost_trends: list[dict[str, Any]] = []
+        compliance_drift: list[dict[str, Any]] = []
+        supplier_risk_trend: list[dict[str, Any]] = []
+        material_adoption: list[dict[str, Any]] = []
         for quarter, items in sorted(snapshots_by_quarter.items()):
             cost_trends.append(
                 {
@@ -1586,6 +917,8 @@ class LocalGraphRepository:
 
     def supplier_snapshot(self, supplier_ids: list[str]) -> list[dict[str, Any]]:
         return self.compare_suppliers(supplier_ids)
+
+    # -- Internal helpers ---------------------------------------------------
 
     def _type_from_node_id(self, node_id: str) -> str:
         prefix_map = {
@@ -1667,580 +1000,7 @@ class LocalGraphRepository:
         )
 
 
-class Neo4jAdminRepository:
-    def __init__(self, uri: str, username: str, password: str):
-        from neo4j import GraphDatabase
-
-        self.driver = GraphDatabase.driver(uri, auth=(username, password))
-
-    def run(self, query: str, parameters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        with self.driver.session() as session:
-            result = session.run(query, parameters or {})
-            return [dict(record) for record in result]
-
-    def close(self) -> None:
-        self.driver.close()
-
-
-class Neo4jGraphRepository(LocalGraphRepository):
-    ID_KEYS = [
-        "material_id",
-        "supplier_id",
-        "application_id",
-        "regulation_id",
-        "document_id",
-        "stream_id",
-        "report_id",
-        "snapshot_id",
-        "region_id",
-        "industry_id",
-        "certification_id",
-    ]
-
-    LABEL_TO_ID_KEY = {
-        "Material": "material_id",
-        "Supplier": "supplier_id",
-        "Application": "application_id",
-        "Regulation": "regulation_id",
-        "SourceDocument": "document_id",
-        "RecyclingStream": "stream_id",
-        "TestReport": "report_id",
-        "QuarterlySnapshot": "snapshot_id",
-        "Region": "region_id",
-        "Industry": "industry_id",
-        "Certification": "certification_id",
-    }
-
-    LABEL_TO_TYPE = {
-        "Material": "material",
-        "Supplier": "supplier",
-        "Application": "application",
-        "Regulation": "regulation",
-        "SourceDocument": "document",
-        "RecyclingStream": "recycling_stream",
-        "TestReport": "test_report",
-        "QuarterlySnapshot": "snapshot",
-        "Region": "region",
-        "Industry": "industry",
-        "Certification": "certification",
-    }
-
-    CONSTRAINTS = [
-        "CREATE CONSTRAINT material_id IF NOT EXISTS FOR (m:Material) REQUIRE m.material_id IS UNIQUE",
-        "CREATE CONSTRAINT supplier_id IF NOT EXISTS FOR (s:Supplier) REQUIRE s.supplier_id IS UNIQUE",
-        "CREATE CONSTRAINT application_id IF NOT EXISTS FOR (a:Application) REQUIRE a.application_id IS UNIQUE",
-        "CREATE CONSTRAINT regulation_id IF NOT EXISTS FOR (r:Regulation) REQUIRE r.regulation_id IS UNIQUE",
-        "CREATE CONSTRAINT document_id IF NOT EXISTS FOR (d:SourceDocument) REQUIRE d.document_id IS UNIQUE",
-    ]
-
-    def __init__(self, settings=None) -> None:
-        super().__init__()
-        self.settings = settings or get_settings()
-        self.driver = None
-        self.connection_state = "configured"
-        self.audit_path = self.settings.packgraph_runtime_dir / "neo4j_query_audit.jsonl"
-        if not self.settings.neo4j_test_stub:
-            from neo4j import GraphDatabase
-
-            try:
-                self.driver = GraphDatabase.driver(
-                    self.settings.neo4j_uri,
-                    auth=(self.settings.neo4j_user, self.settings.neo4j_password),
-                )
-                self.driver.verify_connectivity()
-                self.connection_state = "connected"
-            except Exception as exc:
-                self.connection_state = "unavailable"
-                raise GraphConnectionError(
-                    f"Neo4j is unavailable at {_safe_neo4j_uri(self.settings.neo4j_uri)} for database {self.settings.neo4j_database}."
-                ) from exc
-        else:
-            self.connection_state = "stubbed"
-        if self.settings.neo4j_auto_ingest:
-            self.sync_bundle_to_neo4j()
-
-    def close(self) -> None:
-        if self.driver:
-            self.driver.close()
-
-    def sync_bundle_to_neo4j(self) -> None:
-        if not self.driver:
-            raise GraphConnectionError("Neo4j sync requires a live Neo4j connection.")
-        entity_map = {
-            "materials": ("Material", "material_id"),
-            "suppliers": ("Supplier", "supplier_id"),
-            "applications": ("Application", "application_id"),
-            "regulations": ("Regulation", "regulation_id"),
-            "certifications": ("Certification", "certification_id"),
-            "recycling_streams": ("RecyclingStream", "stream_id"),
-            "regions": ("Region", "region_id"),
-            "industries": ("Industry", "industry_id"),
-            "source_documents": ("SourceDocument", "document_id"),
-            "test_reports": ("TestReport", "report_id"),
-            "quarterly_snapshots": ("QuarterlySnapshot", "snapshot_id"),
-        }
-        relation_queries = {
-            "TARGETS_APPLICATION": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Application {application_id: row.to})
-                MERGE (a)-[:TARGETS_APPLICATION]->(b)
-            """,
-            "SUPPLIED_BY": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Supplier {supplier_id: row.to})
-                MERGE (a)-[:SUPPLIED_BY]->(b)
-            """,
-            "HAS_DOCUMENT": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:SourceDocument {document_id: row.to})
-                MERGE (a)-[:HAS_DOCUMENT]->(b)
-            """,
-            "SUBSTITUTES_WITH": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Material {material_id: row.to})
-                MERGE (a)-[:SUBSTITUTES_WITH]->(b)
-            """,
-            "RECYCLES_INTO": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:RecyclingStream {stream_id: row.to})
-                MERGE (a)-[:RECYCLES_INTO]->(b)
-            """,
-            "REVIEWED_UNDER": """
-                UNWIND $rows AS row
-                MATCH (a:Material {material_id: row.from})
-                MATCH (b:Regulation {regulation_id: row.to})
-                MERGE (a)-[:REVIEWED_UNDER]->(b)
-            """,
-            "SUPPLIES": """
-                UNWIND $rows AS row
-                MATCH (a:Supplier {supplier_id: row.from})
-                MATCH (b:Material {material_id: row.to})
-                MERGE (a)-[:SUPPLIES]->(b)
-            """,
-        }
-        with self.driver.session(database=self.settings.neo4j_database) as session:
-            for query in self.CONSTRAINTS:
-                session.run(query).consume()
-            for key, (label, id_key) in entity_map.items():
-                session.run(
-                    f"""
-                    UNWIND $rows AS row
-                    MERGE (n:{label} {{{id_key}: row.{id_key}}})
-                    SET n += row
-                    """,
-                    {"rows": [self._normalize_neo4j_properties(row) for row in self.bundle[key]]},
-                ).consume()
-            for rel_type, query in relation_queries.items():
-                rows = [rel for rel in self.relationships if rel["type"] == rel_type]
-                session.run(query, {"rows": rows}).consume()
-
-    def ingest_uploaded_artifact(self, record: dict[str, Any], kind: str) -> None:
-        if not self.driver:
-            raise GraphConnectionError("Uploaded artifact ingest requires a live Neo4j connection.")
-        with self.driver.session(database=self.settings.neo4j_database) as session:
-            if kind == "test_report":
-                session.run(
-                    """
-                    MERGE (r:TestReport {report_id: $report_id})
-                    SET r += $props
-                    WITH r
-                    MATCH (m:Material {material_id: $material_id})
-                    MERGE (m)-[:HAS_TEST_REPORT]->(r)
-                    """,
-                    {
-                        "report_id": record["report_id"],
-                        "material_id": record["material_id"],
-                        "props": self._normalize_neo4j_properties(record),
-                    },
-                ).consume()
-                return
-
-            session.run(
-                """
-                MERGE (d:SourceDocument {document_id: $document_id})
-                SET d += $props
-                WITH d
-                MATCH (m:Material {material_id: $material_id})
-                MERGE (m)-[:HAS_DOCUMENT]->(d)
-                """,
-                {
-                    "document_id": record["document_id"],
-                    "material_id": record["material_id"],
-                    "props": self._normalize_neo4j_properties(record),
-                },
-            ).consume()
-
-    def relationship_preview(self, material_id: str | None = None) -> list[dict[str, Any]]:
-        query = """
-        MATCH (a)-[r]-(b)
-        WHERE $material_id IS NULL
-            OR a.material_id = $material_id
-            OR b.material_id = $material_id
-        RETURN labels(a)[0] AS from_label,
-               properties(a) AS from_props,
-               type(r) AS type,
-               labels(b)[0] AS to_label,
-               properties(b) AS to_props
-        LIMIT 80
-        """
-        rows = self._run_graph_query("relationship_preview", query, {"material_id": material_id})
-        preview = []
-        for row in rows:
-            preview.append(
-                {
-                    "from": self._extract_node_id(row["from_label"], row["from_props"]),
-                    "to": self._extract_node_id(row["to_label"], row["to_props"]),
-                    "type": row["type"],
-                }
-            )
-        return preview
-
-    def graph_subgraph(self, material_id: str) -> dict[str, Any]:
-        query = """
-        MATCH (m:Material {material_id: $material_id})-[r]-(n)
-        RETURN labels(startNode(r))[0] AS source_label,
-               properties(startNode(r)) AS source_props,
-               labels(endNode(r))[0] AS target_label,
-               properties(endNode(r)) AS target_props,
-               type(r) AS type
-        """
-        rows = self._run_graph_query("graph_subgraph", query, {"material_id": material_id})
-        nodes = {material_id: self._node_descriptor(material_id)}
-        edges = []
-        for row in rows:
-            source = self._normalize_node(row["source_label"], row["source_props"])
-            target = self._normalize_node(row["target_label"], row["target_props"])
-            nodes[source["id"]] = source
-            nodes[target["id"]] = target
-            edges.append({"source": source["id"], "target": target["id"], "type": row["type"]})
-        return {"nodes": list(nodes.values()), "edges": edges}
-
-    def graph_path(self, source_id: str, target_id: str) -> dict[str, Any]:
-        query = """
-        MATCH (source)
-        WHERE any(k IN $id_keys WHERE source[k] = $source_id)
-        MATCH (target)
-        WHERE any(k IN $id_keys WHERE target[k] = $target_id)
-        MATCH p = shortestPath((source)-[*..6]-(target))
-        RETURN [node IN nodes(p) | {label: labels(node)[0], props: properties(node)}] AS nodes,
-               [rel IN relationships(p) | {
-                    type: type(rel),
-                    source_label: labels(startNode(rel))[0],
-                    source_props: properties(startNode(rel)),
-                    target_label: labels(endNode(rel))[0],
-                    target_props: properties(endNode(rel))
-               }] AS edges
-        """
-        rows = self._run_graph_query(
-            "graph_path",
-            query,
-            {"source_id": source_id, "target_id": target_id, "id_keys": self.ID_KEYS},
-        )
-        if not rows:
-            return {"path": [], "edges": []}
-        row = rows[0]
-        path = [self._normalize_node(item["label"], item["props"]) for item in row["nodes"]]
-        edges = [
-            {
-                "source": self._extract_node_id(item["source_label"], item["source_props"]),
-                "target": self._extract_node_id(item["target_label"], item["target_props"]),
-                "type": item["type"],
-            }
-            for item in row["edges"]
-        ]
-        return {"path": path, "edges": edges}
-
-    def graph_node_insight(self, node_id: str) -> dict[str, Any]:
-        insight = super().graph_node_insight(node_id)
-        query = """
-        MATCH (node)
-        WHERE any(k IN $id_keys WHERE node[k] = $node_id)
-        OPTIONAL MATCH (node)-[r]-(other)
-        RETURN type(r) AS relationship_type,
-               labels(other)[0] AS other_label,
-               properties(other) AS other_props
-        """
-        rows = self._run_graph_query("graph_node_insight", query, {"node_id": node_id, "id_keys": self.ID_KEYS})
-        relationship_counts = defaultdict(int)
-        related = []
-        seen = set()
-        for row in rows:
-            rel_type = row.get("relationship_type")
-            if not rel_type or not row.get("other_label") or row.get("other_props") is None:
-                continue
-            relationship_counts[rel_type] += 1
-            node = self._normalize_node(row["other_label"], row["other_props"])
-            if node["id"] in seen:
-                continue
-            seen.add(node["id"])
-            related.append(
-                {
-                    "id": node["id"],
-                    "label": node["label"],
-                    "type": node["type"],
-                    "relationship": rel_type,
-                }
-            )
-        insight["relationship_counts"] = [
-            {"label": item_type.replace("_", " ").title(), "value": count}
-            for item_type, count in sorted(relationship_counts.items(), key=lambda item: (-item[1], item[0]))
-        ]
-        insight["related"] = related[:12]
-        return insight
-
-    def selected_material_lookup(self, material_id: str) -> dict[str, Any] | None:
-        if not self.driver:
-            return super().selected_material_lookup(material_id)
-        query = """
-        MATCH (m:Material {material_id: $material_id})
-        OPTIONAL MATCH (m)-[:SUPPLIED_BY]->(s:Supplier)
-        OPTIONAL MATCH (m)-[:HAS_DOCUMENT]->(d:SourceDocument)
-        RETURN properties(m) AS material,
-               collect(DISTINCT properties(s)) AS suppliers,
-               collect(DISTINCT properties(d)) AS documents
-        """
-        rows = self._run_graph_query("selected_material_lookup", query, {"material_id": material_id})
-        if not rows:
-            return None
-        row = rows[0]
-        material = row.get("material")
-        if not material:
-            return None
-        payload = super().get_material(material_id) or material
-        payload["suppliers"] = [item for item in row.get("suppliers", []) if item.get("supplier_id")] or payload.get("suppliers", [])
-        payload["documents"] = [item for item in row.get("documents", []) if item.get("document_id")] or payload.get("documents", [])
-        return payload
-
-    def selected_supplier_lookup(self, supplier_id: str) -> dict[str, Any] | None:
-        if not self.driver:
-            return super().selected_supplier_lookup(supplier_id)
-        query = """
-        MATCH (s:Supplier {supplier_id: $supplier_id})
-        OPTIONAL MATCH (s)-[:SUPPLIES]->(m:Material)
-        RETURN properties(s) AS supplier,
-               collect(DISTINCT properties(m)) AS materials
-        """
-        rows = self._run_graph_query("selected_supplier_lookup", query, {"supplier_id": supplier_id})
-        if not rows:
-            return None
-        row = rows[0]
-        supplier = row.get("supplier")
-        if not supplier:
-            return None
-        payload = super().get_supplier(supplier_id) or supplier
-        payload["supplied_materials"] = [item for item in row.get("materials", []) if item.get("material_id")] or payload.get("supplied_materials", [])
-        return payload
-
-    def selected_entity_lookup(
-        self,
-        entity_type: str | None = None,
-        entity_id: str | None = None,
-        entity_name: str | None = None,
-    ) -> dict[str, Any] | None:
-        if not self.driver:
-            return super().selected_entity_lookup(entity_type, entity_id, entity_name)
-        if entity_type == "material" and entity_id:
-            material = self.selected_material_lookup(entity_id)
-            return {"entity": {"type": "material", "id": entity_id, "label": material.get("name", entity_id)}, "material": material} if material else None
-        if entity_type == "supplier" and entity_id:
-            supplier = self.selected_supplier_lookup(entity_id)
-            return {"entity": {"type": "supplier", "id": entity_id, "label": supplier.get("name", entity_id)}, "supplier": supplier} if supplier else None
-        query = """
-        MATCH (n)
-        WHERE ($entity_id IS NOT NULL AND any(k IN $id_keys WHERE n[k] = $entity_id))
-           OR ($entity_name IS NOT NULL AND toLower(coalesce(n.name, n.title, "")) = toLower($entity_name))
-        RETURN labels(n)[0] AS label, properties(n) AS props
-        LIMIT 1
-        """
-        rows = self._run_graph_query(
-            "selected_entity_lookup",
-            query,
-            {"entity_id": entity_id, "entity_name": entity_name, "id_keys": self.ID_KEYS},
-        )
-        if not rows:
-            return super().selected_entity_lookup(entity_type, entity_id, entity_name)
-        row = rows[0]
-        resolved = self._normalize_node(row["label"], row["props"])
-        return super().selected_entity_lookup(resolved["type"], resolved["id"], resolved["label"])
-
-    def uploaded_record_lookup(
-        self,
-        entity_type: str | None = None,
-        entity_id: str | None = None,
-        entity_name: str | None = None,
-    ) -> dict[str, Any] | None:
-        if not self.driver:
-            return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
-        if entity_type in {"component"}:
-            return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
-        query = """
-        MATCH (n)
-        WHERE ($entity_id IS NOT NULL AND (n.document_id = $entity_id OR n.report_id = $entity_id))
-           OR ($entity_name IS NOT NULL AND toLower(coalesce(n.title, "")) = toLower($entity_name))
-        RETURN labels(n)[0] AS label, properties(n) AS props
-        LIMIT 1
-        """
-        rows = self._run_graph_query(
-            "uploaded_record_lookup",
-            query,
-            {"entity_id": entity_id, "entity_name": entity_name},
-        )
-        if not rows:
-            return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
-        row = rows[0]
-        label = row["label"]
-        props = row["props"]
-        if label == "SourceDocument":
-            return {"record_type": "document", "record": self.document_detail(props.get("document_id", ""))}
-        if label == "TestReport":
-            return {"record_type": "report", "record": self.document_detail(props.get("report_id", ""))}
-        return super().uploaded_record_lookup(entity_type, entity_id, entity_name)
-
-    def backend_status(self) -> list[dict[str, Any]]:
-        statuses = super().backend_status()
-        statuses[0]["status"] = "ready" if self.connection_state == "connected" else self.connection_state
-        return statuses
-
-    def graph_health(self) -> dict[str, Any]:
-        return {
-            "backend": "neo4j",
-            "uri": _safe_neo4j_uri(self.settings.neo4j_uri),
-            "database": self.settings.neo4j_database,
-            "connected": self.connection_state == "connected",
-            "mode": self.connection_state,
-        }
-
-    def _run_graph_query(self, query_name: str, query: str, parameters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        if not self.driver:
-            raise GraphConnectionError("Neo4j is not connected. Live graph queries are unavailable.")
-        params = parameters or {}
-        try:
-            with self.driver.session(database=self.settings.neo4j_database) as session:
-                explain = session.run(f"EXPLAIN {query}", params)
-                explain_summary = explain.consume()
-                result = session.run(query, params)
-                rows = [dict(record) for record in result]
-                result_summary = result.consume()
-        except Exception as exc:
-            raise GraphQueryFailure(f"Neo4j query '{query_name}' failed against database {self.settings.neo4j_database}.") from exc
-        self._write_query_audit(
-            query_name=query_name,
-            query=query,
-            parameters=params,
-            result_count=len(rows),
-            plan=self._serialize_plan(getattr(explain_summary, "plan", None)),
-            counters=self._serialize_counters(getattr(result_summary, "counters", None)),
-        )
-        return rows
-
-    def _write_query_audit(
-        self,
-        query_name: str,
-        query: str,
-        parameters: dict[str, Any],
-        result_count: int,
-        plan: dict[str, Any] | None,
-        counters: dict[str, Any],
-    ) -> None:
-        entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "query_name": query_name,
-            "backend": "neo4j",
-            "database": self.settings.neo4j_database,
-            "result_count": result_count,
-            "parameters": parameters,
-            "query": " ".join(query.split()),
-            "plan": plan,
-            "counters": counters,
-        }
-        with self.audit_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry) + "\n")
-
-    def _serialize_plan(self, plan) -> dict[str, Any] | None:
-        if not plan:
-            return None
-        children = getattr(plan, "children", None) or []
-        return {
-            "operator_type": getattr(plan, "operator_type", None),
-            "arguments": getattr(plan, "arguments", {}),
-            "identifiers": getattr(plan, "identifiers", []),
-            "children": [self._serialize_plan(child) for child in children],
-        }
-
-    def _normalize_node(self, label: str, props: dict[str, Any]) -> dict[str, Any]:
-        node_id = self._extract_node_id(label, props)
-        node_type = self.LABEL_TO_TYPE.get(label, label.lower())
-        id_key = self.LABEL_TO_ID_KEY.get(label, "")
-        label_value = (
-            props.get("name")
-            or props.get("title")
-            or props.get(id_key)
-            or node_id
-        )
-        return {"id": node_id, "label": label_value, "type": node_type}
-
-    def _extract_node_id(self, label: str, props: dict[str, Any]) -> str:
-        id_key = self.LABEL_TO_ID_KEY.get(label)
-        if id_key and props.get(id_key):
-            return str(props[id_key])
-        for key in self.ID_KEYS:
-            if props.get(key):
-                return str(props[key])
-        return str(props.get("id", "unknown"))
-
-    def _serialize_counters(self, counters) -> dict[str, Any]:
-        if counters is None:
-            return {}
-        return {
-            "contains_updates": getattr(counters, "contains_updates", False),
-            "nodes_created": getattr(counters, "nodes_created", 0),
-            "nodes_deleted": getattr(counters, "nodes_deleted", 0),
-            "relationships_created": getattr(counters, "relationships_created", 0),
-            "relationships_deleted": getattr(counters, "relationships_deleted", 0),
-            "properties_set": getattr(counters, "properties_set", 0),
-            "labels_added": getattr(counters, "labels_added", 0),
-            "labels_removed": getattr(counters, "labels_removed", 0),
-            "indexes_added": getattr(counters, "indexes_added", 0),
-            "indexes_removed": getattr(counters, "indexes_removed", 0),
-            "constraints_added": getattr(counters, "constraints_added", 0),
-            "constraints_removed": getattr(counters, "constraints_removed", 0),
-        }
-
-    def _normalize_neo4j_properties(self, row: dict[str, Any]) -> dict[str, Any]:
-        normalized = {}
-        for key, value in row.items():
-            if isinstance(value, dict):
-                for nested_key, nested_value in self._flatten_nested_dict(value, prefix=key).items():
-                    normalized[nested_key] = self._normalize_scalar_or_list(nested_value)
-            else:
-                normalized[key] = self._normalize_scalar_or_list(value)
-        return normalized
-
-    def _flatten_nested_dict(self, value: dict[str, Any], prefix: str) -> dict[str, Any]:
-        flattened = {}
-        for nested_key, nested_value in value.items():
-            composite_key = f"{prefix}_{nested_key}"
-            if isinstance(nested_value, dict):
-                flattened.update(self._flatten_nested_dict(nested_value, composite_key))
-            else:
-                flattened[composite_key] = nested_value
-        return flattened
-
-    def _normalize_scalar_or_list(self, value: Any) -> Any:
-        if isinstance(value, list):
-            if all(isinstance(item, (str, int, float, bool)) or item is None for item in value):
-                return value
-            return json.dumps(value, sort_keys=True)
-        if isinstance(value, (str, int, float, bool)) or value is None:
-            return value
-        return json.dumps(value, sort_keys=True)
-
-
-def build_graph_repository(settings=None) -> LocalGraphRepository:
-    settings = settings or get_settings()
-    return Neo4jGraphRepository(settings)
+# Re-exports so existing imports from this module keep working.
+from app.repositories.graph_neo4j import Neo4jAdminRepository as Neo4jAdminRepository  # noqa: E402, F401
+from app.repositories.graph_neo4j import Neo4jGraphRepository as Neo4jGraphRepository  # noqa: E402, F401
+from app.repositories.graph_neo4j import build_graph_repository as build_graph_repository  # noqa: E402, F401
