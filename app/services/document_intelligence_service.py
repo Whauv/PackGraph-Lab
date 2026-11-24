@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from app.core.config import DEFAULT_ORG_ID
+
 
 class DocumentIntelligenceService:
     def __init__(self, runtime_dir: Path, repository) -> None:
@@ -34,7 +36,7 @@ class DocumentIntelligenceService:
         supplier_id: str | None = None,
         title: str | None = None,
         owner_id: str | None = None,
-        org_id: str = "ORG-001",
+        org_id: str = DEFAULT_ORG_ID,
         provenance: dict[str, Any] | None = None,
         retention: dict[str, Any] | None = None,
     ) -> dict[str, Any]:

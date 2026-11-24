@@ -54,3 +54,4 @@ smoke-test-output/
 *.smoke.json
 review-exports/
 private_data/
+web/node_modules/

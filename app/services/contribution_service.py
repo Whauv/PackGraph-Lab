@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.config import DEFAULT_ORG_ID
+
 
 class ContributionService:
     ROLE_CONFIG = [
@@ -140,7 +142,7 @@ class ContributionService:
     def list_submissions(self, org_id: str | None = None) -> list[dict[str, Any]]:
         records = self._read()
         if org_id:
-            records = [item for item in records if item.get("org_id", "ORG-001") == org_id]
+            records = [item for item in records if item.get("org_id", DEFAULT_ORG_ID) == org_id]
         return sorted(records, key=lambda item: item.get("submitted_on", ""), reverse=True)
 
     def list_queue(self, org_id: str | None = None) -> list[dict[str, Any]]:
@@ -153,7 +155,7 @@ class ContributionService:
             counts[status] = counts.get(status, 0) + 1
         return [{"label": key.replace("_", " ").title(), "value": value} for key, value in counts.items()]
 
-    def create(self, payload: dict[str, Any], submitted_by: str, org_id: str = "ORG-001") -> dict[str, Any]:
+    def create(self, payload: dict[str, Any], submitted_by: str, org_id: str = DEFAULT_ORG_ID) -> dict[str, Any]:
         role = next((item for item in self.ROLE_CONFIG if item["role_id"] == payload["role_id"]), self.ROLE_CONFIG[-1])
         records = self._read()
         record = {
@@ -182,7 +184,7 @@ class ContributionService:
         for record in records:
             if record["contribution_id"] != contribution_id:
                 continue
-            if org_id and record.get("org_id", "ORG-001") != org_id:
+            if org_id and record.get("org_id", DEFAULT_ORG_ID) != org_id:
                 return None
             record["status"] = status
             record["reviewer_name"] = reviewer_name

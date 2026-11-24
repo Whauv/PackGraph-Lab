@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from app.core.config import DEFAULT_ORG_ID
+
 
 class InvestigationService:
     def __init__(self, runtime_dir: Path):
@@ -53,7 +55,7 @@ class InvestigationService:
     def list(self, owner_id: str | None = None, org_id: str | None = None) -> list[dict[str, Any]]:
         investigations = [self._normalize_record(item) for item in self._read()]
         if org_id:
-            investigations = [item for item in investigations if item.get("org_id", "ORG-001") == org_id]
+            investigations = [item for item in investigations if item.get("org_id", DEFAULT_ORG_ID) == org_id]
         if owner_id:
             return [item for item in investigations if item.get("owner_id") in {None, owner_id}]
         return investigations
@@ -63,12 +65,12 @@ class InvestigationService:
             (
                 item
                 for item in [self._normalize_record(row) for row in self._read()]
-                if item["investigation_id"] == investigation_id and (org_id is None or item.get("org_id", "ORG-001") == org_id)
+                if item["investigation_id"] == investigation_id and (org_id is None or item.get("org_id", DEFAULT_ORG_ID) == org_id)
             ),
             None,
         )
 
-    def create(self, payload: dict[str, Any], owner_id: str | None = None, org_id: str = "ORG-001") -> dict[str, Any]:
+    def create(self, payload: dict[str, Any], owner_id: str | None = None, org_id: str = DEFAULT_ORG_ID) -> dict[str, Any]:
         investigations = self._read()
         now = datetime.now(UTC).isoformat()
         record = self._normalize_record(
@@ -91,7 +93,7 @@ class InvestigationService:
         for index, record in enumerate(investigations):
             if record["investigation_id"] != investigation_id:
                 continue
-            if org_id and record.get("org_id", "ORG-001") != org_id:
+            if org_id and record.get("org_id", DEFAULT_ORG_ID) != org_id:
                 return None
             if owner_id and record.get("owner_id") not in {None, owner_id}:
                 return None
@@ -100,7 +102,7 @@ class InvestigationService:
                     **record,
                     **payload,
                     "owner_id": record.get("owner_id", owner_id),
-                    "org_id": record.get("org_id", org_id or "ORG-001"),
+                    "org_id": record.get("org_id", org_id or DEFAULT_ORG_ID),
                     "updated_at": datetime.now(UTC).isoformat(),
                 }
             )

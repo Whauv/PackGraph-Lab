@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
+from app.models.entities import DataBundle
 from app.services.data_generator import ensure_generated_data
 
 
@@ -18,7 +19,7 @@ class DataStore:
         with path.open("r", encoding="utf-8") as handle:
             return json.load(handle)
 
-    def load_bundle(self) -> dict[str, Any]:
+    def load_bundle(self) -> DataBundle:
         return {
             "materials": self._load_json("materials"),
             "suppliers": self._load_json("suppliers"),

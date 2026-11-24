@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+
+from app.core.config import DEFAULT_ORG_ID
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,7 +39,7 @@ class SourceIntakeService:
         source_type: str | None = None,
         title: str | None = None,
         owner_id: str | None = None,
-        org_id: str = "ORG-001",
+        org_id: str = DEFAULT_ORG_ID,
     ) -> dict[str, Any]:
         resolved_type = self._infer_type(filename, source_type)
         text = self._decode_content(content)

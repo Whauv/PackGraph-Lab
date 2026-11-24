@@ -19,12 +19,41 @@ dependencies = [
   "google-adk>=2.3,<3",
 ]
 
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0,<9",
+  "pytest-cov>=6.0,<7",
+]
+
 [project.scripts]
 packgraph-ingest = "scripts.ingest_graph:cli_main"
 packgraph-er-eval = "scripts.evaluate_entity_resolution:main"
 packgraph-review = "scripts.review_workflow:main"
 packgraph-status = "scripts.status_dashboard:main"
 packgraph-graph-schema = "scripts.migrate_graph_schema:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*", "*Tests"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["app", "scripts", "adk_architecture"]
+branch = true
+omit = [
+  "app/__init__.py",
+  "scripts/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.",
+  "if TYPE_CHECKING:",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*", "agents*", "adk_architecture*", "scripts*"]
