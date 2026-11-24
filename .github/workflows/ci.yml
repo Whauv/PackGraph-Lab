@@ -19,11 +19,20 @@ jobs:
           pip install -r requirements.txt
       - name: Runtime migrations
         run: python scripts/migrate_runtime.py
-      - name: Run tests
-        run: python -m unittest discover tests
+      - name: Run tests with coverage
+        run: pytest tests/ --cov --cov-report=term-missing
       - name: CLI smoke checks
         run: |
           python scripts/ingest_graph.py --help
           python scripts/review_workflow.py --help
           python scripts/evaluate_entity_resolution.py --help
           python scripts/run_jobs.py --help
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install frontend test dependencies
+        working-directory: web
+        run: npm ci
+      - name: Run frontend tests
+        working-directory: web
+        run: npx vitest run
