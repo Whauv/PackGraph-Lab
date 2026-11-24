@@ -10,6 +10,18 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
+from app.models.entities import (
+    ApplicationRecord,
+    MaterialRecord,
+    NewsRecord,
+    ProductRecord,
+    QuarterlySnapshot,
+    RegulationRecord,
+    Relationship,
+    SourceDocumentRecord,
+    SupplierRecord,
+    TestReportRecord,
+)
 from app.repositories.data_store import get_data_store
 from app.repositories.graph_detail import explore_detail as run_explore_detail
 from app.repositories.graph_detail import explore_entities as run_explore_entities
@@ -57,6 +69,24 @@ def _safe_neo4j_uri(uri: str) -> str:
 
 
 class LocalGraphRepository:
+    materials: list[MaterialRecord]
+    suppliers: list[SupplierRecord]
+    applications: list[ApplicationRecord]
+    material_news: list[NewsRecord]
+    regulations: list[RegulationRecord]
+    documents: list[SourceDocumentRecord]
+    test_reports: list[TestReportRecord]
+    snapshots: list[QuarterlySnapshot]
+    relationships: list[Relationship]
+    products: list[ProductRecord]
+    material_index: dict[str, MaterialRecord]
+    supplier_index: dict[str, SupplierRecord]
+    application_index: dict[str, ApplicationRecord]
+    regulation_index: dict[str, RegulationRecord]
+    news_index: dict[str, NewsRecord]
+    document_index: dict[str, SourceDocumentRecord]
+    product_index: dict[str, ProductRecord]
+
     def __init__(self) -> None:
         self.settings = get_settings()
         bundle = get_data_store().load_bundle()
@@ -137,7 +167,7 @@ class LocalGraphRepository:
         ]
         return result
 
-    def list_materials(self) -> list[dict[str, Any]]:
+    def list_materials(self) -> list[MaterialRecord]:
         return self.materials
 
     def filter_materials(
@@ -153,7 +183,7 @@ class LocalGraphRepository:
         performance_metric: str | None = None,
         min_performance_score: int | None = None,
         supplier_capability: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[MaterialRecord]:
         materials = self.materials
         if region:
             materials = [item for item in materials if region in item["regions_available"]]
@@ -190,10 +220,10 @@ class LocalGraphRepository:
             ]
         return materials
 
-    def get_material(self, material_id: str) -> dict[str, Any] | None:
+    def get_material(self, material_id: str) -> MaterialRecord | None:
         return load_material_detail(self, material_id)
 
-    def list_suppliers(self, region: str | None = None) -> list[dict[str, Any]]:
+    def list_suppliers(self, region: str | None = None) -> list[SupplierRecord]:
         if not region:
             return self.suppliers
         region_lower = region.lower()
@@ -213,13 +243,13 @@ class LocalGraphRepository:
             for region, supplier_count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))
         ]
 
-    def list_applications(self) -> list[dict[str, Any]]:
+    def list_applications(self) -> list[ApplicationRecord]:
         return self.applications
 
-    def list_products(self) -> list[dict[str, Any]]:
+    def list_products(self) -> list[ProductRecord]:
         return self.products
 
-    def list_news(self) -> list[dict[str, Any]]:
+    def list_news(self) -> list[NewsRecord]:
         return self.material_news
 
     def explore_autocomplete(self, query: str) -> list[dict[str, Any]]:
@@ -238,13 +268,13 @@ class LocalGraphRepository:
                 suggestions.append({"entity_type": "supplier", "entity_id": supplier["supplier_id"], "label": supplier["name"]})
         return suggestions[:8]
 
-    def list_regulations(self) -> list[dict[str, Any]]:
+    def list_regulations(self) -> list[RegulationRecord]:
         return self.regulations
 
-    def get_supplier(self, supplier_id: str) -> dict[str, Any] | None:
+    def get_supplier(self, supplier_id: str) -> SupplierRecord | None:
         return load_supplier_detail(self, supplier_id)
 
-    def get_regulation(self, regulation_id: str) -> dict[str, Any] | None:
+    def get_regulation(self, regulation_id: str) -> RegulationRecord | None:
         regulation = self.regulation_index.get(regulation_id)
         if not regulation:
             return None

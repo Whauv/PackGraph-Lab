@@ -3,8 +3,10 @@ from __future__ import annotations
 from statistics import mean
 from typing import Any
 
+from app.models.entities import MaterialRecord, ProductRecord, SupplierRecord
 
-def classify_material(material: dict[str, Any]) -> str:
+
+def classify_material(material: MaterialRecord) -> str:
     category = material.get("category", "").lower()
     composition = material.get("composition", "").lower()
     descriptor = material.get("descriptor", "").lower()
@@ -25,11 +27,11 @@ def thumbnail_label(entity_type: str, title: str) -> str:
     return f"{prefixes.get(entity_type, entity_type[:3].upper())} | {title[:18]}"
 
 
-def materials_for_application(repo, application_id: str) -> list[dict[str, Any]]:
+def materials_for_application(repo, application_id: str) -> list[MaterialRecord]:
     return [item for item in repo.materials if application_id in item["target_applications"]]
 
 
-def suppliers_for_materials(repo, materials: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def suppliers_for_materials(repo, materials: list[MaterialRecord]) -> list[SupplierRecord]:
     supplier_ids: list[str] = []
     for material in materials:
         supplier_ids.extend(material["supplier_ids"])
@@ -37,7 +39,7 @@ def suppliers_for_materials(repo, materials: list[dict[str, Any]]) -> list[dict[
     return [repo.supplier_index[item] for item in unique if item in repo.supplier_index]
 
 
-def build_products(repo) -> list[dict[str, Any]]:
+def build_products(repo) -> list[ProductRecord]:
     products: list[dict[str, Any]] = []
     buyer_region_order = ["North America", "Europe", "Asia Pacific", "Latin America", "Middle East", "Africa"]
     buyer_suffixes = ["Procurement Group", "Consumer Brands", "Retail Network", "Manufacturing Cluster"]
