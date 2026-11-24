@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, UTC
 from typing import Any
 from uuid import uuid4
 
+from app.core.config import DEFAULT_ORG_ID
+
 from app.core.config import Settings
 from app.core.runtime_db import RuntimeDatabase, deserialize_json, serialize_json
 
@@ -24,7 +26,7 @@ class GovernanceService:
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     [
-                        ("RET-001", "ORG-001", "Default evidence retention", 365, "document,artifact,review", "archive", now, now),
+                        ("RET-001", DEFAULT_ORG_ID, "Default evidence retention", 365, "document,artifact,review", "archive", now, now),
                         ("RET-002", "ORG-002", "Customer A evidence retention", 730, "document,artifact,review", "archive", now, now),
                         ("RET-003", "ORG-003", "Customer B evidence retention", 180, "document,artifact,review", "redact", now, now),
                     ],
@@ -37,7 +39,7 @@ class GovernanceService:
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     [
-                        ("RED-001", "ORG-001", "Default PII masking", serialize_json(["email", "phone", "address"]), "partial-mask", "document,artifact", now, now),
+                        ("RED-001", DEFAULT_ORG_ID, "Default PII masking", serialize_json(["email", "phone", "address"]), "partial-mask", "document,artifact", now, now),
                         ("RED-002", "ORG-002", "Customer A strict masking", serialize_json(["email", "phone", "address", "contract_id"]), "full-mask", "document,artifact", now, now),
                         ("RED-003", "ORG-003", "Customer B light masking", serialize_json(["email", "phone"]), "partial-mask", "document,artifact", now, now),
                     ],

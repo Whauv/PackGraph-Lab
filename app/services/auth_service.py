@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta, UTC
 import hashlib
 import hmac
+
+from app.core.config import DEFAULT_ORG_ID
 import json
 import secrets
 from pathlib import Path
@@ -149,7 +151,7 @@ class AuthService:
             if org_count == 0:
                 now = datetime.now(UTC).isoformat()
                 seed_orgs = [
-                    ("ORG-001", "PackGraph Demo Org", "demo-org", now),
+                    (DEFAULT_ORG_ID, "PackGraph Demo Org", "demo-org", now),
                     ("ORG-002", "Customer A Sandbox", "customer-a", now),
                     ("ORG-003", "Customer B Sandbox", "customer-b", now),
                 ]
@@ -160,10 +162,10 @@ class AuthService:
             user_count = connection.execute("SELECT COUNT(*) AS count FROM users").fetchone()["count"]
             if user_count == 0:
                 seed_users = [
-                    ("USR-001", "ORG-001", "Demo Analyst", "analyst@packgraph.local", "packgraph-demo", "materials_strategist"),
-                    ("USR-002", "ORG-001", "Compliance Lead", "compliance@packgraph.local", "packgraph-demo", "compliance_lead"),
-                    ("USR-003", "ORG-001", "Community Reviewer", "curator@packgraph.local", "packgraph-demo", "curator"),
-                    ("USR-004", "ORG-001", "PackGraph Admin", "admin@packgraph.local", "packgraph-demo", "admin"),
+                    ("USR-001", DEFAULT_ORG_ID, "Demo Analyst", "analyst@packgraph.local", "packgraph-demo", "materials_strategist"),
+                    ("USR-002", DEFAULT_ORG_ID, "Compliance Lead", "compliance@packgraph.local", "packgraph-demo", "compliance_lead"),
+                    ("USR-003", DEFAULT_ORG_ID, "Community Reviewer", "curator@packgraph.local", "packgraph-demo", "curator"),
+                    ("USR-004", DEFAULT_ORG_ID, "PackGraph Admin", "admin@packgraph.local", "packgraph-demo", "admin"),
                     ("USR-005", "ORG-002", "Customer A Analyst", "analyst@customer-a.packgraph.local", "packgraph-demo", "materials_strategist"),
                     ("USR-006", "ORG-003", "Customer B Analyst", "analyst@customer-b.packgraph.local", "packgraph-demo", "materials_strategist"),
                 ]
@@ -195,7 +197,7 @@ class AuthService:
             rows = connection.execute("SELECT * FROM users ORDER BY created_at").fetchall()
         return [self._decorate_user(row) for row in rows]
 
-    def register(self, name: str, email: str, password: str, role_id: str, org_id: str = "ORG-001") -> dict[str, Any]:
+    def register(self, name: str, email: str, password: str, role_id: str, org_id: str = DEFAULT_ORG_ID) -> dict[str, Any]:
         role = self._role_map().get(role_id)
         if not role:
             raise ValueError("Unknown role.")
@@ -233,7 +235,7 @@ class AuthService:
         expires_at = created_at + timedelta(hours=self.settings.session_ttl_hours)
         with self.db.connect() as connection:
             user = connection.execute("SELECT org_id FROM users WHERE user_id=?", (user_id,)).fetchone()
-            org_id = user["org_id"] if user else "ORG-001"
+            org_id = user["org_id"] if user else DEFAULT_ORG_ID
         with self.db.connect() as connection:
             connection.execute(
                 """

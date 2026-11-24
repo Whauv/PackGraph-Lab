@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime, UTC
 import json
+
+from app.core.config import DEFAULT_ORG_ID
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -62,7 +64,7 @@ class ReviewCandidateStore:
             "pending": sum(1 for record in records if record["status"] in {"pending_human_review", "assigned", "in_approval"}),
         }
 
-    def create(self, candidate_type: str, reason: str, payload: dict[str, Any], org_id: str = "ORG-001") -> dict[str, Any]:
+    def create(self, candidate_type: str, reason: str, payload: dict[str, Any], org_id: str = DEFAULT_ORG_ID) -> dict[str, Any]:
         now = datetime.now(UTC).isoformat()
         sanitized_payload = sanitize_review_payload(payload, include_raw_props=True)
         record = {
@@ -114,7 +116,7 @@ class ReviewCandidateStore:
         self._history(candidate_id, org_id, actor_id, "commented", comment, {})
         return candidate
 
-    def decide(self, candidate_id: str, actor_id: str | None, status: str, comment: str, metadata: dict[str, Any] | None = None, org_id: str = "ORG-001") -> dict[str, Any] | None:
+    def decide(self, candidate_id: str, actor_id: str | None, status: str, comment: str, metadata: dict[str, Any] | None = None, org_id: str = DEFAULT_ORG_ID) -> dict[str, Any] | None:
         now = datetime.now(UTC).isoformat()
         metadata = metadata or {}
         decision_state = "approved" if status == "approved" else "rejected" if status == "rejected" else "in_approval"
@@ -178,7 +180,7 @@ class ReviewCandidateStore:
         applied = 0
         for decision in payload:
             candidate_id = decision.get("candidate_id")
-            candidate_org_id = org_id or decision.get("org_id") or "ORG-001"
+            candidate_org_id = org_id or decision.get("org_id") or DEFAULT_ORG_ID
             if not candidate_id or not self.get(candidate_id, org_id=candidate_org_id):
                 continue
             self.decide(

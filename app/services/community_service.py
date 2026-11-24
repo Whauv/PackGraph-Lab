@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.config import DEFAULT_ORG_ID
+
 
 class CommunityService:
     CHANNELS = [
@@ -107,7 +109,7 @@ class CommunityService:
     def list_channels(self, org_id: str | None = None) -> list[dict[str, Any]]:
         posts = self._read()
         if org_id:
-            posts = [item for item in posts if item.get("org_id", "ORG-001") == org_id]
+            posts = [item for item in posts if item.get("org_id", DEFAULT_ORG_ID) == org_id]
         counts = {item["channel_id"]: 0 for item in self.CHANNELS}
         last_activity = {item["channel_id"]: "" for item in self.CHANNELS}
         for post in posts:
@@ -124,7 +126,7 @@ class CommunityService:
     ) -> list[dict[str, Any]]:
         posts = self._read()
         if org_id:
-            posts = [item for item in posts if item.get("org_id", "ORG-001") == org_id]
+            posts = [item for item in posts if item.get("org_id", DEFAULT_ORG_ID) == org_id]
         if channel_id:
             posts = [item for item in posts if item["channel_id"] == channel_id]
         if moderation_state:
@@ -138,12 +140,12 @@ class CommunityService:
             (
                 item
                 for item in self._read()
-                if item["post_id"] == post_id and (org_id is None or item.get("org_id", "ORG-001") == org_id)
+                if item["post_id"] == post_id and (org_id is None or item.get("org_id", DEFAULT_ORG_ID) == org_id)
             ),
             None,
         )
 
-    def create_post(self, payload: dict[str, Any], author_name: str, author_role: str = "Contributor", author_reputation: int = 60, org_id: str = "ORG-001") -> dict[str, Any]:
+    def create_post(self, payload: dict[str, Any], author_name: str, author_role: str = "Contributor", author_reputation: int = 60, org_id: str = DEFAULT_ORG_ID) -> dict[str, Any]:
         posts = self._read()
         now = datetime.now().isoformat(timespec="seconds")
         record = {
@@ -178,7 +180,7 @@ class CommunityService:
         updated = None
         for post in posts:
             if post["post_id"] == post_id:
-                if org_id and post.get("org_id", "ORG-001") != org_id:
+                if org_id and post.get("org_id", DEFAULT_ORG_ID) != org_id:
                     return None
                 post["upvotes"] = int(post.get("upvotes", 0)) + 1
                 updated = post
@@ -193,7 +195,7 @@ class CommunityService:
         updated = None
         for post in posts:
             if post["post_id"] == post_id:
-                if org_id and post.get("org_id", "ORG-001") != org_id:
+                if org_id and post.get("org_id", DEFAULT_ORG_ID) != org_id:
                     return None
                 post["saves"] = int(post.get("saves", 0)) + 1
                 updated = post
@@ -209,7 +211,7 @@ class CommunityService:
         for post in posts:
             if post["post_id"] != post_id:
                 continue
-            if org_id and post.get("org_id", "ORG-001") != org_id:
+            if org_id and post.get("org_id", DEFAULT_ORG_ID) != org_id:
                 return None
             comments = post.setdefault("comments", [])
             comments.append(
@@ -236,7 +238,7 @@ class CommunityService:
         for post in posts:
             if post["post_id"] != post_id:
                 continue
-            if org_id and post.get("org_id", "ORG-001") != org_id:
+            if org_id and post.get("org_id", DEFAULT_ORG_ID) != org_id:
                 return None
             post["moderation_state"] = state_value
             post["updated_at"] = datetime.now().isoformat(timespec="seconds")
@@ -253,7 +255,7 @@ class CommunityService:
         for post in posts:
             if post["post_id"] != post_id:
                 continue
-            if org_id and post.get("org_id", "ORG-001") != org_id:
+            if org_id and post.get("org_id", DEFAULT_ORG_ID) != org_id:
                 return None
             post["pinned"] = not bool(post.get("pinned"))
             post["updated_at"] = datetime.now().isoformat(timespec="seconds")

@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 
+from app.core.config import DEFAULT_ORG_ID
 from app.models.schemas import ApiEnvelope, CommunityPostCreate, CommunityReplyCreate, ComponentDiscoveryRequest, ContributionCreate, ContributionReviewRequest, InvestigationCreate, InvestigationUpdate, JobEnqueueRequest, LoginRequest, ManualReviewCandidateRequest, MaterialCompareRequest, ProjectMemoryPatchRequest, ProvisionalReviewDecisionEnvelope, ProvisionalReviewDecisionRequest, ProvisionalReviewQueueEnvelope, QueryAnswerEnvelope, QueryEnrichmentEnvelope, QueryPreviewEnvelope, QueryRequest, RegisterRequest, ReviewAssignmentRequest, ReviewCommentRequest, ReviewDecisionRequest, ScenarioRequest, WorkflowStatusEnvelope, WorkspaceSaveRequest
 
 
@@ -27,6 +28,9 @@ def build_router(state) -> APIRouter:
     def maybe_current_user(request: Request):
         return state.auth.current_user(_session_token(request))
 
+    def get_org_id(user) -> str:
+        return user["org_id"] if user else DEFAULT_ORG_ID
+
     def require_permission(request: Request, permission: str):
         user = current_user_or_401(request)
         if not state.auth.has_permission(user, permission):
@@ -38,7 +42,7 @@ def build_router(state) -> APIRouter:
         if not idem_key:
             return action()
         user = maybe_current_user(request)
-        org_id = user["org_id"] if user else "ORG-001"
+        org_id = get_org_id(user)
         request_hash = state.idempotency.request_hash(request, str(payload).encode("utf-8"))
         existing = state.idempotency.get(idem_key, org_id=org_id)
         if existing:
@@ -355,13 +359,13 @@ def build_router(state) -> APIRouter:
     @router.get("/source-intake/sources", response_model=ApiEnvelope)
     def source_intake_sources(request: Request, limit: int = 25):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         return {"status": "ok", "data": state.source_intake.list_sources(limit=limit, org_id=org_id)}
 
     @router.get("/source-intake/search", response_model=ApiEnvelope)
     def source_intake_search(request: Request, query: str, limit: int = 8):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         return {"status": "ok", "data": state.source_intake.search(query, limit=limit, org_id=org_id)}
 
     @router.post("/source-intake/upload", response_model=ApiEnvelope)
@@ -373,7 +377,7 @@ def build_router(state) -> APIRouter:
     ):
         content = await file.read()
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         result = state.source_intake.upload(
             filename=file.filename or "uploaded-source",
             content=content,
@@ -405,7 +409,7 @@ def build_router(state) -> APIRouter:
             "data": state.investigations.create(
                 payload.model_dump(),
                 current_user["user_id"] if current_user else None,
-                org_id=current_user["org_id"] if current_user else "ORG-001",
+                org_id=get_org_id(current_user),
             ),
         }
 
@@ -568,7 +572,7 @@ def build_router(state) -> APIRouter:
     @router.get("/review/provisional", response_model=ProvisionalReviewQueueEnvelope)
     def provisional_review_queue(request: Request, status: str | None = None, limit: int = 100):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         rows = [
             item
             for item in state.review_store.list(status=status, org_id=org_id, limit=limit)
@@ -579,7 +583,7 @@ def build_router(state) -> APIRouter:
     @router.post("/review/provisional/decision", response_model=ProvisionalReviewDecisionEnvelope)
     def provisional_review_decision(payload: ProvisionalReviewDecisionRequest, request: Request):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         actor_id = current_user["user_id"] if current_user else None
         status_map = {
             "promote": "approved",
@@ -801,7 +805,7 @@ def build_router(state) -> APIRouter:
     ):
         content = await file.read()
         current_user = state.auth.current_user(_session_token(request))
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         uploaded_at = datetime.now(UTC).isoformat()
         source = state.governance.register_source(
             org_id=org_id,
@@ -874,7 +878,7 @@ def build_router(state) -> APIRouter:
     @router.get("/operations/dashboard", response_model=ApiEnvelope)
     def operations_dashboard(request: Request):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         return {"status": "ok", "data": state.operations.dashboard(org_id=org_id)}
 
     @router.get("/integrity/report", response_model=ApiEnvelope)
@@ -954,7 +958,7 @@ def build_router(state) -> APIRouter:
     @router.get("/contributions", response_model=ApiEnvelope)
     def list_contributions(request: Request):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         return {
             "status": "ok",
             "data": {
@@ -1033,7 +1037,7 @@ def build_router(state) -> APIRouter:
     @router.get("/community/channels", response_model=ApiEnvelope)
     def community_channels(request: Request):
         current_user = maybe_current_user(request)
-        return {"status": "ok", "data": state.community.list_channels(org_id=current_user["org_id"] if current_user else "ORG-001")}
+        return {"status": "ok", "data": state.community.list_channels(org_id=get_org_id(current_user))}
 
     @router.get("/community/posts", response_model=ApiEnvelope)
     def community_posts(
@@ -1045,7 +1049,7 @@ def build_router(state) -> APIRouter:
         limit: int = 12,
     ):
         current_user = maybe_current_user(request)
-        org_id = current_user["org_id"] if current_user else "ORG-001"
+        org_id = get_org_id(current_user)
         rows = cached(
             "community_posts",
             {
@@ -1062,7 +1066,7 @@ def build_router(state) -> APIRouter:
     @router.get("/community/posts/{post_id}", response_model=ApiEnvelope)
     def community_post_detail(post_id: str, request: Request):
         current_user = maybe_current_user(request)
-        post = state.community.get_post(post_id, current_user["org_id"] if current_user else "ORG-001")
+        post = state.community.get_post(post_id, get_org_id(current_user))
         if not post:
             raise HTTPException(status_code=404, detail="Community post not found")
         return {"status": "ok", "data": post}
