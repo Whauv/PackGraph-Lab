@@ -19,6 +19,12 @@ dependencies = [
   "google-adk>=2.3,<3",
 ]
 
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0,<9",
+  "pytest-cov>=6.0,<7",
+]
+
 [project.scripts]
 packgraph-ingest = "scripts.ingest_graph:cli_main"
 packgraph-er-eval = "scripts.evaluate_entity_resolution:main"

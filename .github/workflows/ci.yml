@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install -e ".[test]"
       - name: Runtime migrations
         run: python scripts/migrate_runtime.py
       - name: Run tests with coverage
